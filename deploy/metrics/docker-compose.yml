@@ -1,0 +1,34 @@
+# Приёмник метрик «Ревью за ИИ».
+#
+# Отдельно от игры специально: игра живёт на GitHub Pages, а контейнер игры
+# на сервере может быть удалён в любой момент — метрики не должны уехать вместе
+# с ним. Нагрузка — единицы запросов на игрока в день.
+
+services:
+  metrics:
+    image: nginx:1.29-alpine
+    container_name: review-metrics
+    restart: unless-stopped
+
+    volumes:
+      # Каталог, а не файл: bind-mount файла привязан к inode, и rsync,
+      # заменяющий файл целиком, оставил бы контейнер со старым конфигом.
+      - ./conf:/etc/nginx/conf.d:ro
+      - ./log:/var/log/nginx
+
+    mem_limit: 64m
+
+    networks:
+      - traefik-network
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik-network
+      traefik.http.routers.review-metrics.rule: "Host(`${METRICS_DOMAIN}`)"
+      traefik.http.routers.review-metrics.entrypoints: websecure
+      traefik.http.routers.review-metrics.tls.certresolver: letsencrypt
+      traefik.http.services.review-metrics.loadbalancer.server.port: "80"
+
+networks:
+  traefik-network:
+    external: true

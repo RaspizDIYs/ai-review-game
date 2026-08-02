@@ -22,6 +22,7 @@ import {
   saveEndless,
 } from './storage.ts'
 import { isWin } from './share.ts'
+import { trackRound, trackSeries } from './analytics.ts'
 import { Briefing } from './components/Briefing.tsx'
 import { DiffView, type LineState } from './components/DiffView.tsx'
 import { Hint } from './components/Hint.tsx'
@@ -76,8 +77,17 @@ export default function App() {
       setHistory((h) => [...h, { task, outcome: result, score: points }])
       if (!isWin(result)) setMissed((m) => m + 1)
       setScreen('verdict')
+
+      trackRound({
+        task: task.id,
+        outcome: result,
+        seconds: duration - secondsLeft,
+        attempt,
+        mode,
+        difficulty: task.difficulty,
+      })
     },
-    [task, duration],
+    [task, duration, mode],
   )
 
   const apply = useCallback(
@@ -150,6 +160,13 @@ export default function App() {
       setNewRecord(saveEndless(history.reduce((s, h) => s + h.score, 0)))
     }
     setScreen('summary')
+
+    trackSeries({
+      mode,
+      rounds: history.length,
+      wins: history.filter((h) => isWin(h.outcome)).length,
+      seconds,
+    })
   }
 
   function next() {
