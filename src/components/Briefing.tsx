@@ -13,7 +13,7 @@ export function Briefing({ task, onStart }: { task: Task; onStart: () => void })
         <p className="text-xs uppercase tracking-widest text-zinc-500">
           {STACK_LABEL[task.stack]} · сложность {task.difficulty}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold text-zinc-100">{task.title}</h1>
+        <h1 className="mt-1 text-xl font-semibold text-zinc-100 sm:text-2xl">{task.title}</h1>
       </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
@@ -25,7 +25,7 @@ export function Briefing({ task, onStart }: { task: Task; onStart: () => void })
         <p className="mb-2 text-xs uppercase tracking-widest text-emerald-500/80">
           Прогон прошёл
         </p>
-        <pre className="overflow-x-auto font-mono text-[13px] leading-6 text-emerald-200/90">
+        <pre className="overflow-x-auto overscroll-x-contain font-mono text-[11px] leading-5 text-emerald-200/90 sm:text-[13px] sm:leading-6">
           {task.tests}
         </pre>
       </div>

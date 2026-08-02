@@ -50,10 +50,33 @@ for (const t of pack) {
     if (t.bugs.some((b) => b.line === d.line)) at(`decoy ${d.line} совпадает с подлянкой`)
   }
 
+  // Заготовка от new-task.mjs не должна доехать до игры незамеченной.
+  const draft = JSON.stringify(t).includes('TODO')
+  if (draft) at('задача не дописана — в ней остались TODO')
+
   if (!t.tests.trim()) at('пустой прогон тестов')
   if (/FAIL|✗|failed|Error/i.test(t.tests)) at('прогон должен быть зелёным')
   if (!t.verified_by || t.verified_by === '—')
     warnings.push(`${t.id}: не проверена вторым человеком`)
+}
+
+// Дневная серия берёт по одной задаче нужной сложности из своей колоды,
+// поэтому короткая колода = задача возвращается через считаные дни.
+// Это самое незаметное следствие роста пака: тесты зелёные, а игроку скучно.
+const PLAN = [1, 2, 3, 3, 4]
+for (const difficulty of [...new Set(PLAN)]) {
+  const slots = PLAN.filter((d) => d === difficulty).length
+  const size = pack.filter((t) => t.difficulty === difficulty && !t.clean).length
+  const cycle = Math.floor(size / slots)
+
+  if (size === 0) {
+    warnings.push(`сложность ${difficulty}: ни одной задачи, слот заполнится соседней`)
+  } else if (cycle < 7) {
+    warnings.push(
+      `сложность ${difficulty}: всего ${size} задач на ${slots} слот(а) — ` +
+        `колода прокручивается за ${cycle} дн., игрок увидит повтор на этой неделе`,
+    )
+  }
 }
 
 const show = (l, label) => l.forEach((m) => console.log(`${label} ${m}`))

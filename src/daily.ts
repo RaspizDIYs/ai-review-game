@@ -1,6 +1,11 @@
 /**
  * Выбор задач дневного челленджа. Полностью детерминирован от даты —
  * поэтому у всех игроков одинаковая серия и при этом не нужен сервер.
+ *
+ * Задачи разложены в «колоду»: для каждой сложности пул один раз перемешивается
+ * стабильным хэшем, и день D берёт из неё элемент по номеру дня. Так задача
+ * повторяется не раньше, чем через полный круг своей колоды, — и круг сам
+ * удлиняется, когда в пак добавляют новые задачи. Ничего перенастраивать не надо.
  */
 
 import type { Task } from './types'
@@ -46,44 +51,63 @@ export function lastRoundIsClean(key: string): boolean {
 }
 
 /**
- * Серия дня. Задачи в серии не повторяются, поэтому длина ограничена размером пака:
- * пока в нём меньше пяти задач, серия будет короче — это временно, до M2.
+ * Колода одной сложности: тот же пул, но в стабильно перемешанном порядке.
+ * Порядок не зависит от даты — от даты зависит только точка входа в колоду.
+ */
+function deck(pool: Task[], difficulty: number): Task[] {
+  return pool
+    .filter((t) => t.difficulty === difficulty)
+    .sort((a, b) => fnv1a(`deck:${a.id}`) - fnv1a(`deck:${b.id}`))
+}
+
+/** Сложности от желаемой к самой далёкой: 3 → 3, 2, 4, 1, 5. */
+function byCloseness(want: number): number[] {
+  return [1, 2, 3, 4, 5].sort(
+    (a, b) => Math.abs(a - want) - Math.abs(b - want) || a - b,
+  )
+}
+
+/**
+ * Серия дня. Задачи внутри серии не повторяются; между днями повторение
+ * возможно не раньше, чем колода нужной сложности пройдена целиком.
  *
  * Сложность подбирается «как можно ближе к плану», а не строго: пул реального
  * пака никогда не покрывает все пятёрки ровно, и падать из-за этого нельзя.
  */
 export function pickDaily(pool: Task[], key: string): Task[] {
+  const day = challengeNumber(key)
   const wantClean = lastRoundIsClean(key)
+
+  const dirty = pool.filter((t) => !t.clean)
+  const clean = pool.filter((t) => t.clean)
+
   const used = new Set<string>()
+  /** Сколько раз уже черпали из этой колоды сегодня — чтобы не взять то же самое. */
+  const drawn = new Map<number, number>()
   const series: Task[] = []
 
-  const slots = Math.min(DIFFICULTY_PLAN.length, pool.length)
+  for (let i = 0; i < DIFFICULTY_PLAN.length; i++) {
+    const isLast = i === DIFFICULTY_PLAN.length - 1
+    // Чистая задача выпадает только в запланированный день и только последней:
+    // иначе обещание «примерно раз в пять раз» перестаёт выполняться.
+    const from = isLast && wantClean && clean.length > 0 ? clean : dirty
 
-  for (let i = 0; i < slots; i++) {
-    const wantDifficulty = DIFFICULTY_PLAN[i]
-    const isLast = i === slots - 1
-    const preferClean = isLast && wantClean
+    let picked: Task | undefined
 
-    const candidates = pool.filter((t) => !used.has(t.id))
+    for (const difficulty of byCloseness(DIFFICULTY_PLAN[i])) {
+      const candidates = deck(from, difficulty).filter((t) => !used.has(t.id))
+      if (candidates.length === 0) continue
 
-    // Ранжируем: сначала совпадение по «чистоте», потом близость сложности,
-    // потом стабильный хэш — он и делает выбор одинаковым у всех.
-    const best = candidates
-      .map((task) => ({
-        task,
-        cleanMiss: task.clean === preferClean ? 0 : 1,
-        difficultyMiss: Math.abs(task.difficulty - wantDifficulty),
-        tie: fnv1a(`${key}:${i}:${task.id}`),
-      }))
-      .sort(
-        (a, b) =>
-          a.cleanMiss - b.cleanMiss ||
-          a.difficultyMiss - b.difficultyMiss ||
-          a.tie - b.tie,
-      )[0]
+      const offset = drawn.get(difficulty) ?? 0
+      drawn.set(difficulty, offset + 1)
+      picked = candidates[(day + offset) % candidates.length]
+      break
+    }
 
-    used.add(best.task.id)
-    series.push(best.task)
+    if (!picked) break // пул кончился — серия просто короче, это не авария
+
+    used.add(picked.id)
+    series.push(picked)
   }
 
   return series

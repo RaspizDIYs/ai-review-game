@@ -45,8 +45,8 @@ export function DiffView({ diff, tokens, marks, onPick, disabled }: Props) {
   const lines = parseDiff(diff)
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/60">
-      <table className="w-full border-collapse font-mono text-[13px] leading-6">
+    <div className="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-800 bg-zinc-900/60">
+      <table className="w-max min-w-full border-collapse font-mono text-[11px] leading-5 sm:text-[13px] sm:leading-6">
         <tbody>
           {lines.map((line) => {
             const clickable = isClickable(line) && !disabled && line.kind !== 'hunk'
@@ -59,16 +59,16 @@ export function DiffView({ diff, tokens, marks, onPick, disabled }: Props) {
                 className={[
                   kindStyle(line),
                   bg[state],
-                  clickable ? 'cursor-pointer hover:bg-zinc-800/60' : '',
+                  clickable ? 'cursor-pointer hover:bg-zinc-800/60 active:bg-zinc-800' : '',
                 ].join(' ')}
               >
-                <td className="w-10 select-none px-2 text-right text-zinc-600 tabular-nums">
+                <td className="w-7 select-none px-1 text-right text-zinc-600 tabular-nums sm:w-10 sm:px-2">
                   {line.oldNo ?? ''}
                 </td>
-                <td className="w-10 select-none border-r border-zinc-800 px-2 text-right text-zinc-600 tabular-nums">
+                <td className="w-7 select-none border-r border-zinc-800 px-1 text-right text-zinc-600 tabular-nums sm:w-10 sm:px-2">
                   {line.newNo ?? ''}
                 </td>
-                <td className="w-5 select-none pl-2 text-zinc-600">{marker(line)}</td>
+                <td className="w-4 select-none pl-1 text-zinc-600 sm:w-5 sm:pl-2">{marker(line)}</td>
                 <td className="whitespace-pre pr-4">
                   {tokens?.[line.index]
                     ? tokens[line.index]!.map(([text, color], i) => (

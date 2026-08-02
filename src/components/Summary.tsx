@@ -68,7 +68,7 @@ export function Summary({ mode, day, history, seconds, newRecord, onHome }: Prop
 
       {mode === 'daily' && (
         <>
-          <pre className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-center font-mono text-sm leading-7 text-zinc-300">
+          <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-center font-mono text-sm leading-7 text-zinc-300">
             {share}
           </pre>
 

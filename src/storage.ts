@@ -21,6 +21,8 @@ interface Save {
   bestEndless: number
   streakCurrent: number
   streakLastDay: string | null
+  /** Подсказку первого раунда показываем ровно один раз за всю жизнь. */
+  onboarded: boolean
 }
 
 const EMPTY: Save = {
@@ -29,6 +31,7 @@ const EMPTY: Save = {
   bestEndless: 0,
   streakCurrent: 0,
   streakLastDay: null,
+  onboarded: false,
 }
 
 function read(): Save {
@@ -80,6 +83,14 @@ export function getStreak(today: string): number {
     return save.streakCurrent
   }
   return 0
+}
+
+export function isOnboarded(): boolean {
+  return read().onboarded
+}
+
+export function markOnboarded(): void {
+  write({ ...read(), onboarded: true })
 }
 
 export function getBestEndless(): number {

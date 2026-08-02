@@ -100,6 +100,46 @@ test('чистый последний раунд выпадает примерн
   assert.ok(clean >= 10 && clean <= 30, `чистых дней ${clean} из 100`)
 })
 
+// Ради этого колода и появилась: с ростом пака задачи должны разъезжаться
+// по дням сами, без ручной настройки.
+test('задача не повторяется на следующий день', () => {
+  for (let i = 0; i < 30; i++) {
+    const today = new Date(Date.UTC(2026, 7, 2 + i)).toISOString().slice(0, 10)
+    const tomorrow = new Date(Date.UTC(2026, 7, 3 + i)).toISOString().slice(0, 10)
+    const a = new Set(pickDaily(POOL, today).map((t) => t.id))
+    const overlap = pickDaily(POOL, tomorrow).filter((t) => a.has(t.id))
+    assert.equal(overlap.length, 0, `${today} и ${tomorrow} пересеклись: ${overlap.map((t) => t.id)}`)
+  }
+})
+
+test('за две недели пак прокручивается широко, а не крутит одну пятёрку', () => {
+  const seen = new Set<string>()
+  for (let i = 0; i < 14; i++) {
+    const day = new Date(Date.UTC(2026, 7, 2 + i)).toISOString().slice(0, 10)
+    for (const t of pickDaily(POOL, day)) seen.add(t.id)
+  }
+  assert.ok(seen.size >= POOL.length * 0.6, `за 14 дней показали только ${seen.size} из ${POOL.length}`)
+})
+
+test('чистая задача выпадает только в чистый день и только последней', () => {
+  for (let i = 0; i < 60; i++) {
+    const day = new Date(Date.UTC(2026, 7, 2 + i)).toISOString().slice(0, 10)
+    const series = pickDaily(POOL, day)
+    series.forEach((task, idx) => {
+      if (!task.clean) return
+      assert.ok(lastRoundIsClean(day), `${day}: чистая задача в обычный день`)
+      assert.equal(idx, series.length - 1, `${day}: чистая задача не последней`)
+    })
+  }
+})
+
+test('добавление задач в пак не ломает выбор', () => {
+  const grown = [...POOL, ...synthetic(12)]
+  const series = pickDaily(grown, '2026-08-02')
+  assert.equal(series.length, DIFFICULTY_PLAN.length)
+  assert.equal(new Set(series.map((t) => t.id)).size, series.length)
+})
+
 test('бесконечный режим наращивает сложность и не падает на исчерпанном пуле', () => {
   const seed = 'seed'
   for (let i = 0; i < 20; i++) {

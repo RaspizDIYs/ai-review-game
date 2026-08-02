@@ -12,10 +12,19 @@ import {
   type PickResult,
 } from './round.ts'
 import { dayKey, pickDaily, pickEndless } from './daily.ts'
-import { getBestEndless, getDaily, getStreak, saveDaily, saveEndless } from './storage.ts'
+import {
+  getBestEndless,
+  getDaily,
+  getStreak,
+  isOnboarded,
+  markOnboarded,
+  saveDaily,
+  saveEndless,
+} from './storage.ts'
 import { isWin } from './share.ts'
 import { Briefing } from './components/Briefing.tsx'
 import { DiffView, type LineState } from './components/DiffView.tsx'
+import { Hint } from './components/Hint.tsx'
 import { Home } from './components/Home.tsx'
 import { Summary, type Played } from './components/Summary.tsx'
 import { Timer, useCountdown } from './components/Timer.tsx'
@@ -44,6 +53,7 @@ export default function App() {
   const [missed, setMissed] = useState(0)
   const [seconds, setSeconds] = useState(0)
   const [newRecord, setNewRecord] = useState(false)
+  const [showHint, setShowHint] = useState(!isOnboarded())
 
   const endlessSeed = useRef('')
 
@@ -161,7 +171,7 @@ export default function App() {
   return (
     <div className="mx-auto min-h-full max-w-3xl px-4 py-8 sm:px-6">
       {screen !== 'home' && (
-        <header className="mb-8 flex items-baseline justify-between border-b border-zinc-800 pb-4">
+        <header className="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-zinc-800 pb-4 sm:mb-8">
           <button
             onClick={() => setScreen('home')}
             className="text-sm font-medium tracking-tight text-zinc-400 transition hover:text-zinc-100"
@@ -194,6 +204,15 @@ export default function App() {
       {screen === 'review' && (
         <div className="space-y-5">
           <Timer left={left} duration={duration} />
+
+          {showHint && (
+            <Hint
+              onClose={() => {
+                markOnboarded()
+                setShowHint(false)
+              }}
+            />
+          )}
 
           <p className="text-sm text-zinc-400">
             Кликни строку, в которой подлянка.{' '}
