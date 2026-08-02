@@ -1,0 +1,113 @@
+[
+  {
+    "id": "js-cache-invalidation-001",
+    "stack": "js",
+    "difficulty": 2,
+    "title": "Кэш пользователей",
+    "prompt": "Добавь кэш в getUser, а то мы дёргаем базу на каждый чих",
+    "tests": "PASS  src/user-cache.test.ts (3)\n  ✓ возвращает пользователя\n  ✓ второй вызов не ходит в базу\n  ✓ updateUser сохраняет изменения\n\nTests  3 passed (3)\nBuild  ✓ built in 1.24s",
+    "diff": "--- a/src/user-cache.ts\n+++ b/src/user-cache.ts\n@@ -1,8 +1,17 @@\n import { db } from './db'\n import type { User } from './types'\n \n+const cache = new Map<number, User>()\n+\n export async function getUser(id: number): Promise<User> {\n-  return db.users.findById(id)\n+  const hit = cache.get(id)\n+  if (hit) return hit\n+\n+  const user = await db.users.findById(id)\n+  cache.set(id, user)\n+  return user\n }\n+\n+export async function updateUser(id: number, patch: Partial<User>) {\n+  await db.users.update(id, patch)\n+}\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/user-cache.ts",
+        "line": 16,
+        "kind": "missing",
+        "tag": "cache-no-invalidation",
+        "explain": "updateUser пишет в базу, но не трогает кэш — записи в нём живут вечно.",
+        "consequence": "Пользователь меняет имя и продолжает видеть старое. На локалке процесс живёт минуту и всё «работает»; в проде инстанс живёт неделями. Классический баг, который воспроизводится только у клиента."
+      }
+    ],
+    "decoys": [
+      {
+        "line": 4,
+        "why": "Map без ограничения размера — вопрос к памяти, но не баг этой задачи"
+      }
+    ],
+    "verified_by": "—",
+    "verified_at": ""
+  },
+  {
+    "id": "py-error-swallowed-001",
+    "stack": "py",
+    "difficulty": 1,
+    "title": "Устойчивый синк",
+    "prompt": "Сделай синк устойчивым, а то один упавший элемент роняет весь прогон",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_sync.py ....                [100%]\n\n==== 4 passed in 0.31s ====",
+    "diff": "--- a/sync.py\n+++ b/sync.py\n@@ -12,6 +12,9 @@\n def sync_all(items):\n     ok = 0\n     for item in items:\n-        push(item)\n-        ok += 1\n+        try:\n+            push(item)\n+        except Exception as e:\n+            logger.warning(\"push failed: %s\", e)\n+        ok += 1\n     return ok\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "sync.py",
+        "line": 19,
+        "kind": "wrong",
+        "tag": "error-swallowed",
+        "explain": "ok увеличивается независимо от того, упал push или нет — счётчик стоит вне try.",
+        "consequence": "Синк отчитывается «отправлено 500», отправлено 480. Расхождение всплывает через месяц, когда клиент не находит своих данных, и разбираться придётся по логам уровня warning, которые никто не читает."
+      }
+    ],
+    "decoys": [
+      {
+        "line": 17,
+        "why": "except Exception — широкий перехват, придирка справедливая, но не баг этой задачи"
+      }
+    ],
+    "verified_by": "—",
+    "verified_at": ""
+  },
+  {
+    "id": "sql-boundary-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Отчёт за период",
+    "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
+    "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
+    "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/report.sql",
+        "line": 4,
+        "kind": "wrong",
+        "tag": "off-by-one-boundary",
+        "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
+        "consequence": "Месячный отчёт стабильно недосчитывает один день. Никто не замечает, пока бухгалтерия не сведёт цифры за год."
+      }
+    ],
+    "decoys": [
+      {
+        "line": 5,
+        "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка"
+      }
+    ],
+    "verified_by": "—",
+    "verified_at": ""
+  },
+  {
+    "id": "js-clean-generator-001",
+    "stack": "js",
+    "difficulty": 5,
+    "title": "Потоковая выгрузка",
+    "prompt": "Перепиши выгрузку, чтобы не держала весь список в памяти",
+    "tests": "PASS  src/export.test.ts (6)\n  ✓ отдаёт все строки\n  ✓ не падает на пустой таблице\n  ✓ последняя страница неполная\n\nTests  6 passed (6)\nBuild  ✓ built in 0.98s",
+    "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -3,5 +3,13 @@\n-export async function exportAll(): Promise<string> {\n-  const rows = await db.visits.findAll()\n-  return rows.map(toCsvLine).join('\\n')\n+export async function* exportAll(): AsyncGenerator<string> {\n+  let offset = 0\n+  const size = 500\n+\n+  while (true) {\n+    const rows = await db.visits.findPage(offset, size)\n+    if (rows.length === 0) return\n+    for (const row of rows) yield toCsvLine(row)\n+    offset += rows.length\n+  }\n }\n",
+    "clean": true,
+    "bugs": [],
+    "decoys": [
+      {
+        "line": 3,
+        "why": "смена сигнатуры на генератор ломает вызывающий код — но это видно на сборке, а сборка зелёная"
+      },
+      {
+        "line": 7,
+        "why": "while (true) выглядит опасно, но выход есть и он корректный"
+      },
+      {
+        "line": 11,
+        "why": "offset += rows.length, а не += size — выглядит ошибкой, а на деле именно так и правильно для неполной последней страницы"
+      }
+    ],
+    "verified_by": "—",
+    "verified_at": ""
+  }
+]
