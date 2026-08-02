@@ -1,0 +1,28 @@
+{
+  "id": "js-json-clone-001",
+  "stack": "js",
+  "difficulty": 3,
+  "title": "Копия черновика назначения",
+  "prompt": "Сделай копию черновика, чтобы правки не меняли оригинал",
+  "tests": "PASS  src/draft.test.ts (4)\n  ✓ копия независима\n  ✓ вложенные поля копируются\n\nTests  4 passed (4)",
+  "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -3,4 +3,9 @@\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/draft.ts",
+      "match": "  return JSON.parse(JSON.stringify(draft))",
+      "kind": "wrong",
+      "tag": "json-clone-loses-types",
+      "explain": "Такое копирование превращает Date в строку, теряет undefined и Map, а на циклической ссылке падает.",
+      "consequence": "Дата назначения после копирования становится строкой, и первый же вызов .getTime() падает с TypeError — но не в момент копирования, а позже и в другом файле. Искать будут не там."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "export function cloneDraft(draft: Prescription): Prescription {",
+      "why": "тип возвращаемого значения обещает Prescription, хотя внутри any — следствие, а не причина"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

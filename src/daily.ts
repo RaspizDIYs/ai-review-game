@@ -113,20 +113,41 @@ export function pickDaily(pool: Task[], key: string): Task[] {
   return series
 }
 
+/** В бесконечном режиме чистый раунд идёт по счёту, а не по дате. */
+const ENDLESS_CLEAN_EVERY = 5
+
 /**
- * Бесконечный режим: тот же детерминированный подбор, но сид дополняется
- * номером забега, чтобы серии отличались. Пул может кончиться — тогда
- * задачи начинают повторяться, и это честнее, чем упереться в стену.
+ * Бесконечный режим: сид дополняется номером забега, чтобы серии отличались.
+ *
+ * Чистота выбирается ДО сложности, а не выпадает из неё. Иначе получается так:
+ * сложность растёт с номером раунда, на верхних сложностях грязных задач мало,
+ * и с какого-то момента игроку идут одни чистые раунды подряд — что и было.
+ *
+ * recent — id последних задач забега, чтобы не показывать одно и то же дважды
+ * подряд на маленьком пуле.
  */
-export function pickEndless(pool: Task[], seed: string, index: number): Task {
+export function pickEndless(
+  pool: Task[],
+  seed: string,
+  index: number,
+  recent: readonly string[] = [],
+): Task {
+  const wantClean = index > 0 && (index + 1) % ENDLESS_CLEAN_EVERY === 0
   const wantDifficulty = Math.min(5, 1 + Math.floor(index / 2))
-  const ranked = pool
+
+  // Если задач нужной чистоты нет вовсе — берём любые: закончить забег
+  // с неидеальным раундом лучше, чем упереться в стену.
+  const byClean = pool.filter((t) => t.clean === wantClean)
+  const source = byClean.length > 0 ? byClean : pool
+
+  const fresh = source.filter((t) => !recent.includes(t.id))
+  const candidates = fresh.length > 0 ? fresh : source
+
+  return candidates
     .map((task) => ({
       task,
       difficultyMiss: Math.abs(task.difficulty - wantDifficulty),
       tie: fnv1a(`${seed}:${index}:${task.id}`),
     }))
-    .sort((a, b) => a.difficultyMiss - b.difficultyMiss || a.tie - b.tie)
-
-  return ranked[0].task
+    .sort((a, b) => a.difficultyMiss - b.difficultyMiss || a.tie - b.tie)[0].task
 }

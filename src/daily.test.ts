@@ -148,6 +148,28 @@ test('бесконечный режим наращивает сложность 
   assert.equal(pickEndless(POOL, seed, 3).id, pickEndless(POOL, seed, 3).id)
 })
 
+// Ровно тот случай, который сломался: сложность росла, грязных задач на верхних
+// сложностях не было, и с девятого раунда шли одни чистые подряд.
+test('в бесконечном чистые раунды идут по счёту, а не подряд в конце', () => {
+  const run = Array.from({ length: 25 }, (_, i) => pickEndless(POOL, 'seed', i))
+  const clean = run.map((t) => t.clean)
+
+  for (let i = 1; i < clean.length; i++) {
+    assert.ok(!(clean[i] && clean[i - 1]), `два чистых подряд на раундах ${i - 1} и ${i}`)
+  }
+  const share = clean.filter(Boolean).length / clean.length
+  assert.ok(share > 0.1 && share < 0.35, `чистых ${Math.round(share * 100)}%`)
+})
+
+test('в бесконечном задача не повторяется, пока помним недавние', () => {
+  const recent: string[] = []
+  for (let i = 0; i < 25; i++) {
+    const task = pickEndless(POOL, 'seed', i, recent.slice(-5))
+    assert.ok(!recent.slice(-5).includes(task.id), `повтор ${task.id} на раунде ${i}`)
+    recent.push(task.id)
+  }
+})
+
 test('усталость режет время, но не ниже минимума', () => {
   assert.equal(roundDuration(0), ROUND_SECONDS)
   assert.equal(roundDuration(1), 75)

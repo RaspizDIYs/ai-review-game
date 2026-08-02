@@ -1,0 +1,28 @@
+{
+  "id": "js-console-left-001",
+  "stack": "js",
+  "difficulty": 1,
+  "title": "Отладка выгрузки",
+  "prompt": "Разберись, почему выгрузка иногда пустая, и почини",
+  "tests": "PASS  src/export.test.ts (4)\n  ✓ выгружает строки\n  ✓ пустой список не падает\n\nTests  4 passed (4)",
+  "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -4,6 +4,10 @@\n export function toCsv(rows: Row[]): string {\n+  console.log('rows', rows)\n+\n   if (!rows.length) return ''\n+\n   return rows.map(toLine).join('\\n')\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/export.ts",
+      "match": "console.log('rows', rows)",
+      "kind": "wrong",
+      "tag": "debug-left-in-code",
+      "explain": "Отладочный вывод остался в коде и печатает весь массив на каждый вызов.",
+      "consequence": "На выгрузке в двадцать тысяч строк консоль браузера забивается целиком, вкладка подвисает на несколько секунд, а в логах сервера, если это уедет на бэкенд, окажутся персональные данные владельцев."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  if (!rows.length) return ''",
+      "why": "ранний выход на пустом списке — как раз то, о чём просили"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

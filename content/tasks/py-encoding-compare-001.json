@@ -1,0 +1,28 @@
+{
+  "id": "py-encoding-compare-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Сверка ФИО владельца",
+  "prompt": "Сверяй ФИО владельца с тем, что пришло из госуслуг",
+  "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_match.py ....              [100%]\n\n==== 4 passed in 0.10s ====",
+  "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -5,4 +5,10 @@\n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "matching.py",
+      "match": "    return a == b",
+      "kind": "missing",
+      "tag": "unicode-normalization",
+      "explain": "Строки сравниваются побайтово, без нормализации Unicode. «Ё» и «е», а также визуально одинаковые последовательности в разных формах NFC и NFD дают неравенство.",
+      "consequence": "Владельцы с «ё» в фамилии не сопоставляются с госуслугами и заводятся вторым дублем. Обнаружится это на этапе, когда у одного человека уже два личных кабинета и разные истории визитов."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    a = ours.full_name.strip().lower()",
+      "why": "strip и lower тут как раз к месту, только их недостаточно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

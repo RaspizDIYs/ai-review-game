@@ -1,0 +1,28 @@
+{
+  "id": "js-state-stale-001",
+  "stack": "js",
+  "difficulty": 3,
+  "title": "Счётчик принятых пациентов",
+  "prompt": "Считай, сколько пациентов принято за смену",
+  "tests": "PASS  src/Counter.test.tsx (4)\n  ✓ увеличивает счётчик\n  ✓ сбрасывается в начале смены\n\nTests  4 passed (4)",
+  "diff": "--- a/src/Counter.tsx\n+++ b/src/Counter.tsx\n@@ -5,8 +5,13 @@\n export function Counter() {\n   const [count, setCount] = useState(0)\n \n+  function onAccepted() {\n+    setCount(count + 1)\n+    logAccepted(count + 1)\n+  }\n+\n   return <button onClick={onAccepted}>Принят: {count}</button>\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Counter.tsx",
+      "match": "    setCount(count + 1)",
+      "kind": "wrong",
+      "tag": "stale-state-update",
+      "explain": "Обновление опирается на count из замыкания, а не на предыдущее состояние. Два вызова в одном тике дадут +1, а не +2.",
+      "consequence": "Регистратор быстро отмечает подряд пришедшую очередь — счётчик отстаёт. Расхождение маленькое и случайное, поэтому его списывают на «показалось», а к концу смены цифра в отчёте не бьётся с числом визитов."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    logAccepted(count + 1)",
+      "why": "дублирование выражения выглядит небрежно — но именно здесь значение уже посчитано верно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

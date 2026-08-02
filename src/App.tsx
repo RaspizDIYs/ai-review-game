@@ -160,7 +160,13 @@ export default function App() {
 
     const i = index + 1
     setIndex(i)
-    setTask(mode === 'daily' ? dailySeries[i] : pickEndless(POOL, endlessSeed.current, i))
+    setTask(
+      mode === 'daily'
+        ? dailySeries[i]
+        : // Последние пять задач забега — чтобы на маленьком пуле
+          // не показать одно и то же дважды подряд.
+          pickEndless(POOL, endlessSeed.current, i, history.slice(-5).map((h) => h.task.id)),
+    )
     setWrongPicks([])
     setPicked(null)
     setScreen('briefing')

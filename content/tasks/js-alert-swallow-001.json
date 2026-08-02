@@ -1,0 +1,28 @@
+{
+  "id": "js-alert-swallow-001",
+  "stack": "js",
+  "difficulty": 1,
+  "title": "Сохранение карточки",
+  "prompt": "Показывай пользователю, если карточка не сохранилась",
+  "tests": "PASS  src/PatientForm.test.tsx (5)\n  ✓ сохраняет карточку\n  ✓ показывает ошибку\n\nTests  5 passed (5)",
+  "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -12,7 +12,12 @@\n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    }\n   }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/PatientForm.tsx",
+      "match": "      alert('Не удалось сохранить')",
+      "kind": "wrong",
+      "tag": "error-shown-but-lost",
+      "explain": "Исключение поймано, показано человеку и выброшено. Ни причины, ни стека, ни записи в мониторинге не осталось.",
+      "consequence": "Врач видит «не удалось сохранить» и звонит в поддержку, а в Sentry по этому времени пусто. Воспроизвести нечем: неизвестно даже, была это валидация, сеть или пятисотка."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "      setSaved(true)",
+      "why": "флаг успеха внутри try — так и правильно, до него дело дойдёт только без исключения"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,5 +1,216 @@
 [
   {
+    "id": "js-alert-swallow-001",
+    "stack": "js",
+    "difficulty": 1,
+    "title": "Сохранение карточки",
+    "prompt": "Показывай пользователю, если карточка не сохранилась",
+    "tests": "PASS  src/PatientForm.test.tsx (5)\n  ✓ сохраняет карточку\n  ✓ показывает ошибку\n\nTests  5 passed (5)",
+    "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -12,7 +12,12 @@\n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    }\n   }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/PatientForm.tsx",
+        "kind": "wrong",
+        "tag": "error-shown-but-lost",
+        "explain": "Исключение поймано, показано человеку и выброшено. Ни причины, ни стека, ни записи в мониторинге не осталось.",
+        "consequence": "Врач видит «не удалось сохранить» и звонит в поддержку, а в Sentry по этому времени пусто. Воспроизвести нечем: неизвестно даже, была это валидация, сеть или пятисотка.",
+        "line": 17
+      }
+    ],
+    "decoys": [
+      {
+        "why": "флаг успеха внутри try — так и правильно, до него дело дойдёт только без исключения",
+        "line": 15
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "onSubmit",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "values",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PatientDraft",
+          "#FFA657"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "savePatient",
+          "#D2A8FF"
+        ],
+        [
+          "(values)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "try",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "savePatient",
+          "#D2A8FF"
+        ],
+        [
+          "(values)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "setSaved",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "true",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    } ",
+          "#E6EDF3"
+        ],
+        [
+          "catch",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "alert",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'Не удалось сохранить'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "js-cache-invalidation-001",
     "stack": "js",
     "difficulty": 2,
@@ -2159,6 +2370,219 @@
     ]
   },
   {
+    "id": "js-console-left-001",
+    "stack": "js",
+    "difficulty": 1,
+    "title": "Отладка выгрузки",
+    "prompt": "Разберись, почему выгрузка иногда пустая, и почини",
+    "tests": "PASS  src/export.test.ts (4)\n  ✓ выгружает строки\n  ✓ пустой список не падает\n\nTests  4 passed (4)",
+    "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -4,6 +4,10 @@\n export function toCsv(rows: Row[]): string {\n+  console.log('rows', rows)\n+\n   if (!rows.length) return ''\n+\n   return rows.map(toLine).join('\\n')\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/export.ts",
+        "kind": "wrong",
+        "tag": "debug-left-in-code",
+        "explain": "Отладочный вывод остался в коде и печатает весь массив на каждый вызов.",
+        "consequence": "На выгрузке в двадцать тысяч строк консоль браузера забивается целиком, вкладка подвисает на несколько секунд, а в логах сервера, если это уедет на бэкенд, окажутся персональные данные владельцев.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "ранний выход на пустом списке — как раз то, о чём просили",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "toCsv",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "rows",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Row",
+          "#FFA657"
+        ],
+        [
+          "[])",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  console.",
+          "#E6EDF3"
+        ],
+        [
+          "log",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'rows'",
+          "#A5D6FF"
+        ],
+        [
+          ", rows)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "!",
+          "#FF7B72"
+        ],
+        [
+          "rows.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "''",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " rows.",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#D2A8FF"
+        ],
+        [
+          "(toLine).",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          "\\n",
+          "#FF7B72"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "js-effect-cleanup-001",
     "stack": "js",
     "difficulty": 3,
@@ -2691,6 +3115,440 @@
     ]
   },
   {
+    "id": "js-index-key-001",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Редактируемый список назначений",
+    "prompt": "Дай удалять строки назначений прямо в списке",
+    "tests": "PASS  src/Prescriptions.test.tsx (5)\n  ✓ рисует список\n  ✓ удаляет строку\n\nTests  5 passed (5)",
+    "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -8,9 +8,16 @@\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/Prescriptions.tsx",
+        "kind": "wrong",
+        "tag": "index-as-key",
+        "explain": "Ключом стал индекс вместо item.id. При удалении строки React переиспользует узлы не по назначению, и внутреннее состояние строк съезжает на соседние.",
+        "consequence": "Врач удаляет второе назначение — введённая в третьей строке дозировка перескакивает во вторую. Данные в state правильные, на экране нет, и заметно это только если смотреть внимательно.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "передавать индекс в обработчик удаления нормально, если список не переупорядочивают",
+        "line": 10
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    <",
+          "#E6EDF3"
+        ],
+        [
+          "ul",
+          "#FFA657"
+        ],
+        [
+          ">",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      {",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#FFA657"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "Row",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "key",
+          "#FFA657"
+        ],
+        [
+          "={",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          "} ",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          "={",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          "} />)}",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      {",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#FFA657"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "<",
+          "#FF7B72"
+        ],
+        [
+          "Row key",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{i} item",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{item} onRemove",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{() => ",
+          "#E6EDF3"
+        ],
+        [
+          "remove",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#FFA657"
+        ],
+        [
+          ")} ",
+          "#E6EDF3"
+        ],
+        [
+          "/>",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "      ))}",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "ul",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  )",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-json-clone-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Копия черновика назначения",
+    "prompt": "Сделай копию черновика, чтобы правки не меняли оригинал",
+    "tests": "PASS  src/draft.test.ts (4)\n  ✓ копия независима\n  ✓ вложенные поля копируются\n\nTests  4 passed (4)",
+    "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -3,4 +3,9 @@\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/draft.ts",
+        "kind": "wrong",
+        "tag": "json-clone-loses-types",
+        "explain": "Такое копирование превращает Date в строку, теряет undefined и Map, а на циклической ссылке падает.",
+        "consequence": "Дата назначения после копирования становится строкой, и первый же вызов .getTime() падает с TypeError — но не в момент копирования, а позже и в другом файле. Искать будут не там.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "тип возвращаемого значения обещает Prescription, хотя внутри any — следствие, а не причина",
+        "line": 3
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "cloneDraft",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "draft",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescription",
+          "#FFA657"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescription",
+          "#FFA657"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "JSON",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "parse",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "JSON",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "stringify",
+          "#D2A8FF"
+        ],
+        [
+          "(draft))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "js-local-date-001",
     "stack": "js",
     "difficulty": 4,
@@ -2947,6 +3805,310 @@
         ],
         [
           "(visits, dayOf)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-order-dependency-001",
+    "stack": "js",
+    "difficulty": 5,
+    "title": "Параллельная загрузка карточки",
+    "prompt": "Грузи карточку и историю визитов параллельно, чтобы страница открывалась быстрее",
+    "tests": "PASS  src/load.test.ts (7)\n  ✓ грузит карточку и историю\n  ✓ отдаёт данные вместе\n  ✓ не падает на пустой истории\n\nTests  7 passed (7)",
+    "diff": "--- a/src/load.ts\n+++ b/src/load.ts\n@@ -6,10 +6,16 @@\n export async function loadPatientPage(id: number) {\n-  const patient = await api.getPatient(id)\n-  const visits = await api.getVisits(patient.clinicId)\n+  const [patient, visits] = await Promise.all([\n+    api.getPatient(id),\n+    api.getVisits(currentClinicId()),\n+  ])\n \n   return { patient, visits }\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/load.ts",
+        "kind": "wrong",
+        "tag": "broken-data-dependency",
+        "explain": "Раньше клиника бралась из загруженной карточки, теперь — из текущего контекста. Запросы распараллелили, разорвав зависимость между ними.",
+        "consequence": "Пока врач смотрит пациентов своей клиники, разницы нет. Стоит открыть карточку пациента из другого филиала по прямой ссылке — и в историю визитов подтянутся чужие приёмы. Тесты этого не видят, потому что в фикстурах клиника одна.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "Promise.all падает целиком при отказе любого из двух — обсуждаемо, но просили именно параллельно",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "loadPatientPage",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "patient",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "getPatient",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "visits",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "getVisits",
+          "#D2A8FF"
+        ],
+        [
+          "(patient.clinicId)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "patient",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "visits",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Promise",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "all",
+          "#D2A8FF"
+        ],
+        [
+          "([",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    api.",
+          "#E6EDF3"
+        ],
+        [
+          "getPatient",
+          "#D2A8FF"
+        ],
+        [
+          "(id),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    api.",
+          "#E6EDF3"
+        ],
+        [
+          "getVisits",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "currentClinicId",
+          "#D2A8FF"
+        ],
+        [
+          "()),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ])",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " { patient, visits }",
           "#E6EDF3"
         ]
       ],
@@ -3653,6 +4815,265 @@
     ]
   },
   {
+    "id": "js-state-stale-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Счётчик принятых пациентов",
+    "prompt": "Считай, сколько пациентов принято за смену",
+    "tests": "PASS  src/Counter.test.tsx (4)\n  ✓ увеличивает счётчик\n  ✓ сбрасывается в начале смены\n\nTests  4 passed (4)",
+    "diff": "--- a/src/Counter.tsx\n+++ b/src/Counter.tsx\n@@ -5,8 +5,13 @@\n export function Counter() {\n   const [count, setCount] = useState(0)\n \n+  function onAccepted() {\n+    setCount(count + 1)\n+    logAccepted(count + 1)\n+  }\n+\n   return <button onClick={onAccepted}>Принят: {count}</button>\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/Counter.tsx",
+        "kind": "wrong",
+        "tag": "stale-state-update",
+        "explain": "Обновление опирается на count из замыкания, а не на предыдущее состояние. Два вызова в одном тике дадут +1, а не +2.",
+        "consequence": "Регистратор быстро отмечает подряд пришедшую очередь — счётчик отстаёт. Расхождение маленькое и случайное, поэтому его списывают на «показалось», а к концу смены цифра в отчёте не бьётся с числом визитов.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "дублирование выражения выглядит небрежно — но именно здесь значение уже посчитано верно",
+        "line": 10
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Counter",
+          "#D2A8FF"
+        ],
+        [
+          "() {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "count",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "setCount",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "useState",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "onAccepted",
+          "#D2A8FF"
+        ],
+        [
+          "() {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "setCount",
+          "#D2A8FF"
+        ],
+        [
+          "(count ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "logAccepted",
+          "#D2A8FF"
+        ],
+        [
+          "(count ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "button",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "onClick",
+          "#FFA657"
+        ],
+        [
+          "={",
+          "#E6EDF3"
+        ],
+        [
+          "onAccepted",
+          "#FFA657"
+        ],
+        [
+          "}>Принят: {count}",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "button",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "js-test-mocks-itself-001",
     "stack": "js",
     "difficulty": 4,
@@ -4103,6 +5524,235 @@
     ]
   },
   {
+    "id": "py-assert-true-001",
+    "stack": "py",
+    "difficulty": 1,
+    "title": "Тест расчёта дозы",
+    "prompt": "Покрой тестом расчёт дозы по весу",
+    "tests": "==== test session starts ====\ncollected 3 items\n\ntests/test_dosage.py ...              [100%]\n\n==== 3 passed in 0.08s ====",
+    "diff": "--- a/tests/test_dosage.py\n+++ b/tests/test_dosage.py\n@@ -1,3 +1,10 @@\n from dosage import calculate\n \n+def test_dosage_for_small_pet():\n+    result = calculate(weight_kg=3.5, drug=\"amoxicillin\")\n+    assert result is not None\n+\n+def test_dosage_for_large_pet():\n+    result = calculate(weight_kg=42.0, drug=\"amoxicillin\")\n+    assert result\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "tests/test_dosage.py",
+        "kind": "wrong",
+        "tag": "assert-without-expectation",
+        "explain": "Тест проверяет, что функция что-то вернула, но не проверяет, что именно. Любое число пройдёт.",
+        "consequence": "Ошибка в формуле дозы не будет поймана вообще: тест зелёный при любом результате. Здесь это не абстрактный риск — по этой цифре препарат назначают животному.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "второй тест по сути ровно такой же — но подлянку достаточно отметить один раз",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " dosage ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " calculate",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "test_dosage_for_small_pet",
+          "#D2A8FF"
+        ],
+        [
+          "():",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    result ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " calculate(",
+          "#E6EDF3"
+        ],
+        [
+          "weight_kg",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "3.5",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "drug",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "\"amoxicillin\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "assert",
+          "#FF7B72"
+        ],
+        [
+          " result ",
+          "#E6EDF3"
+        ],
+        [
+          "is",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "not",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "test_dosage_for_large_pet",
+          "#D2A8FF"
+        ],
+        [
+          "():",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    result ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " calculate(",
+          "#E6EDF3"
+        ],
+        [
+          "weight_kg",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "42.0",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "drug",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "\"amoxicillin\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "assert",
+          "#FF7B72"
+        ],
+        [
+          " result",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "py-class-attr-001",
     "stack": "py",
     "difficulty": 3,
@@ -4523,6 +6173,292 @@
       [
         [
           "        gateway.send_many(batch)",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-dict-mutation-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Нормализация прайса",
+    "prompt": "Приведи цены из внешнего прайса к нашему формату",
+    "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_price.py .....             [100%]\n\n==== 5 passed in 0.19s ====",
+    "diff": "--- a/price.py\n+++ b/price.py\n@@ -9,5 +9,12 @@\n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "price.py",
+        "kind": "wrong",
+        "tag": "mutating-while-iterating",
+        "explain": "Словарь меняется прямо во время обхода. Python бросит RuntimeError, как только в прайсе встретится хотя бы одна пустая цена.",
+        "consequence": "На тестовых данных без пустых цен всё зелёное, а первый же реальный прайс поставщика с прочерком в строке роняет ночной импорт целиком. Утром прайс не обновился, и никто не знает почему.",
+        "line": 12
+      }
+    ],
+    "decoys": [
+      {
+        "why": "функция и меняет аргумент, и возвращает его — путано, но само по себе не ломает",
+        "line": 16
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "normalize",
+          "#D2A8FF"
+        ],
+        [
+          "(raw_prices):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " code, price ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " raw_prices.items():",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " price ",
+          "#E6EDF3"
+        ],
+        [
+          "is",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            ",
+          "#E6EDF3"
+        ],
+        [
+          "del",
+          "#FF7B72"
+        ],
+        [
+          " raw_prices[code]",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "else",
+          "#FF7B72"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            raw_prices[code] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "round",
+          "#79C0FF"
+        ],
+        [
+          "(price ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "100",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " raw_prices",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-encoding-compare-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Сверка ФИО владельца",
+    "prompt": "Сверяй ФИО владельца с тем, что пришло из госуслуг",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_match.py ....              [100%]\n\n==== 4 passed in 0.10s ====",
+    "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -5,4 +5,10 @@\n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "matching.py",
+        "kind": "missing",
+        "tag": "unicode-normalization",
+        "explain": "Строки сравниваются побайтово, без нормализации Unicode. «Ё» и «е», а также визуально одинаковые последовательности в разных формах NFC и NFD дают неравенство.",
+        "consequence": "Владельцы с «ё» в фамилии не сопоставляются с госуслугами и заводятся вторым дублем. Обнаружится это на этапе, когда у одного человека уже два личных кабинета и разные истории визитов.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "strip и lower тут как раз к месту, только их недостаточно",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "same_person",
+          "#D2A8FF"
+        ],
+        [
+          "(ours, theirs):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    a ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ours.full_name.strip().lower()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    b ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " theirs.full_name.strip().lower()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " a ",
+          "#E6EDF3"
+        ],
+        [
+          "==",
+          "#FF7B72"
+        ],
+        [
+          " b",
           "#E6EDF3"
         ]
       ]
@@ -5044,6 +6980,261 @@
         ],
         [
           ")",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-generator-consumed-001",
+    "stack": "py",
+    "difficulty": 5,
+    "title": "Отчёт по движению склада",
+    "prompt": "Посчитай по движениям склада и сумму, и количество позиций",
+    "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_stock_report.py .....      [100%]\n\n==== 5 passed in 0.21s ====",
+    "diff": "--- a/stock_report.py\n+++ b/stock_report.py\n@@ -3,7 +3,14 @@\n def build_report(clinic_id):\n-    moves = list(fetch_moves(clinic_id))\n+    moves = (m for m in fetch_moves(clinic_id) if m.delta != 0)\n+\n+    total = sum(m.delta * m.price for m in moves)\n+    positions = len({m.sku for m in moves})\n+\n+    return Report(total=total, positions=positions)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "stock_report.py",
+        "kind": "wrong",
+        "tag": "generator-consumed-twice",
+        "explain": "moves теперь генератор, а не список. Первый проход его исчерпывает, второй получает пустоту.",
+        "consequence": "Сумма считается верно, а число позиций всегда ноль. Ноль выглядит как «движений не было», а не как поломка, поэтому отчёт неделями считают правдой и по нему решают, что закупать.",
+        "line": 7
+      }
+    ],
+    "decoys": [
+      {
+        "why": "замена списка на генератор — как раз разумная оптимизация, ломает не она сама",
+        "line": 4
+      },
+      {
+        "why": "первый проход отрабатывает совершенно нормально — в этом и коварство",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "build_report",
+          "#D2A8FF"
+        ],
+        [
+          "(clinic_id):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    moves ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "list",
+          "#79C0FF"
+        ],
+        [
+          "(fetch_moves(clinic_id))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    moves ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " (m ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " m ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " fetch_moves(clinic_id) ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " m.delta ",
+          "#E6EDF3"
+        ],
+        [
+          "!=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    total ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "sum",
+          "#79C0FF"
+        ],
+        [
+          "(m.delta ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " m.price ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " m ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " moves)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    positions ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "len",
+          "#79C0FF"
+        ],
+        [
+          "({m.sku ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " m ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " moves})",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " Report(",
+          "#E6EDF3"
+        ],
+        [
+          "total",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "total, ",
+          "#E6EDF3"
+        ],
+        [
+          "positions",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "positions)",
           "#E6EDF3"
         ]
       ]
@@ -5958,6 +8149,156 @@
         [
           " OfdUnavailable(receipt.id)",
           "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-shadow-builtin-001",
+    "stack": "py",
+    "difficulty": 1,
+    "title": "Фильтр просроченных вакцин",
+    "prompt": "Отбери вакцинации, у которых вышел срок",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_vaccines.py ....           [100%]\n\n==== 4 passed in 0.12s ====",
+    "diff": "--- a/vaccines.py\n+++ b/vaccines.py\n@@ -7,4 +7,10 @@\n+def expired(vaccinations, today):\n+    list = []\n+    for v in vaccinations:\n+        if v.due_at < today:\n+            list.append(v)\n+\n+    return list\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "vaccines.py",
+        "kind": "wrong",
+        "tag": "builtin-shadowed",
+        "explain": "Имя list перекрывает встроенный тип внутри функции.",
+        "consequence": "Пока в функции больше ничего нет — работает. Первый же, кто допишет сюда list(...) или аннотацию, получит TypeError про то, что список не вызывается, и потратит полчаса, потому что ошибка указывает не туда.",
+        "line": 8
+      }
+    ],
+    "decoys": [
+      {
+        "why": "сравнение без учёта часового пояса — вопрос есть, но зависит от того, что кладут в due_at",
+        "line": 10
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "expired",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccinations, today):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "list",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " v ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " vaccinations:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " v.due_at ",
+          "#E6EDF3"
+        ],
+        [
+          "<",
+          "#FF7B72"
+        ],
+        [
+          " today:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            ",
+          "#E6EDF3"
+        ],
+        [
+          "list",
+          "#79C0FF"
+        ],
+        [
+          ".append(v)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "list",
+          "#79C0FF"
         ]
       ]
     ]
@@ -7292,6 +9633,223 @@
     ]
   },
   {
+    "id": "sql-implicit-cast-001",
+    "stack": "sql",
+    "difficulty": 3,
+    "title": "Поиск по номеру карты",
+    "prompt": "Добавь поиск пациента по номеру карты",
+    "tests": "PASS  tests/search.test.ts (5)\n  ✓ находит по номеру\n  ✓ не находит чужую клинику\n\nTests  5 passed (5)",
+    "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,4 +1,7 @@\n SELECT p.id, p.name, p.card_number\n FROM pets p\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.card_number = :query\n+LIMIT 50\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/find_pet.sql",
+        "kind": "wrong",
+        "tag": "implicit-cast-kills-index",
+        "explain": "card_number хранится строкой, а из формы приходит число. База приводит типы неявно и перестаёт использовать индекс по колонке.",
+        "consequence": "Поиск по карте начинает делать полный проход по таблице визитов на несколько миллионов строк. На дев-базе в тысячу записей это незаметно, на проде регистратура жалуется, что поиск «думает» по десять секунд.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "лимит без сортировки даёт непредсказуемый набор — справедливо, но не про скорость",
+        "line": 5
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "card_number",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " pets p",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "card_number",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :query",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "LIMIT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "50",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
     "id": "sql-left-join-where-001",
     "stack": "sql",
     "difficulty": 3,
@@ -7760,6 +10318,321 @@
       [
         [
           ")",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-select-star-001",
+    "stack": "sql",
+    "difficulty": 1,
+    "title": "Список пациентов для мобильного",
+    "prompt": "Отдай список пациентов для мобильного приложения",
+    "tests": "PASS  tests/patients.test.ts (3)\n  ✓ отдаёт пациентов клиники\n  ✓ сортирует по кличке\n\nTests  3 passed (3)",
+    "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,3 +1,6 @@\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+ORDER BY p.name\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/patients_api.sql",
+        "kind": "wrong",
+        "tag": "select-star-leaks-columns",
+        "explain": "Звёздочка по двум таблицам тянет наружу все колонки владельца — телефон, адрес, паспортные данные, если они там есть.",
+        "consequence": "Мобильному приложению нужна кличка и вид животного, а в ответе API уезжают персональные данные владельцев. Любой, кто откроет devtools, увидит их целиком; при добавлении колонки в owners утечёт и она — молча.",
+        "line": 1
+      }
+    ],
+    "decoys": [
+      {
+        "why": "сортировка по кличке без учёта регистра и локали — косметика на фоне остального",
+        "line": 5
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " p.",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          ", o.",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " pets p",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " owners o ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "o",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "owner_id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-transaction-missing-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Списание со склада при продаже",
+    "prompt": "Списывай препарат со склада, когда пробили чек",
+    "tests": "PASS  tests/sale.test.ts (6)\n  ✓ списывает остаток\n  ✓ пишет движение\n\nTests  6 passed (6)",
+    "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,2 +1,9 @@\n+UPDATE stock\n+SET quantity = quantity - :qty\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/sell.sql",
+        "kind": "missing",
+        "tag": "no-transaction-no-guard",
+        "explain": "Два запроса идут без транзакции, и остаток уменьшается без проверки, что его хватает. Между ними может упасть что угодно, а quantity спокойно уходит в минус.",
+        "consequence": "Падение между UPDATE и INSERT оставляет склад списанным без движения — сойтись инвентаризация уже не сможет. Параллельные продажи одного препарата уводят остаток в минус, и система продолжает продавать то, чего нет.",
+        "line": 2
+      }
+    ],
+    "decoys": [
+      {
+        "why": "NOW() вместо времени чека — расхождение в секунды, на фоне остального мелочь",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " stock",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "SET",
+          "#FF7B72"
+        ],
+        [
+          " quantity ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " quantity ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          " :qty",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " clinic_id ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " sku ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :sku;",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "INSERT INTO",
+          "#FF7B72"
+        ],
+        [
+          " stock_moves (clinic_id, sku, delta, receipt_id, created_at)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "VALUES",
+          "#FF7B72"
+        ],
+        [
+          " (:clinic, :sku, ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          ":qty, :receipt, ",
+          "#E6EDF3"
+        ],
+        [
+          "NOW",
+          "#FF7B72"
+        ],
+        [
+          "());",
           "#E6EDF3"
         ]
       ]

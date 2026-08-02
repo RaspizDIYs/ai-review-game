@@ -1,0 +1,28 @@
+{
+  "id": "js-order-dependency-001",
+  "stack": "js",
+  "difficulty": 5,
+  "title": "Параллельная загрузка карточки",
+  "prompt": "Грузи карточку и историю визитов параллельно, чтобы страница открывалась быстрее",
+  "tests": "PASS  src/load.test.ts (7)\n  ✓ грузит карточку и историю\n  ✓ отдаёт данные вместе\n  ✓ не падает на пустой истории\n\nTests  7 passed (7)",
+  "diff": "--- a/src/load.ts\n+++ b/src/load.ts\n@@ -6,10 +6,16 @@\n export async function loadPatientPage(id: number) {\n-  const patient = await api.getPatient(id)\n-  const visits = await api.getVisits(patient.clinicId)\n+  const [patient, visits] = await Promise.all([\n+    api.getPatient(id),\n+    api.getVisits(currentClinicId()),\n+  ])\n \n   return { patient, visits }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/load.ts",
+      "match": "    api.getVisits(currentClinicId()),",
+      "kind": "wrong",
+      "tag": "broken-data-dependency",
+      "explain": "Раньше клиника бралась из загруженной карточки, теперь — из текущего контекста. Запросы распараллелили, разорвав зависимость между ними.",
+      "consequence": "Пока врач смотрит пациентов своей клиники, разницы нет. Стоит открыть карточку пациента из другого филиала по прямой ссылке — и в историю визитов подтянутся чужие приёмы. Тесты этого не видят, потому что в фикстурах клиника одна."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  const [patient, visits] = await Promise.all([",
+      "why": "Promise.all падает целиком при отказе любого из двух — обсуждаемо, но просили именно параллельно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

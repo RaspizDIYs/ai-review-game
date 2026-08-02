@@ -1,0 +1,28 @@
+{
+  "id": "sql-select-star-001",
+  "stack": "sql",
+  "difficulty": 1,
+  "title": "Список пациентов для мобильного",
+  "prompt": "Отдай список пациентов для мобильного приложения",
+  "tests": "PASS  tests/patients.test.ts (3)\n  ✓ отдаёт пациентов клиники\n  ✓ сортирует по кличке\n\nTests  3 passed (3)",
+  "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,3 +1,6 @@\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+ORDER BY p.name\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/patients_api.sql",
+      "match": "SELECT p.*, o.*",
+      "kind": "wrong",
+      "tag": "select-star-leaks-columns",
+      "explain": "Звёздочка по двум таблицам тянет наружу все колонки владельца — телефон, адрес, паспортные данные, если они там есть.",
+      "consequence": "Мобильному приложению нужна кличка и вид животного, а в ответе API уезжают персональные данные владельцев. Любой, кто откроет devtools, увидит их целиком; при добавлении колонки в owners утечёт и она — молча."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "ORDER BY p.name",
+      "why": "сортировка по кличке без учёта регистра и локали — косметика на фоне остального"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

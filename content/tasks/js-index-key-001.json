@@ -1,0 +1,28 @@
+{
+  "id": "js-index-key-001",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Редактируемый список назначений",
+  "prompt": "Дай удалять строки назначений прямо в списке",
+  "tests": "PASS  src/Prescriptions.test.tsx (5)\n  ✓ рисует список\n  ✓ удаляет строку\n\nTests  5 passed (5)",
+  "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -8,9 +8,16 @@\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Prescriptions.tsx",
+      "match": "<Row key={i} item={item} onRemove={() => remove(i)} />",
+      "kind": "wrong",
+      "tag": "index-as-key",
+      "explain": "Ключом стал индекс вместо item.id. При удалении строки React переиспользует узлы не по назначению, и внутреннее состояние строк съезжает на соседние.",
+      "consequence": "Врач удаляет второе назначение — введённая в третьей строке дозировка перескакивает во вторую. Данные в state правильные, на экране нет, и заметно это только если смотреть внимательно."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "      {items.map((item, i) => (",
+      "why": "передавать индекс в обработчик удаления нормально, если список не переупорядочивают"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

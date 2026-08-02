@@ -1,0 +1,28 @@
+{
+  "id": "sql-transaction-missing-001",
+  "stack": "sql",
+  "difficulty": 4,
+  "title": "Списание со склада при продаже",
+  "prompt": "Списывай препарат со склада, когда пробили чек",
+  "tests": "PASS  tests/sale.test.ts (6)\n  ✓ списывает остаток\n  ✓ пишет движение\n\nTests  6 passed (6)",
+  "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,2 +1,9 @@\n+UPDATE stock\n+SET quantity = quantity - :qty\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/sell.sql",
+      "match": "SET quantity = quantity - :qty",
+      "kind": "missing",
+      "tag": "no-transaction-no-guard",
+      "explain": "Два запроса идут без транзакции, и остаток уменьшается без проверки, что его хватает. Между ними может упасть что угодно, а quantity спокойно уходит в минус.",
+      "consequence": "Падение между UPDATE и INSERT оставляет склад списанным без движения — сойтись инвентаризация уже не сможет. Параллельные продажи одного препарата уводят остаток в минус, и система продолжает продавать то, чего нет."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "VALUES (:clinic, :sku, -:qty, :receipt, NOW());",
+      "why": "NOW() вместо времени чека — расхождение в секунды, на фоне остального мелочь"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

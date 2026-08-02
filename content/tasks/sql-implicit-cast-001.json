@@ -1,0 +1,28 @@
+{
+  "id": "sql-implicit-cast-001",
+  "stack": "sql",
+  "difficulty": 3,
+  "title": "Поиск по номеру карты",
+  "prompt": "Добавь поиск пациента по номеру карты",
+  "tests": "PASS  tests/search.test.ts (5)\n  ✓ находит по номеру\n  ✓ не находит чужую клинику\n\nTests  5 passed (5)",
+  "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,4 +1,7 @@\n SELECT p.id, p.name, p.card_number\n FROM pets p\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.card_number = :query\n+LIMIT 50\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/find_pet.sql",
+      "match": "  AND p.card_number = :query",
+      "kind": "wrong",
+      "tag": "implicit-cast-kills-index",
+      "explain": "card_number хранится строкой, а из формы приходит число. База приводит типы неявно и перестаёт использовать индекс по колонке.",
+      "consequence": "Поиск по карте начинает делать полный проход по таблице визитов на несколько миллионов строк. На дев-базе в тысячу записей это незаметно, на проде регистратура жалуется, что поиск «думает» по десять секунд."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "LIMIT 50",
+      "why": "лимит без сортировки даёт непредсказуемый набор — справедливо, но не про скорость"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,28 @@
+{
+  "id": "py-dict-mutation-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Нормализация прайса",
+  "prompt": "Приведи цены из внешнего прайса к нашему формату",
+  "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_price.py .....             [100%]\n\n==== 5 passed in 0.19s ====",
+  "diff": "--- a/price.py\n+++ b/price.py\n@@ -9,5 +9,12 @@\n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "price.py",
+      "match": "            del raw_prices[code]",
+      "kind": "wrong",
+      "tag": "mutating-while-iterating",
+      "explain": "Словарь меняется прямо во время обхода. Python бросит RuntimeError, как только в прайсе встретится хотя бы одна пустая цена.",
+      "consequence": "На тестовых данных без пустых цен всё зелёное, а первый же реальный прайс поставщика с прочерком в строке роняет ночной импорт целиком. Утром прайс не обновился, и никто не знает почему."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    return raw_prices",
+      "why": "функция и меняет аргумент, и возвращает его — путано, но само по себе не ломает"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}
