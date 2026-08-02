@@ -5,7 +5,7 @@
   "title": "Уведомление о визите",
   "prompt": "Отправляй уведомление владельцу, когда визит закрыли",
   "tests": "PASS  src/visit.test.ts (4)\n  ✓ закрывает визит\n  ✓ шлёт уведомление\n\nTests  4 passed (4)\nBuild  ✓ built in 0.87s",
-  "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -8,6 +8,11 @@\n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n   return visit\n }\n",
+  "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -1,18 +1,34 @@\n import { audit } from './audit'\n import { db } from './db'\n import { notify } from './notify'\n \n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n+\n   return visit\n }\n+\n+export async function closeAll(ids: number[]) {\n+  const closed = []\n+\n+  for (const id of ids) {\n+    closed.push(await closeVisit(id))\n+  }\n+\n+  return closed\n+}\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "await audit.record('visit.closed', visit.id)",
       "why": "аудит после уведомления — порядок спорный, но корректности не ломает"
+    },
+    {
+      "match": "    closed.push(await closeVisit(id))",
+      "why": "последовательное закрытие вместо параллельного — медленно, зато предсказуемо"
     }
   ],
   "verified_by": "",

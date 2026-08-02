@@ -5,7 +5,7 @@
   "title": "Напоминание о вакцинации",
   "prompt": "Шли напоминание, если до ревакцинации осталось меньше недели",
   "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_reminders.py ....          [100%]\n\n==== 4 passed in 0.18s ====",
-  "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,8 +1,13 @@\n from datetime import datetime, timedelta\n \n+WINDOW = timedelta(days=7)\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+    return vaccination.due_at - now <= WINDOW\n",
+  "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,15 +1,32 @@\n from datetime import datetime, timedelta\n \n from db import session\n from models import Vaccination\n \n+WINDOW = timedelta(days=7)\n+\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+\n+    return vaccination.due_at - now <= WINDOW\n+\n+\n+def due_reminders(clinic_id):\n+    upcoming = (\n+        session.query(Vaccination)\n+        .filter(Vaccination.clinic_id == clinic_id)\n+        .filter(Vaccination.reminded_at.is_(None))\n+        .all()\n+    )\n+\n+    return [v for v in upcoming if needs_reminder(v)]\n+\n+\n def mark_reminded(vaccination):\n     vaccination.reminded_at = datetime.utcnow()\n     session.commit()\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,14 @@
     {
       "match": "WINDOW = timedelta(days=7)",
       "why": "окно константой — как раз хорошо, придраться не к чему"
+    },
+    {
+      "match": "        .filter(Vaccination.reminded_at.is_(None))",
+      "why": "фильтр «ещё не напоминали» на месте, дублей от него не будет"
+    },
+    {
+      "match": "    vaccination.reminded_at = datetime.utcnow()",
+      "why": "utcnow тоже наивный, но здесь он только записывается, а не сравнивается"
     }
   ],
   "verified_by": "",

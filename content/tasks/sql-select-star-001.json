@@ -5,7 +5,7 @@
   "title": "Список пациентов для мобильного",
   "prompt": "Отдай список пациентов для мобильного приложения",
   "tests": "PASS  tests/patients.test.ts (3)\n  ✓ отдаёт пациентов клиники\n  ✓ сортирует по кличке\n\nTests  3 passed (3)",
-  "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,3 +1,6 @@\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+ORDER BY p.name\n",
+  "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,12 +1,26 @@\n -- Список пациентов для мобильного приложения.\n -- Отдаётся как есть в JSON, поля наружу не фильтруются.\n \n-SELECT p.id, p.name\n-FROM pets p\n-WHERE p.clinic_id = :clinic\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+  AND p.archived_at IS NULL\n ORDER BY p.name\n+LIMIT :limit OFFSET :offset\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "ORDER BY p.name",
       "why": "сортировка по кличке без учёта регистра и локали — косметика на фоне остального"
+    },
+    {
+      "match": "  AND p.archived_at IS NULL",
+      "why": "фильтр архивных добавлен верно, к нему претензий нет"
     }
   ],
   "verified_by": "",

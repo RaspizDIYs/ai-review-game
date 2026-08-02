@@ -5,7 +5,7 @@
   "title": "Выгрузка справочника",
   "prompt": "Выгружай справочник услуг в CSV для бухгалтерии",
   "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_export.py ....             [100%]\n\n==== 4 passed in 0.22s ====",
-  "diff": "--- a/export.py\n+++ b/export.py\n@@ -6,5 +6,10 @@\n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n",
+  "diff": "--- a/export.py\n+++ b/export.py\n@@ -1,14 +1,31 @@\n import csv\n from datetime import date\n \n \n def export_filename(clinic_id):\n     return f\"services-{clinic_id}-{date.today():%Y-%m-%d}.csv\"\n \n \n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n+\n+\n+def export_all(clinics, target_dir):\n+    written = []\n+\n+    for clinic in clinics:\n+        path = f\"{target_dir}/{export_filename(clinic.id)}\"\n+        export_services(clinic.services, path)\n+        written.append(path)\n+\n+    return written\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "writer.writerow([\"Код\", \"Название\", \"Цена\"])",
       "why": "заголовок без BOM — Excel откроет криво, но это следствие той же причины"
+    },
+    {
+      "match": "        path = f\"{target_dir}/{export_filename(clinic.id)}\"",
+      "why": "склейка пути строкой вместо os.path.join — на Windows криво, но не ломает выгрузку"
     }
   ],
   "verified_by": "",

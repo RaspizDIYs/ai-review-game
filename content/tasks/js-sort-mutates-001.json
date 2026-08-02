@@ -5,7 +5,7 @@
   "title": "Сортировка списка приёмов",
   "prompt": "Покажи приёмы по времени, самые ранние сверху",
   "tests": "PASS  src/AppointmentList.test.tsx (3)\n  ✓ рисует все приёмы\n  ✓ сортирует по времени\n\nTests  3 passed (3)",
-  "diff": "--- a/src/AppointmentList.tsx\n+++ b/src/AppointmentList.tsx\n@@ -4,7 +4,11 @@\n export function AppointmentList({ items }: { items: Appointment[] }) {\n-  return <ul>{items.map(renderRow)}</ul>\n+  const sorted = items.sort((a, b) => a.startsAt - b.startsAt)\n+\n+  return <ul>{sorted.map(renderRow)}</ul>\n }\n",
+  "diff": "--- a/src/AppointmentList.tsx\n+++ b/src/AppointmentList.tsx\n@@ -1,16 +1,31 @@\n import type { Appointment } from './types'\n \n function renderRow(item: Appointment) {\n   return (\n     <li key={item.id}>\n       {formatTime(item.startsAt)} — {item.petName}\n     </li>\n   )\n }\n \n export function AppointmentList({ items }: { items: Appointment[] }) {\n-  return <ul>{items.map(renderRow)}</ul>\n+  const sorted = items.sort((a, b) => a.startsAt - b.startsAt)\n+\n+  if (sorted.length === 0) {\n+    return <p className=\"empty\">На сегодня приёмов нет</p>\n+  }\n+\n+  return <ul>{sorted.map(renderRow)}</ul>\n }\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "return <ul>{sorted.map(renderRow)}</ul>",
       "why": "нет key у строк — реальная претензия к React, но не эта подлянка"
+    },
+    {
+      "match": "    return <p className=\"empty\">На сегодня приёмов нет</p>",
+      "why": "пустое состояние — полезное добавление, не имеющее отношения к порядку"
     }
   ],
   "verified_by": "",

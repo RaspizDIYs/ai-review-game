@@ -5,7 +5,7 @@
   "title": "Отчёт по движению склада",
   "prompt": "Посчитай по движениям склада и сумму, и количество позиций",
   "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_stock_report.py .....      [100%]\n\n==== 5 passed in 0.21s ====",
-  "diff": "--- a/stock_report.py\n+++ b/stock_report.py\n@@ -3,7 +3,14 @@\n def build_report(clinic_id):\n-    moves = list(fetch_moves(clinic_id))\n+    moves = (m for m in fetch_moves(clinic_id) if m.delta != 0)\n+\n+    total = sum(m.delta * m.price for m in moves)\n+    positions = len({m.sku for m in moves})\n+\n+    return Report(total=total, positions=positions)\n",
+  "diff": "--- a/stock_report.py\n+++ b/stock_report.py\n@@ -1,16 +1,33 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Report:\n     total: int\n     positions: int\n \n \n def build_report(clinic_id):\n-    moves = list(fetch_moves(clinic_id))\n-    total = sum(m.delta * m.price for m in moves)\n-    positions = len({m.sku for m in moves})\n+    moves = (m for m in fetch_moves(clinic_id) if m.delta != 0)\n+\n+    total = sum(m.delta * m.price for m in moves)\n+    positions = len({m.sku for m in moves})\n \n     return Report(total=total, positions=positions)\n+\n+\n+def build_all(clinic_ids):\n+    return {cid: build_report(cid) for cid in clinic_ids}\n",
   "clean": false,
   "bugs": [
     {
@@ -25,6 +25,10 @@
     {
       "match": "    total = sum(m.delta * m.price for m in moves)",
       "why": "первый проход отрабатывает совершенно нормально — в этом и коварство"
+    },
+    {
+      "match": "    return {cid: build_report(cid) for cid in clinic_ids}",
+      "why": "словарное включение по клиникам — читаемо и верно"
     }
   ],
   "verified_by": "",

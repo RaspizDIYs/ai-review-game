@@ -5,7 +5,7 @@
   "title": "Сохранение карточки",
   "prompt": "Показывай пользователю, если карточка не сохранилась",
   "tests": "PASS  src/PatientForm.test.tsx (5)\n  ✓ сохраняет карточку\n  ✓ показывает ошибку\n\nTests  5 passed (5)",
-  "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -12,7 +12,12 @@\n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    }\n   }\n",
+  "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -1,20 +1,36 @@\n import { useState } from 'react'\n \n import { api } from './api'\n import type { PatientDraft } from './types'\n \n export function PatientForm({ initial }: { initial: PatientDraft }) {\n   const [values, setValues] = useState(initial)\n   const [saved, setSaved] = useState(false)\n+  const [busy, setBusy] = useState(false)\n \n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    setBusy(true)\n+\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    } finally {\n+      setBusy(false)\n+    }\n   }\n \n-  return <Form values={values} onChange={setValues} onSubmit={onSubmit} />\n+  return (\n+    <Form values={values} onChange={setValues} onSubmit={onSubmit} disabled={busy} />\n+  )\n }\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "      setSaved(true)",
       "why": "флаг успеха внутри try — так и правильно, до него дело дойдёт только без исключения"
+    },
+    {
+      "match": "    } finally {",
+      "why": "сброс флага в finally — как раз правильно, иначе форма зависла бы после ошибки"
     }
   ],
   "verified_by": "",

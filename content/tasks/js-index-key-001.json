@@ -5,7 +5,7 @@
   "title": "Редактируемый список назначений",
   "prompt": "Дай удалять строки назначений прямо в списке",
   "tests": "PASS  src/Prescriptions.test.tsx (5)\n  ✓ рисует список\n  ✓ удаляет строку\n\nTests  5 passed (5)",
-  "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -8,9 +8,16 @@\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
+  "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -1,18 +1,35 @@\n import type { Prescription } from './types'\n \n export function Prescriptions({ items, onChange }: Props) {\n+  function remove(index: number) {\n+    onChange(items.filter((_, i) => i !== index))\n+  }\n+\n+  if (items.length === 0) {\n+    return <p className=\"empty\">Назначений пока нет</p>\n+  }\n+\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "      {items.map((item, i) => (",
       "why": "передавать индекс в обработчик удаления нормально, если список не переупорядочивают"
+    },
+    {
+      "match": "    onChange(items.filter((_, i) => i !== index))",
+      "why": "удаление через filter не мутирует исходный массив — здесь всё честно"
     }
   ],
   "verified_by": "",

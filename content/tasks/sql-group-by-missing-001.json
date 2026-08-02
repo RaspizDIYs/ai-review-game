@@ -5,7 +5,7 @@
   "title": "Выручка по врачам",
   "prompt": "Посчитай выручку по каждому врачу за месяц",
   "tests": "PASS  tests/revenue.test.ts (4)\n  ✓ считает сумму по врачу\n  ✓ отдаёт имя врача\n\nTests  4 passed (4)",
-  "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,4 +1,8 @@\n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n GROUP BY d.id\n",
+  "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,12 +1,26 @@\n -- Выручка по врачам за месяц. Читается из отчёта в админке.\n \n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue,\n+       COUNT(DISTINCT i.patient_id) AS patients\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n+  AND i.status = 'paid'\n GROUP BY d.id\n ORDER BY revenue DESC\n+LIMIT 100\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,14 @@
     {
       "match": "WHERE i.paid_at >= :month_start",
       "why": "верхняя граница месяца не задана — отчёт захватит и следующий, но это другая ошибка"
+    },
+    {
+      "match": "       COUNT(DISTINCT i.patient_id) AS patients",
+      "why": "DISTINCT здесь как раз к месту — без него пациенты бы задваивались"
+    },
+    {
+      "match": "LIMIT 100",
+      "why": "сотня врачей на клинику — с запасом, но лимит без причины всё же лишний"
     }
   ],
   "verified_by": "",

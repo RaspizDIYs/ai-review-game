@@ -5,7 +5,7 @@
   "title": "Отладка выгрузки",
   "prompt": "Разберись, почему выгрузка иногда пустая, и почини",
   "tests": "PASS  src/export.test.ts (4)\n  ✓ выгружает строки\n  ✓ пустой список не падает\n\nTests  4 passed (4)",
-  "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -4,6 +4,10 @@\n export function toCsv(rows: Row[]): string {\n+  console.log('rows', rows)\n+\n   if (!rows.length) return ''\n+\n   return rows.map(toLine).join('\\n')\n }\n",
+  "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -1,16 +1,32 @@\n import type { Row } from './types'\n \n function toLine(row: Row): string {\n   return [row.date, row.patient, row.service, row.total].join(';')\n }\n \n+const HEADER = ['Дата', 'Пациент', 'Услуга', 'Сумма'].join(';')\n+\n export function toCsv(rows: Row[]): string {\n-  return rows.map(toLine).join('\\n')\n+  console.log('rows', rows)\n+\n+  if (!rows.length) return ''\n+\n+  return [HEADER, ...rows.map(toLine)].join('\\n')\n }\n+\n+export function download(rows: Row[], filename: string) {\n+  const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8' })\n+  const url = URL.createObjectURL(blob)\n+\n+  Object.assign(document.createElement('a'), { href: url, download: filename }).click()\n+  URL.revokeObjectURL(url)\n+}\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "  if (!rows.length) return ''",
       "why": "ранний выход на пустом списке — как раз то, о чём просили"
+    },
+    {
+      "match": "  Object.assign(document.createElement('a'), { href: url, download: filename }).click()",
+      "why": "ссылка не добавлена в документ — в старых браузерах не сработает, но это не про выгрузку"
     }
   ],
   "verified_by": "",

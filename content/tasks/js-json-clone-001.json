@@ -5,7 +5,7 @@
   "title": "Копия черновика назначения",
   "prompt": "Сделай копию черновика, чтобы правки не меняли оригинал",
   "tests": "PASS  src/draft.test.ts (4)\n  ✓ копия независима\n  ✓ вложенные поля копируются\n\nTests  4 passed (4)",
-  "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -3,4 +3,9 @@\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n",
+  "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -1,12 +1,26 @@\n import { nanoid } from 'nanoid'\n import type { Prescription } from './types'\n \n export function createDraft(visitId: number): Prescription {\n   return {\n     id: nanoid(),\n     visitId,\n     items: [],\n     createdAt: new Date(),\n   }\n }\n+\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n+\n+export function duplicateForVisit(draft: Prescription, visitId: number): Prescription {\n+  const copy = cloneDraft(draft)\n+\n+  copy.id = nanoid()\n+  copy.visitId = visitId\n+  copy.createdAt = new Date()\n+\n+  return copy\n+}\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "export function cloneDraft(draft: Prescription): Prescription {",
       "why": "тип возвращаемого значения обещает Prescription, хотя внутри any — следствие, а не причина"
+    },
+    {
+      "match": "  copy.id = nanoid()",
+      "why": "мутация только что созданной копии — некрасиво, но безопасно: объект больше нигде не виден"
     }
   ],
   "verified_by": "",

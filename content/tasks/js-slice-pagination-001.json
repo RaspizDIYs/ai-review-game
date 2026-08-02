@@ -5,7 +5,7 @@
   "title": "Пагинация справочника",
   "prompt": "Разбей справочник пород на страницы по 20 штук",
   "tests": "PASS  src/paginate.test.ts (5)\n  ✓ первая страница\n  ✓ последняя страница неполная\n\nTests  5 passed (5)",
-  "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,3 +1,8 @@\n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n",
+  "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,10 +1,27 @@\n import type { Breed } from './types'\n \n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n+\n+export function pageCount(total: number): number {\n+  return Math.max(1, Math.ceil(total / PAGE_SIZE))\n+}\n+\n+export function breedsPage(all: Breed[], pageNumber: number) {\n+  return {\n+    items: page(all, pageNumber),\n+    pages: pageCount(all.length),\n+    current: pageNumber,\n+  }\n+}\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "export function page<T>(items: T[], pageNumber: number): T[]",
       "why": "нет валидации отрицательного номера — slice это переживёт, поведение не ломается"
+    },
+    {
+      "match": "  return Math.max(1, Math.ceil(total / PAGE_SIZE))",
+      "why": "минимум одна страница даже на пустом списке — так интерфейсу удобнее, и это верно"
     }
   ],
   "verified_by": "",

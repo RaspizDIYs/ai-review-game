@@ -5,7 +5,7 @@
   "title": "Настройки клиники",
   "prompt": "Сделай функцию, которая накатывает настройки клиники поверх дефолтных",
   "tests": "PASS  src/settings.test.ts (4)\n  ✓ берёт значение из дефолтов\n  ✓ перекрывает значение клиники\n\nTests  4 passed (4)",
-  "diff": "--- a/src/settings.ts\n+++ b/src/settings.ts\n@@ -10,4 +10,9 @@\n+export function resolveSettings(clinic: Partial<Settings>): Settings {\n+  return { ...DEFAULTS, ...clinic }\n+}\n+\n+export const DEFAULTS: Settings = { theme: 'light', notifications: { email: true, sms: false } }\n",
+  "diff": "--- a/src/settings.ts\n+++ b/src/settings.ts\n@@ -1,16 +1,32 @@\n export interface Settings {\n   theme: 'light' | 'dark'\n   notifications: {\n     email: boolean\n     sms: boolean\n   }\n }\n \n+export const DEFAULTS: Settings = {\n+  theme: 'light',\n+  notifications: { email: true, sms: false },\n+}\n+\n+export function resolveSettings(clinic: Partial<Settings>): Settings {\n+  return { ...DEFAULTS, ...clinic }\n+}\n+\n+export function describe(settings: Settings): string {\n+  const channels = [\n+    settings.notifications.email && 'почта',\n+    settings.notifications.sms && 'смс',\n+  ].filter(Boolean)\n+\n+  return channels.length ? channels.join(', ') : 'уведомления выключены'\n+}\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "export const DEFAULTS: Settings",
       "why": "константа объявлена ниже использования — для const это хойстится и работает, читается плохо, но не ломается"
+    },
+    {
+      "match": "  ].filter(Boolean)",
+      "why": "filter(Boolean) на массиве с false — работает, хотя типизирован так себе"
     }
   ],
   "verified_by": "",

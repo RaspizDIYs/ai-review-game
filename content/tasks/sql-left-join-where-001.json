@@ -5,7 +5,7 @@
   "title": "Клиенты без визитов",
   "prompt": "Покажи всех клиентов и их последний визит, включая тех, кто ещё не приходил",
   "tests": "PASS  tests/clients.test.ts (4)\n  ✓ отдаёт клиентов с визитами\n  ✓ фильтрует по клинике\n\nTests  4 passed (4)",
-  "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,4 +1,7 @@\n SELECT c.id, c.name, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+ORDER BY v.started_at DESC\n",
+  "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,12 +1,27 @@\n -- Список клиентов для отчёта по оттоку.\n -- Клиенты без визитов обязаны попадать в выборку — ради них отчёт и делается.\n \n SELECT c.id, c.name, c.created_at, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+  AND c.deleted_at IS NULL\n ORDER BY v.started_at DESC\n+LIMIT 500\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,14 @@
     {
       "match": "ORDER BY v.started_at DESC",
       "why": "сортировка без LIMIT по клиенту не даёт «последний визит» — отдельная недоделка, но не эта"
+    },
+    {
+      "match": "  AND c.deleted_at IS NULL",
+      "why": "условие на левую таблицу — с ним LEFT JOIN ничего не теряет"
+    },
+    {
+      "match": "LIMIT 500",
+      "why": "лимит без пагинации — отчёт обрежется молча, но это другая история"
     }
   ],
   "verified_by": "",

@@ -5,7 +5,7 @@
   "title": "Нормализация прайса",
   "prompt": "Приведи цены из внешнего прайса к нашему формату",
   "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_price.py .....             [100%]\n\n==== 5 passed in 0.19s ====",
-  "diff": "--- a/price.py\n+++ b/price.py\n@@ -9,5 +9,12 @@\n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n",
+  "diff": "--- a/price.py\n+++ b/price.py\n@@ -1,15 +1,33 @@\n import logging\n \n log = logging.getLogger(__name__)\n \n \n def parse_row(row):\n     code, raw = row.split(\";\", 1)\n     return code.strip(), float(raw) if raw.strip() else None\n \n \n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n+\n+\n+def load(rows):\n+    prices = dict(parse_row(r) for r in rows)\n+    log.info(\"прочитано позиций: %s\", len(prices))\n+\n+    return normalize(prices)\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "    return raw_prices",
       "why": "функция и меняет аргумент, и возвращает его — путано, но само по себе не ломает"
+    },
+    {
+      "match": "    log.info(\"прочитано позиций: %s\", len(prices))",
+      "why": "лог до нормализации покажет число до отсева — мелочь"
     }
   ],
   "verified_by": "",

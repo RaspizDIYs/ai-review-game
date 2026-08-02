@@ -5,7 +5,7 @@
   "title": "Миграция статусов",
   "prompt": "Перенеси старый статус визита 'закрыт' в новое поле state",
   "tests": "PASS  tests/migrations.test.ts (3)\n  ✓ переносит закрытые визиты\n  ✓ миграция идемпотентна\n\nTests  3 passed (3)",
-  "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,2 +1,6 @@\n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'open';\n",
+  "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,8 +1,24 @@\n -- Переход со старого текстового status на нормализованный state.\n -- Старая колонка удаляется в 032, откатиться после неё будет нечем.\n \n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n CREATE INDEX idx_visits_state ON visits (clinic_id, state);\n+\n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'cancelled'\n+WHERE status = 'отменён';\n+\n+UPDATE visits SET state = 'open';\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "ALTER TABLE visits ADD COLUMN state VARCHAR(16);",
       "why": "колонка без NOT NULL и без индекса — вопросы к схеме, но данные не портит"
+    },
+    {
+      "match": "CREATE INDEX idx_visits_state ON visits (clinic_id, state);",
+      "why": "индекс строится до заполнения колонки — медленнее, чем после, но корректно"
     }
   ],
   "verified_by": "",

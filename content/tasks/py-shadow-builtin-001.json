@@ -5,7 +5,7 @@
   "title": "Фильтр просроченных вакцин",
   "prompt": "Отбери вакцинации, у которых вышел срок",
   "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_vaccines.py ....           [100%]\n\n==== 4 passed in 0.12s ====",
-  "diff": "--- a/vaccines.py\n+++ b/vaccines.py\n@@ -7,4 +7,10 @@\n+def expired(vaccinations, today):\n+    list = []\n+    for v in vaccinations:\n+        if v.due_at < today:\n+            list.append(v)\n+\n+    return list\n",
+  "diff": "--- a/vaccines.py\n+++ b/vaccines.py\n@@ -1,14 +1,32 @@\n from datetime import date\n \n \n def is_due(vaccination, today):\n     return vaccination.due_at <= today\n \n \n+def expired(vaccinations, today):\n+    list = []\n+    for v in vaccinations:\n+        if v.due_at < today:\n+            list.append(v)\n+\n+    return list\n+\n+\n+def summary(vaccinations):\n+    today = date.today()\n+\n+    return {\n+        \"expired\": len(expired(vaccinations, today)),\n+        \"due\": sum(1 for v in vaccinations if is_due(v, today)),\n+    }\n+\n+\n def next_due(vaccinations):\n     return min((v.due_at for v in vaccinations), default=None)\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "        if v.due_at < today:",
       "why": "сравнение без учёта часового пояса — вопрос есть, но зависит от того, что кладут в due_at"
+    },
+    {
+      "match": "        \"due\": sum(1 for v in vaccinations if is_due(v, today)),",
+      "why": "просроченные попадают и в due тоже — спорная семантика, но не поломка"
     }
   ],
   "verified_by": "",

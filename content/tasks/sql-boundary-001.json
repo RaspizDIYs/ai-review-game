@@ -5,12 +5,12 @@
   "title": "Отчёт за период",
   "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
   "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
-  "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
+  "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,10 +1,26 @@\n -- Отчёт по визитам за период. Открывается из админки,\n -- :from и :to приходят из полей выбора даты как есть.\n \n SELECT v.id, v.created_at, p.name AS pet, o.name AS owner\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n JOIN owners o ON o.id = p.owner_id\n+WHERE v.clinic_id = :clinic\n+  AND v.created_at BETWEEN :from AND :to\n+  AND v.deleted_at IS NULL\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
   "clean": false,
   "bugs": [
     {
       "file": "src/report.sql",
-      "match": "WHERE v.created_at BETWEEN :from AND :to",
+      "match": "  AND v.created_at BETWEEN :from AND :to",
       "kind": "wrong",
       "tag": "off-by-one-boundary",
       "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
@@ -20,7 +20,11 @@
   "decoys": [
     {
       "match": "ORDER BY v.created_at",
-      "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка"
+      "why": "сортировка без вторичного ключа — при равных датах порядок между страницами не гарантирован, но это другая ошибка"
+    },
+    {
+      "match": "  AND v.deleted_at IS NULL",
+      "why": "мягко удалённые визиты отсеиваются — так и надо"
     }
   ],
   "verified_by": "",

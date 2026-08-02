@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Task } from '../types'
 import type { Outcome } from '../types'
 import { buildShare, copy, formatTime, isWin } from '../share.ts'
+import { betterThan, type Stats } from '../stats.ts'
 
 export interface Played {
   task: Task
@@ -16,6 +17,7 @@ interface Props {
   seconds: number
   newRecord: boolean
   onHome: () => void
+  stats: Stats | null
 }
 
 const LABEL: Record<Outcome, string> = {
@@ -25,7 +27,7 @@ const LABEL: Record<Outcome, string> = {
   'false-accusation': 'обвинил зря',
 }
 
-export function Summary({ mode, day, history, seconds, newRecord, onHome }: Props) {
+export function Summary({ mode, day, history, seconds, newRecord, onHome, stats }: Props) {
   const [copied, setCopied] = useState(false)
   const [fallback, setFallback] = useState<string | null>(null)
 
@@ -52,6 +54,16 @@ export function Summary({ mode, day, history, seconds, newRecord, onHome }: Prop
           {wins} из {history.length} · {total} очков · {formatTime(seconds)}
         </p>
         {newRecord && <p className="mt-1 text-emerald-400">Личный рекорд</p>}
+        {(() => {
+          const better = betterThan(stats, wins, history.length)
+          return better === null ? null : (
+            <p className="mt-2 text-zinc-400">
+              {better >= 50
+                ? `Лучше, чем у ${better}% сыгравших.`
+                : `Столько же или больше набрали ${100 - better}% сыгравших.`}
+            </p>
+          )
+        })()}
       </div>
 
       <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800">

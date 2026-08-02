@@ -5,7 +5,7 @@
   "title": "Загрузка карточки пациента",
   "prompt": "Пусть страница не падает, если карточка не загрузилась",
   "tests": "PASS  src/patient.test.ts (3)\n  ✓ отдаёт карточку\n  ✓ не бросает при ошибке сети\n\nTests  3 passed (3)",
-  "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -5,5 +5,9 @@\n export async function loadPatient(id: number) {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: [] }\n }\n",
+  "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -1,16 +1,31 @@\n import { api } from './api'\n import type { Patient } from './types'\n \n const EMPTY_HISTORY: Visit[] = []\n \n export async function loadPatient(id: number): Promise<Patient> {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: EMPTY_HISTORY }\n }\n \n+export async function loadPatientPage(id: number) {\n+  const patient = await loadPatient(id)\n+\n+  return {\n+    patient,\n+    canPrescribe: patient.visits.length > 0,\n+  }\n+}\n+\n export function displayName(patient: Patient): string {\n   return patient.name.trim() || 'Без имени'\n }\n",
   "clean": false,
   "bugs": [
     {
@@ -19,8 +19,12 @@
   ],
   "decoys": [
     {
-      "match": "return patient ?? { id, name: 'Без имени', visits: [] }",
+      "match": "return patient ?? { id, name: 'Без имени', visits: EMPTY_HISTORY }",
       "why": "выдуманная заглушка вместо ошибки — следствие, а не причина"
+    },
+    {
+      "match": "    canPrescribe: patient.visits.length > 0,",
+      "why": "право выписать назначение выводится из истории — спорная логика, но она следствие, а не причина"
     }
   ],
   "verified_by": "",

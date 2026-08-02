@@ -15,6 +15,7 @@ services:
       # заменяющий файл целиком, оставил бы контейнер со старым конфигом.
       - ./conf:/etc/nginx/conf.d:ro
       - ./log:/var/log/nginx
+      - ./stats:/srv/stats:ro
 
     mem_limit: 64m
 

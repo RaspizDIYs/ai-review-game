@@ -5,7 +5,7 @@
   "title": "Обновление остатков склада",
   "prompt": "Обнови остатки по приходу, а если позиции ещё нет — заведи её",
   "tests": "PASS  tests/stock.test.ts (5)\n  ✓ создаёт новую позицию\n  ✓ прибавляет к существующей\n  ✓ повторный прогон не задваивает\n\nTests  5 passed (5)",
-  "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,2 +1,9 @@\n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n",
+  "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,10 +1,26 @@\n -- Приход товара на склад клиники.\n -- Вызывается из обработчика накладной, по одной строке на позицию.\n \n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n+RETURNING clinic_id, sku, quantity;\n+\n+-- Движение пишем всегда, даже если позиция была заведена только что:\n+-- по этой таблице потом сходится инвентаризация.\n+INSERT INTO stock_moves (clinic_id, sku, delta, invoice_id, created_at)\n+VALUES (:clinic, :sku, :quantity, :invoice, NOW());\n",
   "clean": true,
   "bugs": [],
   "decoys": [
@@ -20,6 +20,14 @@
     {
       "match": "  updated_at = EXCLUDED.updated_at",
       "why": "берётся время из вставляемой строки, а не NOW() заново — разницы нет, значение то же самое"
+    },
+    {
+      "match": "RETURNING clinic_id, sku, quantity;",
+      "why": "RETURNING тут не обязателен, но и не мешает"
+    },
+    {
+      "match": "VALUES (:clinic, :sku, :quantity, :invoice, NOW());",
+      "why": "две вставки без явной транзакции — вопрос справедливый, но в задаче про upsert"
     }
   ],
   "verified_by": "",

@@ -5,7 +5,7 @@
   "title": "Путь до вложения",
   "prompt": "Собери путь до файла вложения по имени, которое пришло из формы",
   "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_storage.py .....           [100%]\n\n==== 5 passed in 0.15s ====",
-  "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -3,4 +3,8 @@\n UPLOADS = \"/var/vetmanager/uploads\"\n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n",
+  "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -1,14 +1,29 @@\n import os\n \n UPLOADS = \"/var/vetmanager/uploads\"\n ALLOWED = {\".pdf\", \".jpg\", \".png\"}\n \n \n def is_allowed(filename):\n     return os.path.splitext(filename)[1].lower() in ALLOWED\n \n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n+\n+\n+def read_attachment(filename):\n+    if not is_allowed(filename):\n+        raise ValueError(\"недопустимый тип файла\")\n+\n+    with open(attachment_path(filename), \"rb\") as f:\n+        return f.read()\n+\n+\n def attachment_url(filename):\n     return f\"/files/{filename}\"\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "UPLOADS = \"/var/vetmanager/uploads\"",
       "why": "путь захардкожен — в конфиг бы его, но опасность не здесь"
+    },
+    {
+      "match": "    if not is_allowed(filename):",
+      "why": "проверка расширения выглядит защитой — но она про тип файла, а не про то, где он лежит"
     }
   ],
   "verified_by": "",

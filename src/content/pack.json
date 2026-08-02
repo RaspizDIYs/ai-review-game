@@ -6,7 +6,7 @@
     "title": "Сохранение карточки",
     "prompt": "Показывай пользователю, если карточка не сохранилась",
     "tests": "PASS  src/PatientForm.test.tsx (5)\n  ✓ сохраняет карточку\n  ✓ показывает ошибку\n\nTests  5 passed (5)",
-    "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -12,7 +12,12 @@\n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    }\n   }\n",
+    "diff": "--- a/src/PatientForm.tsx\n+++ b/src/PatientForm.tsx\n@@ -1,20 +1,36 @@\n import { useState } from 'react'\n \n import { api } from './api'\n import type { PatientDraft } from './types'\n \n export function PatientForm({ initial }: { initial: PatientDraft }) {\n   const [values, setValues] = useState(initial)\n   const [saved, setSaved] = useState(false)\n+  const [busy, setBusy] = useState(false)\n \n   async function onSubmit(values: PatientDraft) {\n-    await api.savePatient(values)\n+    setBusy(true)\n+\n+    try {\n+      await api.savePatient(values)\n+      setSaved(true)\n+    } catch {\n+      alert('Не удалось сохранить')\n+    } finally {\n+      setBusy(false)\n+    }\n   }\n \n-  return <Form values={values} onChange={setValues} onSubmit={onSubmit} />\n+  return (\n+    <Form values={values} onChange={setValues} onSubmit={onSubmit} disabled={busy} />\n+  )\n }\n",
     "clean": false,
     "bugs": [
       {
@@ -15,13 +15,17 @@
         "tag": "error-shown-but-lost",
         "explain": "Исключение поймано, показано человеку и выброшено. Ни причины, ни стека, ни записи в мониторинге не осталось.",
         "consequence": "Врач видит «не удалось сохранить» и звонит в поддержку, а в Sentry по этому времени пусто. Воспроизвести нечем: неизвестно даже, была это валидация, сеть или пятисотка.",
-        "line": 17
+        "line": 18
       }
     ],
     "decoys": [
       {
         "why": "флаг успеха внутри try — так и правильно, до него дело дойдёт только без исключения",
-        "line": 15
+        "line": 16
+      },
+      {
+        "why": "сброс флага в finally — как раз правильно, иначе форма зависла бы после ошибки",
+        "line": 19
       }
     ],
     "verified_by": "",
@@ -30,6 +34,299 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { useState } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'react'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { api } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./api'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { PatientDraft } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PatientForm",
+          "#D2A8FF"
+        ],
+        [
+          "({ ",
+          "#E6EDF3"
+        ],
+        [
+          "initial",
+          "#FFA657"
+        ],
+        [
+          " }",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " { ",
+          "#E6EDF3"
+        ],
+        [
+          "initial",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PatientDraft",
+          "#FFA657"
+        ],
+        [
+          " }) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "values",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "setValues",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "useState",
+          "#D2A8FF"
+        ],
+        [
+          "(initial)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "saved",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "setSaved",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "useState",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "false",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "busy",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "setBusy",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "useState",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "false",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "  ",
@@ -102,6 +399,29 @@
           "#E6EDF3"
         ]
       ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "setBusy",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "true",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "    ",
@@ -198,6 +518,42 @@
       ],
       [
         [
+          "    } ",
+          "#E6EDF3"
+        ],
+        [
+          "finally",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "setBusy",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "false",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
           "    }",
           "#E6EDF3"
         ]
@@ -205,6 +561,157 @@
       [
         [
           "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "Form",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "values",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{",
+          "#E6EDF3"
+        ],
+        [
+          "values",
+          "#FFA657"
+        ],
+        [
+          "} ",
+          "#E6EDF3"
+        ],
+        [
+          "onChange",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{",
+          "#E6EDF3"
+        ],
+        [
+          "setValues",
+          "#FFA657"
+        ],
+        [
+          "} ",
+          "#E6EDF3"
+        ],
+        [
+          "onSubmit",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{",
+          "#E6EDF3"
+        ],
+        [
+          "onSubmit",
+          "#FFA657"
+        ],
+        [
+          "} />",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  return (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "<",
+          "#FF7B72"
+        ],
+        [
+          "Form values",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{values} onChange",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{setValues} onSubmit",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{onSubmit} disabled",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{busy} ",
+          "#E6EDF3"
+        ],
+        [
+          "/>",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  )",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
           "#E6EDF3"
         ]
       ]
@@ -714,7 +1221,7 @@
     "title": "Загрузка карточки пациента",
     "prompt": "Пусть страница не падает, если карточка не загрузилась",
     "tests": "PASS  src/patient.test.ts (3)\n  ✓ отдаёт карточку\n  ✓ не бросает при ошибке сети\n\nTests  3 passed (3)",
-    "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -5,5 +5,9 @@\n export async function loadPatient(id: number) {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: [] }\n }\n",
+    "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -1,16 +1,31 @@\n import { api } from './api'\n import type { Patient } from './types'\n \n const EMPTY_HISTORY: Visit[] = []\n \n export async function loadPatient(id: number): Promise<Patient> {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: EMPTY_HISTORY }\n }\n \n+export async function loadPatientPage(id: number) {\n+  const patient = await loadPatient(id)\n+\n+  return {\n+    patient,\n+    canPrescribe: patient.visits.length > 0,\n+  }\n+}\n+\n export function displayName(patient: Patient): string {\n   return patient.name.trim() || 'Без имени'\n }\n",
     "clean": false,
     "bugs": [
       {
@@ -723,13 +1230,17 @@
         "tag": "error-swallowed",
         "explain": "Отвалившаяся сеть и отсутствующий пациент теперь неразличимы: и то и другое превращается в пустую карточку.",
         "consequence": "Врач при упавшем бэкенде видит карточку с пустой историей визитов и делает назначение вслепую. Ошибки в мониторинге нет, потому что никто не бросил исключение.",
-        "line": 6
+        "line": 7
       }
     ],
     "decoys": [
       {
         "why": "выдуманная заглушка вместо ошибки — следствие, а не причина",
-        "line": 8
+        "line": 9
+      },
+      {
+        "why": "право выписать назначение выводится из истории — спорная логика, но она следствие, а не причина",
+        "line": 17
       }
     ],
     "verified_by": "",
@@ -738,6 +1249,98 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { api } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./api'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Patient } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "EMPTY_HISTORY",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Visit",
+          "#FFA657"
+        ],
+        [
+          "[] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -788,7 +1391,31 @@
           "#79C0FF"
         ],
         [
-          ") {",
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Promise",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "Patient",
+          "#FFA657"
+        ],
+        [
+          "> {",
           "#E6EDF3"
         ]
       ],
@@ -943,8 +1570,283 @@
           "#A5D6FF"
         ],
         [
-          ", visits: [] }",
+          ", visits: ",
           "#E6EDF3"
+        ],
+        [
+          "EMPTY_HISTORY",
+          "#79C0FF"
+        ],
+        [
+          " }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "loadPatientPage",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "patient",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "loadPatient",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    patient,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    canPrescribe: patient.visits.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "displayName",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "patient",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Patient",
+          "#FFA657"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " patient.name.",
+          "#E6EDF3"
+        ],
+        [
+          "trim",
+          "#D2A8FF"
+        ],
+        [
+          "() ",
+          "#E6EDF3"
+        ],
+        [
+          "||",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'Без имени'",
+          "#A5D6FF"
         ]
       ],
       [
@@ -2376,7 +3278,7 @@
     "title": "Отладка выгрузки",
     "prompt": "Разберись, почему выгрузка иногда пустая, и почини",
     "tests": "PASS  src/export.test.ts (4)\n  ✓ выгружает строки\n  ✓ пустой список не падает\n\nTests  4 passed (4)",
-    "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -4,6 +4,10 @@\n export function toCsv(rows: Row[]): string {\n+  console.log('rows', rows)\n+\n   if (!rows.length) return ''\n+\n   return rows.map(toLine).join('\\n')\n }\n",
+    "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -1,16 +1,32 @@\n import type { Row } from './types'\n \n function toLine(row: Row): string {\n   return [row.date, row.patient, row.service, row.total].join(';')\n }\n \n+const HEADER = ['Дата', 'Пациент', 'Услуга', 'Сумма'].join(';')\n+\n export function toCsv(rows: Row[]): string {\n-  return rows.map(toLine).join('\\n')\n+  console.log('rows', rows)\n+\n+  if (!rows.length) return ''\n+\n+  return [HEADER, ...rows.map(toLine)].join('\\n')\n }\n+\n+export function download(rows: Row[], filename: string) {\n+  const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8' })\n+  const url = URL.createObjectURL(blob)\n+\n+  Object.assign(document.createElement('a'), { href: url, download: filename }).click()\n+  URL.revokeObjectURL(url)\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -2385,13 +3287,17 @@
         "tag": "debug-left-in-code",
         "explain": "Отладочный вывод остался в коде и печатает весь массив на каждый вызов.",
         "consequence": "На выгрузке в двадцать тысяч строк консоль браузера забивается целиком, вкладка подвисает на несколько секунд, а в логах сервера, если это уедет на бэкенд, окажутся персональные данные владельцев.",
-        "line": 5
+        "line": 10
       }
     ],
     "decoys": [
       {
         "why": "ранний выход на пустом списке — как раз то, о чём просили",
-        "line": 7
+        "line": 12
+      },
+      {
+        "why": "ссылка не добавлена в документ — в старых браузерах не сработает, но это не про выгрузку",
+        "line": 21
       }
     ],
     "verified_by": "",
@@ -2400,6 +3306,203 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Row } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "toLine",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "row",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Row",
+          "#FFA657"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " [row.date, row.patient, row.service, row.total].",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "';'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "HEADER",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "'Дата'",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "'Пациент'",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "'Услуга'",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "'Сумма'",
+          "#A5D6FF"
+        ],
+        [
+          "].",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "';'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -2459,6 +3562,52 @@
         ],
         [
           " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " rows.",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#D2A8FF"
+        ],
+        [
+          "(toLine).",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          "\\n",
+          "#FF7B72"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
           "#E6EDF3"
         ]
       ],
@@ -2538,7 +3687,23 @@
           "#FF7B72"
         ],
         [
-          " rows.",
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "HEADER",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "rows.",
           "#E6EDF3"
         ],
         [
@@ -2546,7 +3711,7 @@
           "#D2A8FF"
         ],
         [
-          "(toLine).",
+          "(toLine)].",
           "#E6EDF3"
         ],
         [
@@ -2571,6 +3736,248 @@
         ],
         [
           ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "download",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "rows",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Row",
+          "#FFA657"
+        ],
+        [
+          "[], ",
+          "#E6EDF3"
+        ],
+        [
+          "filename",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "blob",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Blob",
+          "#D2A8FF"
+        ],
+        [
+          "([",
+          "#E6EDF3"
+        ],
+        [
+          "toCsv",
+          "#D2A8FF"
+        ],
+        [
+          "(rows)], { type: ",
+          "#E6EDF3"
+        ],
+        [
+          "'text/csv;charset=utf-8'",
+          "#A5D6FF"
+        ],
+        [
+          " })",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "url",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "URL",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "createObjectURL",
+          "#D2A8FF"
+        ],
+        [
+          "(blob)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  Object.",
+          "#E6EDF3"
+        ],
+        [
+          "assign",
+          "#D2A8FF"
+        ],
+        [
+          "(document.",
+          "#E6EDF3"
+        ],
+        [
+          "createElement",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'a'",
+          "#A5D6FF"
+        ],
+        [
+          "), { href: url, download: filename }).",
+          "#E6EDF3"
+        ],
+        [
+          "click",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "URL",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "revokeObjectURL",
+          "#D2A8FF"
+        ],
+        [
+          "(url)",
           "#E6EDF3"
         ]
       ],
@@ -2898,7 +4305,7 @@
     "title": "Уведомление о визите",
     "prompt": "Отправляй уведомление владельцу, когда визит закрыли",
     "tests": "PASS  src/visit.test.ts (4)\n  ✓ закрывает визит\n  ✓ шлёт уведомление\n\nTests  4 passed (4)\nBuild  ✓ built in 0.87s",
-    "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -8,6 +8,11 @@\n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n   return visit\n }\n",
+    "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -1,18 +1,34 @@\n import { audit } from './audit'\n import { db } from './db'\n import { notify } from './notify'\n \n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n+\n   return visit\n }\n+\n+export async function closeAll(ids: number[]) {\n+  const closed = []\n+\n+  for (const id of ids) {\n+    closed.push(await closeVisit(id))\n+  }\n+\n+  return closed\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -2907,13 +4314,17 @@
         "tag": "floating-promise",
         "explain": "notify возвращает промис, но его никто не ждёт и ошибку из него никто не поймает.",
         "consequence": "Упавшее уведомление становится unhandled rejection: владелец ничего не получил, в логах пусто, а под Node с strict-режимом это ещё и валит процесс целиком.",
-        "line": 11
+        "line": 8
       }
     ],
     "decoys": [
       {
         "why": "аудит после уведомления — порядок спорный, но корректности не ломает",
-        "line": 13
+        "line": 10
+      },
+      {
+        "why": "последовательное закрытие вместо параллельного — медленно, зато предсказуемо",
+        "line": 19
       }
     ],
     "verified_by": "",
@@ -2922,6 +4333,73 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { audit } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./audit'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { db } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./db'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { notify } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./notify'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -3092,6 +4570,7 @@
           "#E6EDF3"
         ]
       ],
+      [],
       [
         [
           "  ",
@@ -3111,6 +4590,187 @@
           "}",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "closeAll",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "ids",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          "[]) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "closed",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "of",
+          "#FF7B72"
+        ],
+        [
+          " ids) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    closed.",
+          "#E6EDF3"
+        ],
+        [
+          "push",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "closeVisit",
+          "#D2A8FF"
+        ],
+        [
+          "(id))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " closed",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -3121,7 +4781,7 @@
     "title": "Редактируемый список назначений",
     "prompt": "Дай удалять строки назначений прямо в списке",
     "tests": "PASS  src/Prescriptions.test.tsx (5)\n  ✓ рисует список\n  ✓ удаляет строку\n\nTests  5 passed (5)",
-    "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -8,9 +8,16 @@\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
+    "diff": "--- a/src/Prescriptions.tsx\n+++ b/src/Prescriptions.tsx\n@@ -1,18 +1,35 @@\n import type { Prescription } from './types'\n \n export function Prescriptions({ items, onChange }: Props) {\n+  function remove(index: number) {\n+    onChange(items.filter((_, i) => i !== index))\n+  }\n+\n+  if (items.length === 0) {\n+    return <p className=\"empty\">Назначений пока нет</p>\n+  }\n+\n   return (\n     <ul>\n-      {items.map((item) => <Row key={item.id} item={item} />)}\n+      {items.map((item, i) => (\n+        <Row key={i} item={item} onRemove={() => remove(i)} />\n+      ))}\n     </ul>\n   )\n }\n",
     "clean": false,
     "bugs": [
       {
@@ -3130,13 +4790,17 @@
         "tag": "index-as-key",
         "explain": "Ключом стал индекс вместо item.id. При удалении строки React переиспользует узлы не по назначению, и внутреннее состояние строк съезжает на соседние.",
         "consequence": "Врач удаляет второе назначение — введённая в третьей строке дозировка перескакивает во вторую. Данные в state правильные, на экране нет, и заметно это только если смотреть внимательно.",
-        "line": 11
+        "line": 15
       }
     ],
     "decoys": [
       {
         "why": "передавать индекс в обработчик удаления нормально, если список не переупорядочивают",
-        "line": 10
+        "line": 14
+      },
+      {
+        "why": "удаление через filter не мутирует исходный массив — здесь всё честно",
+        "line": 5
       }
     ],
     "verified_by": "",
@@ -3145,6 +4809,293 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Prescription } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescriptions",
+          "#D2A8FF"
+        ],
+        [
+          "({ ",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "onChange",
+          "#FFA657"
+        ],
+        [
+          " }",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Props",
+          "#FFA657"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "remove",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "index",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "onChange",
+          "#D2A8FF"
+        ],
+        [
+          "(items.",
+          "#E6EDF3"
+        ],
+        [
+          "filter",
+          "#D2A8FF"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "_",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " i ",
+          "#E6EDF3"
+        ],
+        [
+          "!==",
+          "#FF7B72"
+        ],
+        [
+          " index))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (items.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "===",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "className",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#E6EDF3"
+        ],
+        [
+          "\"empty\"",
+          "#A5D6FF"
+        ],
+        [
+          ">Назначений пока нет",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "p",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "  ",
@@ -3408,7 +5359,7 @@
     "title": "Копия черновика назначения",
     "prompt": "Сделай копию черновика, чтобы правки не меняли оригинал",
     "tests": "PASS  src/draft.test.ts (4)\n  ✓ копия независима\n  ✓ вложенные поля копируются\n\nTests  4 passed (4)",
-    "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -3,4 +3,9 @@\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n",
+    "diff": "--- a/src/draft.ts\n+++ b/src/draft.ts\n@@ -1,12 +1,26 @@\n import { nanoid } from 'nanoid'\n import type { Prescription } from './types'\n \n export function createDraft(visitId: number): Prescription {\n   return {\n     id: nanoid(),\n     visitId,\n     items: [],\n     createdAt: new Date(),\n   }\n }\n+\n+export function cloneDraft(draft: Prescription): Prescription {\n+  return JSON.parse(JSON.stringify(draft))\n+}\n+\n+export function duplicateForVisit(draft: Prescription, visitId: number): Prescription {\n+  const copy = cloneDraft(draft)\n+\n+  copy.id = nanoid()\n+  copy.visitId = visitId\n+  copy.createdAt = new Date()\n+\n+  return copy\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -3417,13 +5368,17 @@
         "tag": "json-clone-loses-types",
         "explain": "Такое копирование превращает Date в строку, теряет undefined и Map, а на циклической ссылке падает.",
         "consequence": "Дата назначения после копирования становится строкой, и первый же вызов .getTime() падает с TypeError — но не в момент копирования, а позже и в другом файле. Искать будут не там.",
-        "line": 4
+        "line": 14
       }
     ],
     "decoys": [
       {
         "why": "тип возвращаемого значения обещает Prescription, хотя внутри any — следствие, а не причина",
-        "line": 3
+        "line": 13
+      },
+      {
+        "why": "мутация только что созданной копии — некрасиво, но безопасно: объект больше нигде не виден",
+        "line": 20
       }
     ],
     "verified_by": "",
@@ -3432,6 +5387,196 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { nanoid } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'nanoid'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Prescription } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "createDraft",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "visitId",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescription",
+          "#FFA657"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    id: ",
+          "#E6EDF3"
+        ],
+        [
+          "nanoid",
+          "#D2A8FF"
+        ],
+        [
+          "(),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    visitId,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    items: [],",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    createdAt: ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Date",
+          "#D2A8FF"
+        ],
+        [
+          "(),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -3545,6 +5690,215 @@
           "}",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "duplicateForVisit",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "draft",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescription",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "visitId",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Prescription",
+          "#FFA657"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "copy",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "cloneDraft",
+          "#D2A8FF"
+        ],
+        [
+          "(draft)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  copy.id ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "nanoid",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  copy.visitId ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " visitId",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  copy.createdAt ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Date",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " copy",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -3555,7 +5909,7 @@
     "title": "Дата визита в отчёте",
     "prompt": "Группируй визиты по дням для дневного отчёта",
     "tests": "PASS  src/report.test.ts (6)\n  ✓ группирует визиты по дню\n  ✓ пустой день не попадает в отчёт\n\nTests  6 passed (6)",
-    "diff": "--- a/src/report.ts\n+++ b/src/report.ts\n@@ -2,6 +2,11 @@\n+function dayOf(visit: Visit): string {\n+  return new Date(visit.startsAt).toISOString().slice(0, 10)\n+}\n+\n export function groupByDay(visits: Visit[]) {\n-  return groupBy(visits, (v) => v.startsAt)\n+  return groupBy(visits, dayOf)\n }\n",
+    "diff": "--- a/src/report.ts\n+++ b/src/report.ts\n@@ -1,16 +1,33 @@\n import { groupBy } from './util'\n import type { Visit } from './types'\n \n+function dayOf(visit: Visit): string {\n+  return new Date(visit.startsAt).toISOString().slice(0, 10)\n+}\n+\n export function groupByDay(visits: Visit[]) {\n-  return groupBy(visits, (v) => v.startsAt)\n+  return groupBy(visits, dayOf)\n }\n+\n+export function dailyTotals(visits: Visit[]) {\n+  const byDay = groupByDay(visits)\n+\n+  return Object.entries(byDay)\n+    .map(([day, items]) => ({\n+      day,\n+      count: items.length,\n+      revenue: items.reduce((sum, v) => sum + v.total, 0),\n+    }))\n+    .sort((a, b) => a.day.localeCompare(b.day))\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -3564,13 +5918,17 @@
         "tag": "utc-vs-local-day",
         "explain": "toISOString отдаёт день по UTC, а клиника живёт по своему часовому поясу.",
         "consequence": "Вечерние визиты в Краснодаре уезжают в отчёт следующего дня, а в Владивостоке — предыдущего. Дневная выручка не сходится ровно на вечерний приём, и никто не понимает почему.",
-        "line": 3
+        "line": 5
       }
     ],
     "decoys": [
       {
         "why": "группировка сама по себе корректна, вопрос в том, что считает ключом",
-        "line": 7
+        "line": 9
+      },
+      {
+        "why": "сортировка строк формата ГГГГ-ММ-ДД лексикографически — работает верно",
+        "line": 21
       }
     ],
     "verified_by": "",
@@ -3579,6 +5937,59 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { groupBy } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./util'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Visit } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
       [
         [
           "function",
@@ -3805,6 +6216,284 @@
         ],
         [
           "(visits, dayOf)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "dailyTotals",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "visits",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Visit",
+          "#FFA657"
+        ],
+        [
+          "[]) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "byDay",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "groupByDay",
+          "#D2A8FF"
+        ],
+        [
+          "(visits)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " Object.",
+          "#E6EDF3"
+        ],
+        [
+          "entries",
+          "#D2A8FF"
+        ],
+        [
+          "(byDay)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    .",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#D2A8FF"
+        ],
+        [
+          "(([",
+          "#E6EDF3"
+        ],
+        [
+          "day",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          "]) ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " ({",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      day,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      count: items.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      revenue: items.",
+          "#E6EDF3"
+        ],
+        [
+          "reduce",
+          "#D2A8FF"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "sum",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " sum ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " v.total, ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          "),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    }))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    .",
+          "#E6EDF3"
+        ],
+        [
+          "sort",
+          "#D2A8FF"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "a",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "b",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " a.day.",
+          "#E6EDF3"
+        ],
+        [
+          "localeCompare",
+          "#D2A8FF"
+        ],
+        [
+          "(b.day))",
           "#E6EDF3"
         ]
       ],
@@ -4127,7 +6816,7 @@
     "title": "Настройки клиники",
     "prompt": "Сделай функцию, которая накатывает настройки клиники поверх дефолтных",
     "tests": "PASS  src/settings.test.ts (4)\n  ✓ берёт значение из дефолтов\n  ✓ перекрывает значение клиники\n\nTests  4 passed (4)",
-    "diff": "--- a/src/settings.ts\n+++ b/src/settings.ts\n@@ -10,4 +10,9 @@\n+export function resolveSettings(clinic: Partial<Settings>): Settings {\n+  return { ...DEFAULTS, ...clinic }\n+}\n+\n+export const DEFAULTS: Settings = { theme: 'light', notifications: { email: true, sms: false } }\n",
+    "diff": "--- a/src/settings.ts\n+++ b/src/settings.ts\n@@ -1,16 +1,32 @@\n export interface Settings {\n   theme: 'light' | 'dark'\n   notifications: {\n     email: boolean\n     sms: boolean\n   }\n }\n \n+export const DEFAULTS: Settings = {\n+  theme: 'light',\n+  notifications: { email: true, sms: false },\n+}\n+\n+export function resolveSettings(clinic: Partial<Settings>): Settings {\n+  return { ...DEFAULTS, ...clinic }\n+}\n+\n+export function describe(settings: Settings): string {\n+  const channels = [\n+    settings.notifications.email && 'почта',\n+    settings.notifications.sms && 'смс',\n+  ].filter(Boolean)\n+\n+  return channels.length ? channels.join(', ') : 'уведомления выключены'\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -4136,13 +6825,17 @@
         "tag": "shallow-merge",
         "explain": "Спред копирует только верхний уровень. Клиника, задавшая notifications.sms, теряет notifications.email, а не переопределившая notifications получает ссылку на общий объект дефолтов.",
         "consequence": "Одна клиника меняет настройку уведомлений — она меняется у всех, кто не переопределял этот блок, потому что объект в памяти один. Воспроизводится только на проде, где клиник больше одной.",
-        "line": 11
+        "line": 15
       }
     ],
     "decoys": [
       {
         "why": "константа объявлена ниже использования — для const это хойстится и работает, читается плохо, но не ломается",
-        "line": 14
+        "line": 9
+      },
+      {
+        "why": "filter(Boolean) на массиве с false — работает, хотя типизирован так себе",
+        "line": 22
       }
     ],
     "verified_by": "",
@@ -4151,6 +6844,234 @@
       null,
       null,
       null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "interface",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Settings",
+          "#FFA657"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "theme",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'light'",
+          "#A5D6FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "|",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'dark'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "notifications",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "email",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "boolean",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "sms",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "boolean",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "DEFAULTS",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Settings",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  theme: ",
+          "#E6EDF3"
+        ],
+        [
+          "'light'",
+          "#A5D6FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  notifications: { email: ",
+          "#E6EDF3"
+        ],
+        [
+          "true",
+          "#79C0FF"
+        ],
+        [
+          ", sms: ",
+          "#E6EDF3"
+        ],
+        [
+          "false",
+          "#79C0FF"
+        ],
+        [
+          " },",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -4272,7 +7193,7 @@
           "#E6EDF3"
         ],
         [
-          "const",
+          "function",
           "#FF7B72"
         ],
         [
@@ -4280,8 +7201,16 @@
           "#E6EDF3"
         ],
         [
-          "DEFAULTS",
-          "#79C0FF"
+          "describe",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "settings",
+          "#FFA657"
         ],
         [
           ":",
@@ -4296,6 +7225,44 @@
           "#FFA657"
         ],
         [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "channels",
+          "#79C0FF"
+        ],
+        [
           " ",
           "#E6EDF3"
         ],
@@ -4304,31 +7271,130 @@
           "#FF7B72"
         ],
         [
-          " { theme: ",
+          " [",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    settings.notifications.email ",
           "#E6EDF3"
         ],
         [
-          "'light'",
+          "&&",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'почта'",
           "#A5D6FF"
         ],
         [
-          ", notifications: { email: ",
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    settings.notifications.sms ",
           "#E6EDF3"
         ],
         [
-          "true",
-          "#79C0FF"
+          "&&",
+          "#FF7B72"
         ],
         [
-          ", sms: ",
+          " ",
           "#E6EDF3"
         ],
         [
-          "false",
+          "'смс'",
+          "#A5D6FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ].",
+          "#E6EDF3"
+        ],
+        [
+          "filter",
+          "#D2A8FF"
+        ],
+        [
+          "(Boolean)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " channels.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
           "#79C0FF"
         ],
         [
-          " } }",
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "?",
+          "#FF7B72"
+        ],
+        [
+          " channels.",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "', '",
+          "#A5D6FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'уведомления выключены'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "}",
           "#E6EDF3"
         ]
       ]
@@ -4341,7 +7407,7 @@
     "title": "Пагинация справочника",
     "prompt": "Разбей справочник пород на страницы по 20 штук",
     "tests": "PASS  src/paginate.test.ts (5)\n  ✓ первая страница\n  ✓ последняя страница неполная\n\nTests  5 passed (5)",
-    "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,3 +1,8 @@\n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n",
+    "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,10 +1,27 @@\n import type { Breed } from './types'\n \n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n+\n+export function pageCount(total: number): number {\n+  return Math.max(1, Math.ceil(total / PAGE_SIZE))\n+}\n+\n+export function breedsPage(all: Breed[], pageNumber: number) {\n+  return {\n+    items: page(all, pageNumber),\n+    pages: pageCount(all.length),\n+    current: pageNumber,\n+  }\n+}\n",
     "clean": false,
     "bugs": [
       {
@@ -4350,13 +7416,17 @@
         "tag": "off-by-one-pagination",
         "explain": "Страницы в интерфейсе нумеруются с единицы, а смещение считается так, будто с нуля.",
         "consequence": "Первая страница показывает записи с 21-й, а первые двадцать пород не видит никто. Заметят не сразу: список длинный, а начало алфавита никто не проверяет.",
-        "line": 4
+        "line": 6
       }
     ],
     "decoys": [
       {
         "why": "нет валидации отрицательного номера — slice это переживёт, поведение не ломается",
-        "line": 3
+        "line": 5
+      },
+      {
+        "why": "минимум одна страница даже на пустом списке — так интерфейсу удобнее, и это верно",
+        "line": 12
       }
     ],
     "verified_by": "",
@@ -4365,6 +7435,37 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Breed } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
       [
         [
           "const",
@@ -4528,6 +7629,7 @@
           "#79C0FF"
         ]
       ],
+      [],
       [
         [
           "  ",
@@ -4571,6 +7673,264 @@
           "}",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "pageCount",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "total",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " Math.",
+          "#E6EDF3"
+        ],
+        [
+          "max",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          ", Math.",
+          "#E6EDF3"
+        ],
+        [
+          "ceil",
+          "#D2A8FF"
+        ],
+        [
+          "(total ",
+          "#E6EDF3"
+        ],
+        [
+          "/",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PAGE_SIZE",
+          "#79C0FF"
+        ],
+        [
+          "))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "breedsPage",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "all",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Breed",
+          "#FFA657"
+        ],
+        [
+          "[], ",
+          "#E6EDF3"
+        ],
+        [
+          "pageNumber",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    items: ",
+          "#E6EDF3"
+        ],
+        [
+          "page",
+          "#D2A8FF"
+        ],
+        [
+          "(all, pageNumber),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    pages: ",
+          "#E6EDF3"
+        ],
+        [
+          "pageCount",
+          "#D2A8FF"
+        ],
+        [
+          "(all.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          "),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    current: pageNumber,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -4581,7 +7941,7 @@
     "title": "Сортировка списка приёмов",
     "prompt": "Покажи приёмы по времени, самые ранние сверху",
     "tests": "PASS  src/AppointmentList.test.tsx (3)\n  ✓ рисует все приёмы\n  ✓ сортирует по времени\n\nTests  3 passed (3)",
-    "diff": "--- a/src/AppointmentList.tsx\n+++ b/src/AppointmentList.tsx\n@@ -4,7 +4,11 @@\n export function AppointmentList({ items }: { items: Appointment[] }) {\n-  return <ul>{items.map(renderRow)}</ul>\n+  const sorted = items.sort((a, b) => a.startsAt - b.startsAt)\n+\n+  return <ul>{sorted.map(renderRow)}</ul>\n }\n",
+    "diff": "--- a/src/AppointmentList.tsx\n+++ b/src/AppointmentList.tsx\n@@ -1,16 +1,31 @@\n import type { Appointment } from './types'\n \n function renderRow(item: Appointment) {\n   return (\n     <li key={item.id}>\n       {formatTime(item.startsAt)} — {item.petName}\n     </li>\n   )\n }\n \n export function AppointmentList({ items }: { items: Appointment[] }) {\n-  return <ul>{items.map(renderRow)}</ul>\n+  const sorted = items.sort((a, b) => a.startsAt - b.startsAt)\n+\n+  if (sorted.length === 0) {\n+    return <p className=\"empty\">На сегодня приёмов нет</p>\n+  }\n+\n+  return <ul>{sorted.map(renderRow)}</ul>\n }\n",
     "clean": false,
     "bugs": [
       {
@@ -4590,13 +7950,17 @@
         "tag": "props-mutated-in-place",
         "explain": "Array.sort сортирует на месте, а items — это пропс. Компонент молча переставляет массив, который ему не принадлежит.",
         "consequence": "Родитель хранит тот же массив в состоянии, его порядок меняется без setState — и соседний список, читающий те же данные, начинает рисовать не то. Ловится днями, потому что зависит от порядка рендера.",
-        "line": 5
+        "line": 12
       }
     ],
     "decoys": [
       {
         "why": "нет key у строк — реальная претензия к React, но не эта подлянка",
-        "line": 7
+        "line": 18
+      },
+      {
+        "why": "пустое состояние — полезное добавление, не имеющее отношения к порядку",
+        "line": 15
       }
     ],
     "verified_by": "",
@@ -4605,6 +7969,192 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { Appointment } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "renderRow",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Appointment",
+          "#FFA657"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "<",
+          "#FF7B72"
+        ],
+        [
+          "li key",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{item.id}",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "      {",
+          "#E6EDF3"
+        ],
+        [
+          "formatTime",
+          "#FFA657"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "startsAt",
+          "#FFA657"
+        ],
+        [
+          ")} — {",
+          "#E6EDF3"
+        ],
+        [
+          "item",
+          "#FFA657"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "petName",
+          "#FFA657"
+        ],
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "li",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  )",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "export",
@@ -4768,6 +8318,101 @@
         ],
         [
           " b.startsAt)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (sorted.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "===",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "className",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#E6EDF3"
+        ],
+        [
+          "\"empty\"",
+          "#A5D6FF"
+        ],
+        [
+          ">На сегодня приёмов нет",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "p",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  }",
           "#E6EDF3"
         ]
       ],
@@ -5530,7 +9175,7 @@
     "title": "Тест расчёта дозы",
     "prompt": "Покрой тестом расчёт дозы по весу",
     "tests": "==== test session starts ====\ncollected 3 items\n\ntests/test_dosage.py ...              [100%]\n\n==== 3 passed in 0.08s ====",
-    "diff": "--- a/tests/test_dosage.py\n+++ b/tests/test_dosage.py\n@@ -1,3 +1,10 @@\n from dosage import calculate\n \n+def test_dosage_for_small_pet():\n+    result = calculate(weight_kg=3.5, drug=\"amoxicillin\")\n+    assert result is not None\n+\n+def test_dosage_for_large_pet():\n+    result = calculate(weight_kg=42.0, drug=\"amoxicillin\")\n+    assert result\n",
+    "diff": "--- a/tests/test_dosage.py\n+++ b/tests/test_dosage.py\n@@ -1,14 +1,31 @@\n import pytest\n \n from dosage import calculate, MAX_SINGLE_DOSE\n \n \n+def test_dosage_for_small_pet():\n+    result = calculate(weight_kg=3.5, drug=\"amoxicillin\")\n+    assert result is not None\n+\n+\n+def test_dosage_for_large_pet():\n+    result = calculate(weight_kg=42.0, drug=\"amoxicillin\")\n+    assert result\n+\n+\n+def test_dosage_is_capped():\n+    result = calculate(weight_kg=120.0, drug=\"amoxicillin\")\n+    assert result <= MAX_SINGLE_DOSE\n+\n+\n+def test_unknown_drug_raises():\n+    with pytest.raises(KeyError):\n+        calculate(weight_kg=5.0, drug=\"нет-такого\")\n",
     "clean": false,
     "bugs": [
       {
@@ -5539,13 +9184,21 @@
         "tag": "assert-without-expectation",
         "explain": "Тест проверяет, что функция что-то вернула, но не проверяет, что именно. Любое число пройдёт.",
         "consequence": "Ошибка в формуле дозы не будет поймана вообще: тест зелёный при любом результате. Здесь это не абстрактный риск — по этой цифре препарат назначают животному.",
-        "line": 5
+        "line": 8
       }
     ],
     "decoys": [
       {
         "why": "второй тест по сути ровно такой же — но подлянку достаточно отметить один раз",
-        "line": 7
+        "line": 11
+      },
+      {
+        "why": "вот этот тест проверяет настоящее свойство — на него как раз претензий нет",
+        "line": 18
+      },
+      {
+        "why": "KeyError наружу вместо своего исключения — вопрос к коду, а не к тесту",
+        "line": 22
       }
     ],
     "verified_by": "",
@@ -5554,6 +9207,17 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " pytest",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "from",
@@ -5568,10 +9232,15 @@
           "#FF7B72"
         ],
         [
-          " calculate",
+          " calculate, ",
           "#E6EDF3"
+        ],
+        [
+          "MAX_SINGLE_DOSE",
+          "#79C0FF"
         ]
       ],
+      [],
       [],
       [
         [
@@ -5672,6 +9341,7 @@
         ]
       ],
       [],
+      [],
       [
         [
           "def",
@@ -5747,6 +9417,178 @@
         ],
         [
           " result",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "test_dosage_is_capped",
+          "#D2A8FF"
+        ],
+        [
+          "():",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    result ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " calculate(",
+          "#E6EDF3"
+        ],
+        [
+          "weight_kg",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "120.0",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "drug",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "\"amoxicillin\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "assert",
+          "#FF7B72"
+        ],
+        [
+          " result ",
+          "#E6EDF3"
+        ],
+        [
+          "<=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "MAX_SINGLE_DOSE",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "test_unknown_drug_raises",
+          "#D2A8FF"
+        ],
+        [
+          "():",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "with",
+          "#FF7B72"
+        ],
+        [
+          " pytest.raises(",
+          "#E6EDF3"
+        ],
+        [
+          "KeyError",
+          "#79C0FF"
+        ],
+        [
+          "):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        calculate(",
+          "#E6EDF3"
+        ],
+        [
+          "weight_kg",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "5.0",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "drug",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "\"нет-такого\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
           "#E6EDF3"
         ]
       ]
@@ -6185,7 +10027,7 @@
     "title": "Нормализация прайса",
     "prompt": "Приведи цены из внешнего прайса к нашему формату",
     "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_price.py .....             [100%]\n\n==== 5 passed in 0.19s ====",
-    "diff": "--- a/price.py\n+++ b/price.py\n@@ -9,5 +9,12 @@\n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n",
+    "diff": "--- a/price.py\n+++ b/price.py\n@@ -1,15 +1,33 @@\n import logging\n \n log = logging.getLogger(__name__)\n \n \n def parse_row(row):\n     code, raw = row.split(\";\", 1)\n     return code.strip(), float(raw) if raw.strip() else None\n \n \n+def normalize(raw_prices):\n+    for code, price in raw_prices.items():\n+        if price is None:\n+            del raw_prices[code]\n+        else:\n+            raw_prices[code] = round(price * 100)\n+\n+    return raw_prices\n+\n+\n+def load(rows):\n+    prices = dict(parse_row(r) for r in rows)\n+    log.info(\"прочитано позиций: %s\", len(prices))\n+\n+    return normalize(prices)\n",
     "clean": false,
     "bugs": [
       {
@@ -6194,13 +10036,17 @@
         "tag": "mutating-while-iterating",
         "explain": "Словарь меняется прямо во время обхода. Python бросит RuntimeError, как только в прайсе встретится хотя бы одна пустая цена.",
         "consequence": "На тестовых данных без пустых цен всё зелёное, а первый же реальный прайс поставщика с прочерком в строке роняет ночной импорт целиком. Утром прайс не обновился, и никто не знает почему.",
-        "line": 12
+        "line": 14
       }
     ],
     "decoys": [
       {
         "why": "функция и меняет аргумент, и возвращает его — путано, но само по себе не ломает",
-        "line": 16
+        "line": 18
+      },
+      {
+        "why": "лог до нормализации покажет число до отсева — мелочь",
+        "line": 23
       }
     ],
     "verified_by": "",
@@ -6209,6 +10055,133 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " logging",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "log ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " logging.getLogger(",
+          "#E6EDF3"
+        ],
+        [
+          "__name__",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "parse_row",
+          "#D2A8FF"
+        ],
+        [
+          "(row):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    code, raw ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " row.split(",
+          "#E6EDF3"
+        ],
+        [
+          "\";\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " code.strip(), ",
+          "#E6EDF3"
+        ],
+        [
+          "float",
+          "#79C0FF"
+        ],
+        [
+          "(raw) ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " raw.strip() ",
+          "#E6EDF3"
+        ],
+        [
+          "else",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -6359,6 +10332,109 @@
           " raw_prices",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "load",
+          "#D2A8FF"
+        ],
+        [
+          "(rows):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    prices ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "dict",
+          "#79C0FF"
+        ],
+        [
+          "(parse_row(r) ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " r ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " rows)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    log.info(",
+          "#E6EDF3"
+        ],
+        [
+          "\"прочитано позиций: ",
+          "#A5D6FF"
+        ],
+        [
+          "%s",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "len",
+          "#79C0FF"
+        ],
+        [
+          "(prices))",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " normalize(prices)",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -6369,7 +10445,7 @@
     "title": "Сверка ФИО владельца",
     "prompt": "Сверяй ФИО владельца с тем, что пришло из госуслуг",
     "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_match.py ....              [100%]\n\n==== 4 passed in 0.10s ====",
-    "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -5,4 +5,10 @@\n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n",
+    "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -1,13 +1,29 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Person:\n     full_name: str\n     birth_date: str\n \n \n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n+\n+\n+def merge_candidates(ours, incoming):\n+    matched, unmatched = [], []\n+\n+    for person in incoming:\n+        if any(same_person(person, mine) for mine in ours):\n+            matched.append(person)\n+        else:\n+            unmatched.append(person)\n+\n+    return matched, unmatched\n",
     "clean": false,
     "bugs": [
       {
@@ -6378,13 +10454,21 @@
         "tag": "unicode-normalization",
         "explain": "Строки сравниваются побайтово, без нормализации Unicode. «Ё» и «е», а также визуально одинаковые последовательности в разных формах NFC и NFD дают неравенство.",
         "consequence": "Владельцы с «ё» в фамилии не сопоставляются с госуслугами и заводятся вторым дублем. Обнаружится это на этапе, когда у одного человека уже два личных кабинета и разные истории визитов.",
-        "line": 9
+        "line": 14
       }
     ],
     "decoys": [
       {
         "why": "strip и lower тут как раз к месту, только их недостаточно",
-        "line": 6
+        "line": 11
+      },
+      {
+        "why": "два списка одной строкой — стиль, к делу не относится",
+        "line": 18
+      },
+      {
+        "why": "квадратичный перебор — на больших выгрузках медленно, но результат верный",
+        "line": 21
       }
     ],
     "verified_by": "",
@@ -6393,6 +10477,72 @@
       null,
       null,
       null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " dataclasses ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " dataclass",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "@dataclass",
+          "#D2A8FF"
+        ]
+      ],
+      [
+        [
+          "class",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Person",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    full_name: ",
+          "#E6EDF3"
+        ],
+        [
+          "str",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    birth_date: ",
+          "#E6EDF3"
+        ],
+        [
+          "str",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -6459,6 +10609,142 @@
         ],
         [
           " b",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "merge_candidates",
+          "#D2A8FF"
+        ],
+        [
+          "(ours, incoming):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    matched, unmatched ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " [], []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " person ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " incoming:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "any",
+          "#79C0FF"
+        ],
+        [
+          "(same_person(person, mine) ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " mine ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " ours):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            matched.append(person)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "else",
+          "#FF7B72"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            unmatched.append(person)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " matched, unmatched",
           "#E6EDF3"
         ]
       ]
@@ -6690,7 +10976,7 @@
     "title": "Вес пациента в карточке",
     "prompt": "Подставляй прошлый вес, если в этот приём его не измеряли",
     "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_chart.py ....              [100%]\n\n==== 4 passed in 0.13s ====",
-    "diff": "--- a/chart.py\n+++ b/chart.py\n@@ -11,4 +11,9 @@\n+def effective_weight(visit, previous):\n+    if not visit.weight:\n+        return previous.weight\n+\n+    return visit.weight\n",
+    "diff": "--- a/chart.py\n+++ b/chart.py\n@@ -1,15 +1,32 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Visit:\n     id: int\n     weight: float | None\n     temperature: float | None\n \n \n+def effective_weight(visit, previous):\n+    if not visit.weight:\n+        return previous.weight\n+\n+    return visit.weight\n+\n+\n+def weight_delta(visit, previous):\n+    now = effective_weight(visit, previous)\n+\n+    if previous.weight is None:\n+        return None\n+\n+    return round(now - previous.weight, 2)\n+\n+\n def formatted(value, unit):\n     return \"—\" if value is None else f\"{value} {unit}\"\n",
     "clean": false,
     "bugs": [
       {
@@ -6706,6 +10992,14 @@
       {
         "why": "previous не проверяется на None — упадёт шумно и сразу, в отличие от подлянки",
         "line": 13
+      },
+      {
+        "why": "здесь как раз проверка на None, а не на ложность — так и надо",
+        "line": 21
+      },
+      {
+        "why": "форматирование через тернарник — вкусовщина",
+        "line": 28
       }
     ],
     "verified_by": "",
@@ -6714,6 +11008,122 @@
       null,
       null,
       null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " dataclasses ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " dataclass",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "@dataclass",
+          "#D2A8FF"
+        ]
+      ],
+      [
+        [
+          "class",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Visit",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ": ",
+          "#E6EDF3"
+        ],
+        [
+          "int",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    weight: ",
+          "#E6EDF3"
+        ],
+        [
+          "float",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "|",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    temperature: ",
+          "#E6EDF3"
+        ],
+        [
+          "float",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "|",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -6782,6 +11192,242 @@
           " visit.weight",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "weight_delta",
+          "#D2A8FF"
+        ],
+        [
+          "(visit, previous):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    now ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " effective_weight(visit, previous)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " previous.weight ",
+          "#E6EDF3"
+        ],
+        [
+          "is",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "round",
+          "#79C0FF"
+        ],
+        [
+          "(now ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          " previous.weight, ",
+          "#E6EDF3"
+        ],
+        [
+          "2",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "formatted",
+          "#D2A8FF"
+        ],
+        [
+          "(value, unit):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "\"—\"",
+          "#A5D6FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " value ",
+          "#E6EDF3"
+        ],
+        [
+          "is",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "else",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "value",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "unit",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ]
       ]
     ]
   },
@@ -6792,7 +11438,7 @@
     "title": "Итог по чеку",
     "prompt": "Посчитай итог по позициям чека со скидкой",
     "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_billing.py ......           [100%]\n\n==== 6 passed in 0.29s ====",
-    "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -4,6 +4,12 @@\n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n",
+    "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -1,14 +1,32 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Item:\n     name: str\n     price: float\n     qty: int\n \n \n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n+\n+\n+def split_between(items, payers):\n+    if payers < 1:\n+        raise ValueError(\"плательщиков должно быть хотя бы один\")\n+\n+    per_payer = total(items) / payers\n+\n+    return [round(per_payer, 2)] * payers\n+\n+\n def as_receipt_line(item):\n     return f\"{item.name} x{item.qty}\"\n",
     "clean": false,
     "bugs": [
       {
@@ -6801,17 +11447,21 @@
         "tag": "float-money",
         "explain": "Деньги считаются в float. 0.1 + 0.2 в двоичной дроби не даёт 0.3, и ошибка копится на каждой позиции.",
         "consequence": "Итог по чеку из тридцати позиций расходится с суммой строк на копейку, и это ровно та копейка, из-за которой не сходится кассовая смена. Разбираться будет бухгалтер, а не программист.",
-        "line": 5
+        "line": 12
       }
     ],
     "decoys": [
       {
         "why": "округление в конце выглядит как затычка — оно и есть затычка, но не первопричина",
-        "line": 9
+        "line": 16
       },
       {
         "why": "скидка числом, а не долей — неудобно, но считается верно",
-        "line": 4
+        "line": 11
+      },
+      {
+        "why": "при делении на троих сумма частей не сойдётся с итогом — отдельная беда, но не эта",
+        "line": 25
       }
     ],
     "verified_by": "",
@@ -6820,6 +11470,82 @@
       null,
       null,
       null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " dataclasses ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " dataclass",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "@dataclass",
+          "#D2A8FF"
+        ]
+      ],
+      [
+        [
+          "class",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Item",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    name: ",
+          "#E6EDF3"
+        ],
+        [
+          "str",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    price: ",
+          "#E6EDF3"
+        ],
+        [
+          "float",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    qty: ",
+          "#E6EDF3"
+        ],
+        [
+          "int",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -6982,6 +11708,222 @@
           ")",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "split_between",
+          "#D2A8FF"
+        ],
+        [
+          "(items, payers):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " payers ",
+          "#E6EDF3"
+        ],
+        [
+          "<",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "raise",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ValueError",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "\"плательщиков должно быть хотя бы один\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    per_payer ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " total(items) ",
+          "#E6EDF3"
+        ],
+        [
+          "/",
+          "#FF7B72"
+        ],
+        [
+          " payers",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "round",
+          "#79C0FF"
+        ],
+        [
+          "(per_payer, ",
+          "#E6EDF3"
+        ],
+        [
+          "2",
+          "#79C0FF"
+        ],
+        [
+          ")] ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " payers",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "as_receipt_line",
+          "#D2A8FF"
+        ],
+        [
+          "(item):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "item.name",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          " x",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "item.qty",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ]
       ]
     ]
   },
@@ -6992,7 +11934,7 @@
     "title": "Отчёт по движению склада",
     "prompt": "Посчитай по движениям склада и сумму, и количество позиций",
     "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_stock_report.py .....      [100%]\n\n==== 5 passed in 0.21s ====",
-    "diff": "--- a/stock_report.py\n+++ b/stock_report.py\n@@ -3,7 +3,14 @@\n def build_report(clinic_id):\n-    moves = list(fetch_moves(clinic_id))\n+    moves = (m for m in fetch_moves(clinic_id) if m.delta != 0)\n+\n+    total = sum(m.delta * m.price for m in moves)\n+    positions = len({m.sku for m in moves})\n+\n+    return Report(total=total, positions=positions)\n",
+    "diff": "--- a/stock_report.py\n+++ b/stock_report.py\n@@ -1,16 +1,33 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Report:\n     total: int\n     positions: int\n \n \n def build_report(clinic_id):\n-    moves = list(fetch_moves(clinic_id))\n-    total = sum(m.delta * m.price for m in moves)\n-    positions = len({m.sku for m in moves})\n+    moves = (m for m in fetch_moves(clinic_id) if m.delta != 0)\n+\n+    total = sum(m.delta * m.price for m in moves)\n+    positions = len({m.sku for m in moves})\n \n     return Report(total=total, positions=positions)\n+\n+\n+def build_all(clinic_ids):\n+    return {cid: build_report(cid) for cid in clinic_ids}\n",
     "clean": false,
     "bugs": [
       {
@@ -7001,17 +11943,21 @@
         "tag": "generator-consumed-twice",
         "explain": "moves теперь генератор, а не список. Первый проход его исчерпывает, второй получает пустоту.",
         "consequence": "Сумма считается верно, а число позиций всегда ноль. Ноль выглядит как «движений не было», а не как поломка, поэтому отчёт неделями считают правдой и по нему решают, что закупать.",
-        "line": 7
+        "line": 14
       }
     ],
     "decoys": [
       {
         "why": "замена списка на генератор — как раз разумная оптимизация, ломает не она сама",
-        "line": 4
+        "line": 11
       },
       {
         "why": "первый проход отрабатывает совершенно нормально — в этом и коварство",
-        "line": 6
+        "line": 13
+      },
+      {
+        "why": "словарное включение по клиникам — читаемо и верно",
+        "line": 20
       }
     ],
     "verified_by": "",
@@ -7020,6 +11966,72 @@
       null,
       null,
       null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " dataclasses ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " dataclass",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "@dataclass",
+          "#D2A8FF"
+        ]
+      ],
+      [
+        [
+          "class",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Report",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    total: ",
+          "#E6EDF3"
+        ],
+        [
+          "int",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    positions: ",
+          "#E6EDF3"
+        ],
+        [
+          "int",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -7057,6 +12069,90 @@
         ],
         [
           "(fetch_moves(clinic_id))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    total ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "sum",
+          "#79C0FF"
+        ],
+        [
+          "(m.delta ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " m.price ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " m ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " moves)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    positions ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "len",
+          "#79C0FF"
+        ],
+        [
+          "({m.sku ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " m ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " moves})",
           "#E6EDF3"
         ]
       ],
@@ -7235,6 +12331,56 @@
         ],
         [
           "positions)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "build_all",
+          "#D2A8FF"
+        ],
+        [
+          "(clinic_ids):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " {cid: build_report(cid) ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " cid ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " clinic_ids}",
           "#E6EDF3"
         ]
       ]
@@ -7512,7 +12658,7 @@
     "title": "Напоминание о вакцинации",
     "prompt": "Шли напоминание, если до ревакцинации осталось меньше недели",
     "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_reminders.py ....          [100%]\n\n==== 4 passed in 0.18s ====",
-    "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,8 +1,13 @@\n from datetime import datetime, timedelta\n \n+WINDOW = timedelta(days=7)\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+    return vaccination.due_at - now <= WINDOW\n",
+    "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,15 +1,32 @@\n from datetime import datetime, timedelta\n \n from db import session\n from models import Vaccination\n \n+WINDOW = timedelta(days=7)\n+\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+\n+    return vaccination.due_at - now <= WINDOW\n+\n+\n+def due_reminders(clinic_id):\n+    upcoming = (\n+        session.query(Vaccination)\n+        .filter(Vaccination.clinic_id == clinic_id)\n+        .filter(Vaccination.reminded_at.is_(None))\n+        .all()\n+    )\n+\n+    return [v for v in upcoming if needs_reminder(v)]\n+\n+\n def mark_reminded(vaccination):\n     vaccination.reminded_at = datetime.utcnow()\n     session.commit()\n",
     "clean": false,
     "bugs": [
       {
@@ -7521,13 +12667,21 @@
         "tag": "naive-datetime",
         "explain": "datetime.now() отдаёт время без зоны и по времени машины, а due_at приходит из базы в UTC с зоной.",
         "consequence": "На сервере в UTC сравнение просто съезжает на разницу поясов, а если due_at всё-таки с таймзоной — Python бросит TypeError прямо в задаче по расписанию. Напоминания либо уходят не в тот день, либо не уходят вовсе, и узнают об этом от клиентов.",
-        "line": 6
+        "line": 10
       }
     ],
     "decoys": [
       {
         "why": "окно константой — как раз хорошо, придраться не к чему",
-        "line": 3
+        "line": 6
+      },
+      {
+        "why": "фильтр «ещё не напоминали» на месте, дублей от него не будет",
+        "line": 19
+      },
+      {
+        "why": "utcnow тоже наивный, но здесь он только записывается, а не сравнивается",
+        "line": 27
       }
     ],
     "verified_by": "",
@@ -7551,6 +12705,43 @@
         ],
         [
           " datetime, timedelta",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " db ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " session",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " models ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " Vaccination",
           "#E6EDF3"
         ]
       ],
@@ -7590,6 +12781,7 @@
         ]
       ],
       [],
+      [],
       [
         [
           "def",
@@ -7622,6 +12814,7 @@
           "#E6EDF3"
         ]
       ],
+      [],
       [
         [
           "    ",
@@ -7655,6 +12848,165 @@
           "WINDOW",
           "#79C0FF"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "due_reminders",
+          "#D2A8FF"
+        ],
+        [
+          "(clinic_id):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    upcoming ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        session.query(Vaccination)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        .filter(Vaccination.clinic_id ",
+          "#E6EDF3"
+        ],
+        [
+          "==",
+          "#FF7B72"
+        ],
+        [
+          " clinic_id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        .filter(Vaccination.reminded_at.is_(",
+          "#E6EDF3"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ],
+        [
+          "))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        .all()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    )",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " [v ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " v ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " upcoming ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " needs_reminder(v)]",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "mark_reminded",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccination):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    vaccination.reminded_at ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " datetime.utcnow()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    session.commit()",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -7665,7 +13017,7 @@
     "title": "Выгрузка справочника",
     "prompt": "Выгружай справочник услуг в CSV для бухгалтерии",
     "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_export.py ....             [100%]\n\n==== 4 passed in 0.22s ====",
-    "diff": "--- a/export.py\n+++ b/export.py\n@@ -6,5 +6,10 @@\n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n",
+    "diff": "--- a/export.py\n+++ b/export.py\n@@ -1,14 +1,31 @@\n import csv\n from datetime import date\n \n \n def export_filename(clinic_id):\n     return f\"services-{clinic_id}-{date.today():%Y-%m-%d}.csv\"\n \n \n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n+\n+\n+def export_all(clinics, target_dir):\n+    written = []\n+\n+    for clinic in clinics:\n+        path = f\"{target_dir}/{export_filename(clinic.id)}\"\n+        export_services(clinic.services, path)\n+        written.append(path)\n+\n+    return written\n",
     "clean": false,
     "bugs": [
       {
@@ -7674,13 +13026,17 @@
         "tag": "platform-default-encoding",
         "explain": "Кодировка не указана, поэтому берётся системная. На сервере это UTF-8, на машине бухгалтера под Windows — cp1251.",
         "consequence": "Файл, собранный в тестах и на проде, открывается по-разному, а на части машин выгрузка падает с UnicodeEncodeError на первом же названии с ё. Классический баг, который не воспроизводится у того, кто его чинит.",
-        "line": 7
+        "line": 10
       }
     ],
     "decoys": [
       {
         "why": "заголовок без BOM — Excel откроет криво, но это следствие той же причины",
-        "line": 9
+        "line": 12
+      },
+      {
+        "why": "склейка пути строкой вместо os.path.join — на Windows криво, но не ломает выгрузку",
+        "line": 20
       }
     ],
     "verified_by": "",
@@ -7689,6 +13045,134 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " csv",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " datetime ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " date",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "export_filename",
+          "#D2A8FF"
+        ],
+        [
+          "(clinic_id):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"services-",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "clinic_id",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "-",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "date.today():",
+          "#E6EDF3"
+        ],
+        [
+          "%",
+          "#FF7B72"
+        ],
+        [
+          "Y",
+          "#E6EDF3"
+        ],
+        [
+          "-%",
+          "#FF7B72"
+        ],
+        [
+          "m",
+          "#E6EDF3"
+        ],
+        [
+          "-%",
+          "#FF7B72"
+        ],
+        [
+          "d",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          ".csv\"",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -7826,6 +13310,144 @@
           " services)",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "export_all",
+          "#D2A8FF"
+        ],
+        [
+          "(clinics, target_dir):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    written ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " clinic ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " clinics:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        path ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "target_dir",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "/",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "export_filename(clinic.id)",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "        export_services(clinic.services, path)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        written.append(path)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " written",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -7836,7 +13458,7 @@
     "title": "Путь до вложения",
     "prompt": "Собери путь до файла вложения по имени, которое пришло из формы",
     "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_storage.py .....           [100%]\n\n==== 5 passed in 0.15s ====",
-    "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -3,4 +3,8 @@\n UPLOADS = \"/var/vetmanager/uploads\"\n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n",
+    "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -1,14 +1,29 @@\n import os\n \n UPLOADS = \"/var/vetmanager/uploads\"\n ALLOWED = {\".pdf\", \".jpg\", \".png\"}\n \n \n def is_allowed(filename):\n     return os.path.splitext(filename)[1].lower() in ALLOWED\n \n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n+\n+\n+def read_attachment(filename):\n+    if not is_allowed(filename):\n+        raise ValueError(\"недопустимый тип файла\")\n+\n+    with open(attachment_path(filename), \"rb\") as f:\n+        return f.read()\n+\n+\n def attachment_url(filename):\n     return f\"/files/{filename}\"\n",
     "clean": false,
     "bugs": [
       {
@@ -7845,13 +13467,17 @@
         "tag": "path-traversal",
         "explain": "os.path.join с абсолютным вторым аргументом молча отбрасывает первый, а ../ он не нормализует вовсе. Имя приходит из формы.",
         "consequence": "Запрос с filename вида /etc/passwd или ../../config.py отдаёт файл за пределами каталога загрузок. Это уже не баг, а дыра: читать можно всё, до чего дотягивается пользователь процесса.",
-        "line": 6
+        "line": 12
       }
     ],
     "decoys": [
       {
         "why": "путь захардкожен — в конфиг бы его, но опасность не здесь",
         "line": 3
+      },
+      {
+        "why": "проверка расширения выглядит защитой — но она про тип файла, а не про то, где он лежит",
+        "line": 16
       }
     ],
     "verified_by": "",
@@ -7860,6 +13486,17 @@
       null,
       null,
       null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " os",
+          "#E6EDF3"
+        ]
+      ],
+      [],
       [
         [
           "UPLOADS",
@@ -7882,6 +13519,103 @@
           "#A5D6FF"
         ]
       ],
+      [
+        [
+          "ALLOWED",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ],
+        [
+          "\".pdf\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "\".jpg\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "\".png\"",
+          "#A5D6FF"
+        ],
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "is_allowed",
+          "#D2A8FF"
+        ],
+        [
+          "(filename):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " os.path.splitext(filename)[",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          "].lower() ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ALLOWED",
+          "#79C0FF"
+        ]
+      ],
+      [],
       [],
       [
         [
@@ -7921,6 +13655,189 @@
         [
           ", filename)",
           "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "read_attachment",
+          "#D2A8FF"
+        ],
+        [
+          "(filename):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "not",
+          "#FF7B72"
+        ],
+        [
+          " is_allowed(filename):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "raise",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ValueError",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "\"недопустимый тип файла\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "with",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "open",
+          "#79C0FF"
+        ],
+        [
+          "(attachment_path(filename), ",
+          "#E6EDF3"
+        ],
+        [
+          "\"rb\"",
+          "#A5D6FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "as",
+          "#FF7B72"
+        ],
+        [
+          " f:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " f.read()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "attachment_url",
+          "#D2A8FF"
+        ],
+        [
+          "(filename):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"/files/",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "filename",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
         ]
       ]
     ]
@@ -8160,7 +14077,7 @@
     "title": "Фильтр просроченных вакцин",
     "prompt": "Отбери вакцинации, у которых вышел срок",
     "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_vaccines.py ....           [100%]\n\n==== 4 passed in 0.12s ====",
-    "diff": "--- a/vaccines.py\n+++ b/vaccines.py\n@@ -7,4 +7,10 @@\n+def expired(vaccinations, today):\n+    list = []\n+    for v in vaccinations:\n+        if v.due_at < today:\n+            list.append(v)\n+\n+    return list\n",
+    "diff": "--- a/vaccines.py\n+++ b/vaccines.py\n@@ -1,14 +1,32 @@\n from datetime import date\n \n \n def is_due(vaccination, today):\n     return vaccination.due_at <= today\n \n \n+def expired(vaccinations, today):\n+    list = []\n+    for v in vaccinations:\n+        if v.due_at < today:\n+            list.append(v)\n+\n+    return list\n+\n+\n+def summary(vaccinations):\n+    today = date.today()\n+\n+    return {\n+        \"expired\": len(expired(vaccinations, today)),\n+        \"due\": sum(1 for v in vaccinations if is_due(v, today)),\n+    }\n+\n+\n def next_due(vaccinations):\n     return min((v.due_at for v in vaccinations), default=None)\n",
     "clean": false,
     "bugs": [
       {
@@ -8169,13 +14086,17 @@
         "tag": "builtin-shadowed",
         "explain": "Имя list перекрывает встроенный тип внутри функции.",
         "consequence": "Пока в функции больше ничего нет — работает. Первый же, кто допишет сюда list(...) или аннотацию, получит TypeError про то, что список не вызывается, и потратит полчаса, потому что ошибка указывает не туда.",
-        "line": 8
+        "line": 9
       }
     ],
     "decoys": [
       {
         "why": "сравнение без учёта часового пояса — вопрос есть, но зависит от того, что кладут в due_at",
-        "line": 10
+        "line": 11
+      },
+      {
+        "why": "просроченные попадают и в due тоже — спорная семантика, но не поломка",
+        "line": 22
       }
     ],
     "verified_by": "",
@@ -8184,6 +14105,68 @@
       null,
       null,
       null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " datetime ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " date",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "is_due",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccination, today):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " vaccination.due_at ",
+          "#E6EDF3"
+        ],
+        [
+          "<=",
+          "#FF7B72"
+        ],
+        [
+          " today",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
       [
         [
           "def",
@@ -8300,6 +14283,211 @@
           "list",
           "#79C0FF"
         ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "summary",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccinations):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    today ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " date.today()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "\"expired\"",
+          "#A5D6FF"
+        ],
+        [
+          ": ",
+          "#E6EDF3"
+        ],
+        [
+          "len",
+          "#79C0FF"
+        ],
+        [
+          "(expired(vaccinations, today)),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "\"due\"",
+          "#A5D6FF"
+        ],
+        [
+          ": ",
+          "#E6EDF3"
+        ],
+        [
+          "sum",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " v ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " vaccinations ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " is_due(v, today)),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    }",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "next_due",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccinations):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "min",
+          "#79C0FF"
+        ],
+        [
+          "((v.due_at ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " v ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " vaccinations), ",
+          "#E6EDF3"
+        ],
+        [
+          "default",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "None",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -8310,7 +14498,7 @@
     "title": "Отчёт за период",
     "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
     "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
-    "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
+    "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,10 +1,26 @@\n -- Отчёт по визитам за период. Открывается из админки,\n -- :from и :to приходят из полей выбора даты как есть.\n \n SELECT v.id, v.created_at, p.name AS pet, o.name AS owner\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n JOIN owners o ON o.id = p.owner_id\n+WHERE v.clinic_id = :clinic\n+  AND v.created_at BETWEEN :from AND :to\n+  AND v.deleted_at IS NULL\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
     "clean": false,
     "bugs": [
       {
@@ -8319,13 +14507,17 @@
         "tag": "off-by-one-boundary",
         "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
         "consequence": "Месячный отчёт стабильно недосчитывает один день. Никто не замечает, пока бухгалтерия не сведёт цифры за год.",
-        "line": 4
+        "line": 9
       }
     ],
     "decoys": [
       {
-        "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка",
-        "line": 5
+        "why": "сортировка без вторичного ключа — при равных датах порядок между страницами не гарантирован, но это другая ошибка",
+        "line": 11
+      },
+      {
+        "why": "мягко удалённые визиты отсеиваются — так и надо",
+        "line": 10
       }
     ],
     "verified_by": "",
@@ -8334,6 +14526,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Отчёт по визитам за период. Открывается из админки,",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- :from и :to приходят из полей выбора даты как есть.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -8386,6 +14591,46 @@
         [
           "name",
           "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " pet, ",
+          "#E6EDF3"
+        ],
+        [
+          "o",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "owner",
+          "#FF7B72"
         ]
       ],
       [
@@ -8454,7 +14699,99 @@
       ],
       [
         [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " owners o ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "o",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "owner_id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
           "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
           "#FF7B72"
         ],
         [
@@ -8508,6 +14845,48 @@
       ],
       [
         [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "deleted_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
           "ORDER BY",
           "#FF7B72"
         ],
@@ -8555,21 +14934,29 @@
     "title": "Обновление остатков склада",
     "prompt": "Обнови остатки по приходу, а если позиции ещё нет — заведи её",
     "tests": "PASS  tests/stock.test.ts (5)\n  ✓ создаёт новую позицию\n  ✓ прибавляет к существующей\n  ✓ повторный прогон не задваивает\n\nTests  5 passed (5)",
-    "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,2 +1,9 @@\n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n",
+    "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,10 +1,26 @@\n -- Приход товара на склад клиники.\n -- Вызывается из обработчика накладной, по одной строке на позицию.\n \n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n+RETURNING clinic_id, sku, quantity;\n+\n+-- Движение пишем всегда, даже если позиция была заведена только что:\n+-- по этой таблице потом сходится инвентаризация.\n+INSERT INTO stock_moves (clinic_id, sku, delta, invoice_id, created_at)\n+VALUES (:clinic, :sku, :quantity, :invoice, NOW());\n",
     "clean": true,
     "bugs": [],
     "decoys": [
       {
         "why": "сложение выглядит как источник задвоения — но это приход, его и надо прибавлять, а конфликт ловится по ключу",
-        "line": 5
+        "line": 8
       },
       {
         "why": "конфликт по паре колонок кажется хрупким — он и опирается на уникальный индекс, который для ON CONFLICT обязателен",
-        "line": 3
+        "line": 6
       },
       {
         "why": "берётся время из вставляемой строки, а не NOW() заново — разницы нет, значение то же самое",
-        "line": 6
+        "line": 9
+      },
+      {
+        "why": "RETURNING тут не обязателен, но и не мешает",
+        "line": 10
+      },
+      {
+        "why": "две вставки без явной транзакции — вопрос справедливый, но в задаче про upsert",
+        "line": 15
       }
     ],
     "verified_by": "",
@@ -8578,6 +14965,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Приход товара на склад клиники.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- Вызывается из обработчика накладной, по одной строке на позицию.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "INSERT INTO",
@@ -8712,6 +15112,53 @@
         [
           "updated_at",
           "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "RETURNING clinic_id, sku, quantity;",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "-- Движение пишем всегда, даже если позиция была заведена только что:",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- по этой таблице потом сходится инвентаризация.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "INSERT INTO",
+          "#FF7B72"
+        ],
+        [
+          " stock_moves (clinic_id, sku, delta, invoice_id, created_at)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "VALUES",
+          "#FF7B72"
+        ],
+        [
+          " (:clinic, :sku, :quantity, :invoice, ",
+          "#E6EDF3"
+        ],
+        [
+          "NOW",
+          "#FF7B72"
+        ],
+        [
+          "());",
+          "#E6EDF3"
         ]
       ]
     ]
@@ -9031,7 +15478,7 @@
     "title": "Счётчик визитов клиента",
     "prompt": "Добавь в список клиентов количество визитов и количество питомцев",
     "tests": "PASS  tests/clients.test.ts (6)\n  ✓ считает визиты\n  ✓ считает питомцев\n\nTests  6 passed (6)",
-    "diff": "--- a/src/client_stats.sql\n+++ b/src/client_stats.sql\n@@ -1,5 +1,9 @@\n SELECT c.id, c.name,\n+  COUNT(v.id) AS visits,\n+  COUNT(p.id) AS pets\n FROM clients c\n+LEFT JOIN visits v ON v.client_id = c.id\n+LEFT JOIN pets p ON p.client_id = c.id\n GROUP BY c.id, c.name\n",
+    "diff": "--- a/src/client_stats.sql\n+++ b/src/client_stats.sql\n@@ -1,12 +1,27 @@\n -- Карточка клиента в списке: сколько у него питомцев и сколько было визитов.\n \n-SELECT c.id, c.name\n+SELECT c.id, c.name, c.phone,\n+  COUNT(v.id) AS visits,\n+  COUNT(p.id) AS pets,\n+  MAX(v.started_at) AS last_visit\n FROM clients c\n+LEFT JOIN visits v ON v.client_id = c.id\n+LEFT JOIN pets p ON p.client_id = c.id\n WHERE c.clinic_id = :clinic\n+  AND c.deleted_at IS NULL\n GROUP BY c.id, c.name, c.phone\n ORDER BY c.name\n",
     "clean": false,
     "bugs": [
       {
@@ -9040,13 +15487,17 @@
         "tag": "count-inflated-by-join",
         "explain": "Два независимых JOIN дают декартово произведение: каждая строка визита умножается на число питомцев. Оба счётчика раздуваются, а не один.",
         "consequence": "У клиента с тремя питомцами и четырьмя визитами в отчёте будет двенадцать визитов и двенадцать питомцев. Цифры правдоподобные, поэтому проверять их никто не станет, а по ним считают нагрузку на клинику.",
-        "line": 2
+        "line": 4
       }
     ],
     "decoys": [
       {
         "why": "группировка по двум полям вместо первичного ключа — многословно, но верно",
-        "line": 7
+        "line": 12
+      },
+      {
+        "why": "максимум по датам от размножения строк не страдает — единственная честная колонка здесь",
+        "line": 6
       }
     ],
     "verified_by": "",
@@ -9055,6 +15506,13 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Карточка клиента в списке: сколько у него питомцев и сколько было визитов.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -9090,6 +15548,60 @@
         ],
         [
           "name",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "phone",
           "#79C0FF"
         ],
         [
@@ -9169,7 +15681,45 @@
           "#FF7B72"
         ],
         [
-          " pets",
+          " pets,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "MAX",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "started_at",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " last_visit",
           "#E6EDF3"
         ]
       ],
@@ -9293,6 +15843,82 @@
       ],
       [
         [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "deleted_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
           "GROUP BY",
           "#FF7B72"
         ],
@@ -9327,6 +15953,44 @@
         [
           "name",
           "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "phone",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
         ]
       ]
     ]
@@ -9338,7 +16002,7 @@
     "title": "Выручка по врачам",
     "prompt": "Посчитай выручку по каждому врачу за месяц",
     "tests": "PASS  tests/revenue.test.ts (4)\n  ✓ считает сумму по врачу\n  ✓ отдаёт имя врача\n\nTests  4 passed (4)",
-    "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,4 +1,8 @@\n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n GROUP BY d.id\n",
+    "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,12 +1,26 @@\n -- Выручка по врачам за месяц. Читается из отчёта в админке.\n \n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue,\n+       COUNT(DISTINCT i.patient_id) AS patients\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n+  AND i.status = 'paid'\n GROUP BY d.id\n ORDER BY revenue DESC\n+LIMIT 100\n",
     "clean": false,
     "bugs": [
       {
@@ -9347,13 +16011,21 @@
         "tag": "group-by-incomplete",
         "explain": "В выборке появились d.name и d.clinic_id, а группировка осталась только по d.id. MySQL в нестрогом режиме это проглотит и вернёт произвольное значение, PostgreSQL откажется выполнять запрос.",
         "consequence": "На дев-базе с ONLY_FULL_GROUP_BY выключенным всё работает, на проде с включённым запрос падает при первом же открытии отчёта. Либо, что хуже, не падает — и врач видит чужую клинику в своей строке.",
-        "line": 5
+        "line": 9
       }
     ],
     "decoys": [
       {
         "why": "верхняя граница месяца не задана — отчёт захватит и следующий, но это другая ошибка",
+        "line": 7
+      },
+      {
+        "why": "DISTINCT здесь как раз к месту — без него пациенты бы задваивались",
         "line": 4
+      },
+      {
+        "why": "сотня врачей на клинику — с запасом, но лимит без причины всё же лишний",
+        "line": 11
       }
     ],
     "verified_by": "",
@@ -9362,6 +16034,13 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Выручка по врачам за месяц. Читается из отчёта в админке.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -9506,7 +16185,53 @@
           "#FF7B72"
         ],
         [
-          " revenue",
+          " revenue,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "       ",
+          "#E6EDF3"
+        ],
+        [
+          "COUNT",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "DISTINCT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "patient_id",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " patients",
           "#E6EDF3"
         ]
       ],
@@ -9610,6 +16335,48 @@
       ],
       [
         [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "status",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'paid'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
           "GROUP BY",
           "#FF7B72"
         ],
@@ -9629,6 +16396,34 @@
           "id",
           "#79C0FF"
         ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " revenue ",
+          "#E6EDF3"
+        ],
+        [
+          "DESC",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "LIMIT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "100",
+          "#79C0FF"
+        ]
       ]
     ]
   },
@@ -9639,7 +16434,7 @@
     "title": "Поиск по номеру карты",
     "prompt": "Добавь поиск пациента по номеру карты",
     "tests": "PASS  tests/search.test.ts (5)\n  ✓ находит по номеру\n  ✓ не находит чужую клинику\n\nTests  5 passed (5)",
-    "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,4 +1,7 @@\n SELECT p.id, p.name, p.card_number\n FROM pets p\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.card_number = :query\n+LIMIT 50\n",
+    "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,12 +1,27 @@\n -- Поиск пациента из строки в регистратуре.\n -- card_number хранится строкой: у части клиник в номере есть буквы.\n \n SELECT p.id, p.name, p.card_number, o.phone\n FROM pets p\n JOIN owners o ON o.id = p.owner_id\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.archived_at IS NULL\n+  AND p.card_number = :query\n+ORDER BY p.name\n LIMIT 50\n",
     "clean": false,
     "bugs": [
       {
@@ -9648,13 +16443,21 @@
         "tag": "implicit-cast-kills-index",
         "explain": "card_number хранится строкой, а из формы приходит число. База приводит типы неявно и перестаёт использовать индекс по колонке.",
         "consequence": "Поиск по карте начинает делать полный проход по таблице визитов на несколько миллионов строк. На дев-базе в тысячу записей это незаметно, на проде регистратура жалуется, что поиск «думает» по десять секунд.",
-        "line": 4
+        "line": 9
       }
     ],
     "decoys": [
       {
         "why": "лимит без сортировки даёт непредсказуемый набор — справедливо, но не про скорость",
-        "line": 5
+        "line": 11
+      },
+      {
+        "why": "архивных не показываем — правильно",
+        "line": 8
+      },
+      {
+        "why": "сортировка по кличке при поиске по номеру бессмысленна, но безвредна",
+        "line": 10
       }
     ],
     "verified_by": "",
@@ -9663,6 +16466,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Поиск пациента из строки в регистратуре.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- card_number хранится строкой: у части клиник в номере есть буквы.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -9715,6 +16531,22 @@
         [
           "card_number",
           "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "o",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "phone",
+          "#79C0FF"
         ]
       ],
       [
@@ -9725,6 +16557,60 @@
         [
           " pets p",
           "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " owners o ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "o",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "owner_id",
+          "#79C0FF"
         ]
       ],
       [
@@ -9817,6 +16703,48 @@
           "#E6EDF3"
         ],
         [
+          "archived_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
           "card_number",
           "#79C0FF"
         ],
@@ -9831,6 +16759,28 @@
         [
           " :query",
           "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
         ]
       ],
       [
@@ -9856,7 +16806,7 @@
     "title": "Клиенты без визитов",
     "prompt": "Покажи всех клиентов и их последний визит, включая тех, кто ещё не приходил",
     "tests": "PASS  tests/clients.test.ts (4)\n  ✓ отдаёт клиентов с визитами\n  ✓ фильтрует по клинике\n\nTests  4 passed (4)",
-    "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,4 +1,7 @@\n SELECT c.id, c.name, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+ORDER BY v.started_at DESC\n",
+    "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,12 +1,27 @@\n -- Список клиентов для отчёта по оттоку.\n -- Клиенты без визитов обязаны попадать в выборку — ради них отчёт и делается.\n \n SELECT c.id, c.name, c.created_at, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+  AND c.deleted_at IS NULL\n ORDER BY v.started_at DESC\n+LIMIT 500\n",
     "clean": false,
     "bugs": [
       {
@@ -9865,13 +16815,21 @@
         "tag": "left-join-killed-by-where",
         "explain": "Условие на правую таблицу в WHERE отбрасывает строки, где визита нет: там v.clinic_id равен NULL. LEFT JOIN превращается обратно в INNER.",
         "consequence": "Запрос честно заменили на LEFT JOIN ровно ради клиентов без визитов — и именно они из выборки и пропали. Считают по нему отток и удивляются, что новых клиентов в отчёте ноль.",
-        "line": 4
+        "line": 7
       }
     ],
     "decoys": [
       {
         "why": "сортировка без LIMIT по клиенту не даёт «последний визит» — отдельная недоделка, но не эта",
-        "line": 5
+        "line": 9
+      },
+      {
+        "why": "условие на левую таблицу — с ним LEFT JOIN ничего не теряет",
+        "line": 8
+      },
+      {
+        "why": "лимит без пагинации — отчёт обрежется молча, но это другая история",
+        "line": 10
       }
     ],
     "verified_by": "",
@@ -9880,6 +16838,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Список клиентов для отчёта по оттоку.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- Клиенты без визитов обязаны попадать в выборку — ради них отчёт и делается.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -9915,6 +16886,22 @@
         ],
         [
           "name",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "created_at",
           "#79C0FF"
         ],
         [
@@ -10088,6 +17075,48 @@
       ],
       [
         [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "deleted_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
           "ORDER BY",
           "#FF7B72"
         ],
@@ -10115,6 +17144,20 @@
           "DESC",
           "#FF7B72"
         ]
+      ],
+      [
+        [
+          "LIMIT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "500",
+          "#79C0FF"
+        ]
       ]
     ]
   },
@@ -10125,7 +17168,7 @@
     "title": "Услуги без назначений",
     "prompt": "Найди услуги, которые ни разу не назначали за год",
     "tests": "PASS  tests/services.test.ts (5)\n  ✓ отдаёт неиспользуемые услуги\n  ✓ учитывает границу года\n\nTests  5 passed (5)",
-    "diff": "--- a/src/unused_services.sql\n+++ b/src/unused_services.sql\n@@ -1,3 +1,8 @@\n SELECT s.id, s.name\n FROM services s\n+WHERE s.id NOT IN (\n+  SELECT p.service_id FROM prescriptions p\n+  WHERE p.created_at >= :year_start\n+)\n",
+    "diff": "--- a/src/unused_services.sql\n+++ b/src/unused_services.sql\n@@ -1,11 +1,27 @@\n -- Услуги, которые за год ни разу не назначали.\n -- По отчёту решают, что выкинуть из прайса.\n \n SELECT s.id, s.name, s.price\n FROM services s\n+WHERE s.clinic_id = :clinic\n+  AND s.archived_at IS NULL\n+  AND s.id NOT IN (\n+    SELECT p.service_id FROM prescriptions p\n+    WHERE p.created_at >= :year_start\n+      AND p.clinic_id = :clinic\n+  )\n ORDER BY s.name\n",
     "clean": false,
     "bugs": [
       {
@@ -10134,13 +17177,21 @@
         "tag": "not-in-with-null",
         "explain": "Если в prescriptions.service_id встретится хоть один NULL, NOT IN даёт неизвестность вместо истины и выборка становится пустой.",
         "consequence": "Отчёт «неиспользуемые услуги» показывает ноль строк, и это выглядит как хорошая новость, а не как поломка. Ломается от одной осиротевшей записи, которую занесли год назад.",
-        "line": 3
+        "line": 8
       }
     ],
     "decoys": [
       {
         "why": "подзапрос без DISTINCT — планировщику всё равно, на результат не влияет",
-        "line": 4
+        "line": 9
+      },
+      {
+        "why": "подзапрос ограничен той же клиникой — так и надо, иначе чужие назначения скрыли бы свои услуги",
+        "line": 11
+      },
+      {
+        "why": "архивные и так не в прайсе, фильтр лишний, но безобидный",
+        "line": 7
       }
     ],
     "verified_by": "",
@@ -10149,6 +17200,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Услуги, которые за год ни разу не назначали.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- По отчёту решают, что выкинуть из прайса.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "SELECT",
@@ -10185,6 +17249,22 @@
         [
           "name",
           "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "price",
+          "#79C0FF"
         ]
       ],
       [
@@ -10200,6 +17280,86 @@
       [
         [
           "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "archived_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
           "#FF7B72"
         ],
         [
@@ -10241,7 +17401,7 @@
       ],
       [
         [
-          "  ",
+          "    ",
           "#E6EDF3"
         ],
         [
@@ -10279,7 +17439,7 @@
       ],
       [
         [
-          "  ",
+          "    ",
           "#E6EDF3"
         ],
         [
@@ -10317,8 +17477,68 @@
       ],
       [
         [
-          ")",
+          "      ",
           "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  )",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
         ]
       ]
     ]
@@ -10330,7 +17550,7 @@
     "title": "Список пациентов для мобильного",
     "prompt": "Отдай список пациентов для мобильного приложения",
     "tests": "PASS  tests/patients.test.ts (3)\n  ✓ отдаёт пациентов клиники\n  ✓ сортирует по кличке\n\nTests  3 passed (3)",
-    "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,3 +1,6 @@\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+ORDER BY p.name\n",
+    "diff": "--- a/src/patients_api.sql\n+++ b/src/patients_api.sql\n@@ -1,12 +1,26 @@\n -- Список пациентов для мобильного приложения.\n -- Отдаётся как есть в JSON, поля наружу не фильтруются.\n \n-SELECT p.id, p.name\n-FROM pets p\n-WHERE p.clinic_id = :clinic\n+SELECT p.*, o.*\n+FROM pets p\n+JOIN owners o ON o.id = p.owner_id\n+WHERE p.clinic_id = :clinic\n+  AND p.archived_at IS NULL\n ORDER BY p.name\n+LIMIT :limit OFFSET :offset\n",
     "clean": false,
     "bugs": [
       {
@@ -10339,13 +17559,17 @@
         "tag": "select-star-leaks-columns",
         "explain": "Звёздочка по двум таблицам тянет наружу все колонки владельца — телефон, адрес, паспортные данные, если они там есть.",
         "consequence": "Мобильному приложению нужна кличка и вид животного, а в ответе API уезжают персональные данные владельцев. Любой, кто откроет devtools, увидит их целиком; при добавлении колонки в owners утечёт и она — молча.",
-        "line": 1
+        "line": 4
       }
     ],
     "decoys": [
       {
         "why": "сортировка по кличке без учёта регистра и локали — косметика на фоне остального",
-        "line": 5
+        "line": 9
+      },
+      {
+        "why": "фильтр архивных добавлен верно, к нему претензий нет",
+        "line": 8
       }
     ],
     "verified_by": "",
@@ -10354,6 +17578,101 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Список пациентов для мобильного приложения.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- Отдаётся как есть в JSON, поля наружу не фильтруются.",
+          "#8B949E"
+        ]
+      ],
+      [],
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " pets p",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
       [
         [
           "SELECT",
@@ -10476,6 +17795,48 @@
       ],
       [
         [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "archived_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IS",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NULL",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
           "ORDER BY",
           "#FF7B72"
         ],
@@ -10495,6 +17856,24 @@
           "name",
           "#79C0FF"
         ]
+      ],
+      [
+        [
+          "LIMIT",
+          "#FF7B72"
+        ],
+        [
+          " :",
+          "#E6EDF3"
+        ],
+        [
+          "limit",
+          "#FF7B72"
+        ],
+        [
+          " OFFSET :offset",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -10505,7 +17884,7 @@
     "title": "Списание со склада при продаже",
     "prompt": "Списывай препарат со склада, когда пробили чек",
     "tests": "PASS  tests/sale.test.ts (6)\n  ✓ списывает остаток\n  ✓ пишет движение\n\nTests  6 passed (6)",
-    "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,2 +1,9 @@\n+UPDATE stock\n+SET quantity = quantity - :qty\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n",
+    "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,10 +1,27 @@\n -- Продажа препарата с кассы. Вызывается из обработчика чека,\n -- по одному вызову на позицию в чеке.\n \n+UPDATE stock\n+SET quantity = quantity - :qty,\n+    updated_at = NOW()\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n+\n+UPDATE receipts\n+SET items_count = items_count + 1\n+WHERE id = :receipt;\n",
     "clean": false,
     "bugs": [
       {
@@ -10514,13 +17893,17 @@
         "tag": "no-transaction-no-guard",
         "explain": "Два запроса идут без транзакции, и остаток уменьшается без проверки, что его хватает. Между ними может упасть что угодно, а quantity спокойно уходит в минус.",
         "consequence": "Падение между UPDATE и INSERT оставляет склад списанным без движения — сойтись инвентаризация уже не сможет. Параллельные продажи одного препарата уводят остаток в минус, и система продолжает продавать то, чего нет.",
-        "line": 2
+        "line": 5
       }
     ],
     "decoys": [
       {
         "why": "NOW() вместо времени чека — расхождение в секунды, на фоне остального мелочь",
-        "line": 6
+        "line": 10
+      },
+      {
+        "why": "счётчик позиций инкрементом — при повторе обработки задвоится, но это следствие того же",
+        "line": 13
       }
     ],
     "verified_by": "",
@@ -10529,6 +17912,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Продажа препарата с кассы. Вызывается из обработчика чека,",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- по одному вызову на позицию в чеке.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "UPDATE",
@@ -10561,7 +17957,29 @@
           "#FF7B72"
         ],
         [
-          " :qty",
+          " :qty,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    updated_at ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NOW",
+          "#FF7B72"
+        ],
+        [
+          "()",
           "#E6EDF3"
         ]
       ],
@@ -10635,6 +18053,65 @@
           "());",
           "#E6EDF3"
         ]
+      ],
+      [],
+      [
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " receipts",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "SET",
+          "#FF7B72"
+        ],
+        [
+          " items_count ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " items_count ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " id ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :receipt;",
+          "#E6EDF3"
+        ]
       ]
     ]
   },
@@ -10645,7 +18122,7 @@
     "title": "Миграция статусов",
     "prompt": "Перенеси старый статус визита 'закрыт' в новое поле state",
     "tests": "PASS  tests/migrations.test.ts (3)\n  ✓ переносит закрытые визиты\n  ✓ миграция идемпотентна\n\nTests  3 passed (3)",
-    "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,2 +1,6 @@\n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'open';\n",
+    "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,8 +1,24 @@\n -- Переход со старого текстового status на нормализованный state.\n -- Старая колонка удаляется в 032, откатиться после неё будет нечем.\n \n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n CREATE INDEX idx_visits_state ON visits (clinic_id, state);\n+\n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'cancelled'\n+WHERE status = 'отменён';\n+\n+UPDATE visits SET state = 'open';\n",
     "clean": false,
     "bugs": [
       {
@@ -10654,13 +18131,17 @@
         "tag": "update-without-where",
         "explain": "Второй UPDATE идёт без WHERE и переписывает вообще все строки, включая те, что первый только что пометил закрытыми.",
         "consequence": "После миграции все визиты за всю историю становятся открытыми. Откатить нечем: прошлое значение уже затёрто, а старая колонка в следующей миграции удаляется.",
-        "line": 6
+        "line": 14
       }
     ],
     "decoys": [
       {
         "why": "колонка без NOT NULL и без индекса — вопросы к схеме, но данные не портит",
-        "line": 1
+        "line": 4
+      },
+      {
+        "why": "индекс строится до заполнения колонки — медленнее, чем после, но корректно",
+        "line": 6
       }
     ],
     "verified_by": "",
@@ -10669,6 +18150,19 @@
       null,
       null,
       null,
+      [
+        [
+          "-- Переход со старого текстового status на нормализованный state.",
+          "#8B949E"
+        ]
+      ],
+      [
+        [
+          "-- Старая колонка удаляется в 032, откатиться после неё будет нечем.",
+          "#8B949E"
+        ]
+      ],
+      [],
       [
         [
           "ALTER",
@@ -10713,6 +18207,49 @@
         [
           "16",
           "#79C0FF"
+        ],
+        [
+          ");",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "CREATE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "INDEX",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "idx_visits_state",
+          "#D2A8FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " visits (clinic_id, ",
+          "#E6EDF3"
+        ],
+        [
+          "state",
+          "#FF7B72"
         ],
         [
           ");",
@@ -10785,6 +18322,79 @@
         ],
         [
           "'закрыт'",
+          "#A5D6FF"
+        ],
+        [
+          ";",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " visits ",
+          "#E6EDF3"
+        ],
+        [
+          "SET",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "state",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'cancelled'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "status",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'отменён'",
           "#A5D6FF"
         ],
         [

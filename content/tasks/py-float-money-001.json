@@ -5,7 +5,7 @@
   "title": "Итог по чеку",
   "prompt": "Посчитай итог по позициям чека со скидкой",
   "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_billing.py ......           [100%]\n\n==== 6 passed in 0.29s ====",
-  "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -4,6 +4,12 @@\n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n",
+  "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -1,14 +1,32 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Item:\n     name: str\n     price: float\n     qty: int\n \n \n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n+\n+\n+def split_between(items, payers):\n+    if payers < 1:\n+        raise ValueError(\"плательщиков должно быть хотя бы один\")\n+\n+    per_payer = total(items) / payers\n+\n+    return [round(per_payer, 2)] * payers\n+\n+\n def as_receipt_line(item):\n     return f\"{item.name} x{item.qty}\"\n",
   "clean": false,
   "bugs": [
     {
@@ -25,6 +25,10 @@
     {
       "match": "def total(items, discount_percent=0)",
       "why": "скидка числом, а не долей — неудобно, но считается верно"
+    },
+    {
+      "match": "    return [round(per_payer, 2)] * payers",
+      "why": "при делении на троих сумма частей не сойдётся с итогом — отдельная беда, но не эта"
     }
   ],
   "verified_by": "",

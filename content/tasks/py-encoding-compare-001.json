@@ -5,7 +5,7 @@
   "title": "Сверка ФИО владельца",
   "prompt": "Сверяй ФИО владельца с тем, что пришло из госуслуг",
   "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_match.py ....              [100%]\n\n==== 4 passed in 0.10s ====",
-  "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -5,4 +5,10 @@\n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n",
+  "diff": "--- a/matching.py\n+++ b/matching.py\n@@ -1,13 +1,29 @@\n from dataclasses import dataclass\n \n \n @dataclass\n class Person:\n     full_name: str\n     birth_date: str\n \n \n+def same_person(ours, theirs):\n+    a = ours.full_name.strip().lower()\n+    b = theirs.full_name.strip().lower()\n+\n+    return a == b\n+\n+\n+def merge_candidates(ours, incoming):\n+    matched, unmatched = [], []\n+\n+    for person in incoming:\n+        if any(same_person(person, mine) for mine in ours):\n+            matched.append(person)\n+        else:\n+            unmatched.append(person)\n+\n+    return matched, unmatched\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,14 @@
     {
       "match": "    a = ours.full_name.strip().lower()",
       "why": "strip и lower тут как раз к месту, только их недостаточно"
+    },
+    {
+      "match": "    matched, unmatched = [], []",
+      "why": "два списка одной строкой — стиль, к делу не относится"
+    },
+    {
+      "match": "        if any(same_person(person, mine) for mine in ours):",
+      "why": "квадратичный перебор — на больших выгрузках медленно, но результат верный"
     }
   ],
   "verified_by": "",

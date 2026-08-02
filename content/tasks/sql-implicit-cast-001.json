@@ -5,7 +5,7 @@
   "title": "Поиск по номеру карты",
   "prompt": "Добавь поиск пациента по номеру карты",
   "tests": "PASS  tests/search.test.ts (5)\n  ✓ находит по номеру\n  ✓ не находит чужую клинику\n\nTests  5 passed (5)",
-  "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,4 +1,7 @@\n SELECT p.id, p.name, p.card_number\n FROM pets p\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.card_number = :query\n+LIMIT 50\n",
+  "diff": "--- a/src/find_pet.sql\n+++ b/src/find_pet.sql\n@@ -1,12 +1,27 @@\n -- Поиск пациента из строки в регистратуре.\n -- card_number хранится строкой: у части клиник в номере есть буквы.\n \n SELECT p.id, p.name, p.card_number, o.phone\n FROM pets p\n JOIN owners o ON o.id = p.owner_id\n-WHERE p.clinic_id = :clinic\n+WHERE p.clinic_id = :clinic\n+  AND p.archived_at IS NULL\n+  AND p.card_number = :query\n+ORDER BY p.name\n LIMIT 50\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,14 @@
     {
       "match": "LIMIT 50",
       "why": "лимит без сортировки даёт непредсказуемый набор — справедливо, но не про скорость"
+    },
+    {
+      "match": "  AND p.archived_at IS NULL",
+      "why": "архивных не показываем — правильно"
+    },
+    {
+      "match": "ORDER BY p.name",
+      "why": "сортировка по кличке при поиске по номеру бессмысленна, но безвредна"
     }
   ],
   "verified_by": "",

@@ -9,7 +9,8 @@ DIR="${DIR:-/root/review-metrics}"
 
 cd "$(dirname "$0")"
 
-ssh "$HOST" "mkdir -p $DIR/log"
+ssh "$HOST" "mkdir -p $DIR/log $DIR/stats"
+rsync -az ../../scripts/build-stats.mjs "$HOST:$DIR/"
 rsync -az docker-compose.yml "$HOST:$DIR/"
 rsync -az --delete conf/ "$HOST:$DIR/conf/"
 

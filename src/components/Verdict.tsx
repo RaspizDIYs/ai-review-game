@@ -1,4 +1,5 @@
 import type { Outcome, Task } from '../types'
+import { foundShare, type Stats } from '../stats.ts'
 import { DiffView, type LineState } from './DiffView.tsx'
 
 export type { Outcome }
@@ -33,10 +34,12 @@ interface Props {
   picked: number | null
   onNext: () => void
   hasNext: boolean
+  stats: Stats | null
 }
 
-export function Verdict({ task, outcome, score, picked, onNext, hasNext }: Props) {
+export function Verdict({ task, outcome, score, picked, onNext, hasNext, stats }: Props) {
   const head = HEAD[outcome]
+  const share = foundShare(stats, task.id)
 
   const marks = new Map<number, LineState>()
   for (const d of task.decoys) marks.set(d.line, 'decoy')
@@ -54,6 +57,14 @@ export function Verdict({ task, outcome, score, picked, onNext, hasNext }: Props
         </div>
         <span className="font-mono text-2xl tabular-nums text-zinc-200">+{score}</span>
       </div>
+
+      {share !== null && (
+        <p className="text-sm text-zinc-500">
+          {task.clean
+            ? `Здесь не попались ${share}% игроков.`
+            : `Эту подлянку находят ${share}% игроков.`}
+        </p>
+      )}
 
       <DiffView diff={task.diff} tokens={task.tokens} marks={marks} disabled />
 

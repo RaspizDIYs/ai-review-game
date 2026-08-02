@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import pack from './content/pack.json'
 import type { Outcome, Task } from './types'
 import { accuracy, roundDuration, roundScore } from './scoring.ts'
@@ -23,6 +23,7 @@ import {
 } from './storage.ts'
 import { isWin } from './share.ts'
 import { trackRound, trackSeries } from './analytics.ts'
+import { loadStats, type Stats } from './stats.ts'
 import { Briefing } from './components/Briefing.tsx'
 import { DiffView, type LineState } from './components/DiffView.tsx'
 import { Hint } from './components/Hint.tsx'
@@ -55,6 +56,12 @@ export default function App() {
   const [seconds, setSeconds] = useState(0)
   const [newRecord, setNewRecord] = useState(false)
   const [showHint, setShowHint] = useState(!isOnboarded())
+
+  // Агрегат по всем игрокам. Тянется один раз и молча: игра без него работает.
+  const [stats, setStats] = useState<Stats | null>(null)
+  useEffect(() => {
+    loadStats().then(setStats)
+  }, [])
 
   const endlessSeed = useRef('')
 
@@ -265,6 +272,7 @@ export default function App() {
           picked={picked}
           onNext={next}
           hasNext={!runOver}
+          stats={stats}
         />
       )}
 
@@ -276,6 +284,7 @@ export default function App() {
           seconds={seconds}
           newRecord={newRecord}
           onHome={() => setScreen('home')}
+          stats={stats}
         />
       )}
     </div>

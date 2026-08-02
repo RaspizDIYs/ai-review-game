@@ -5,7 +5,7 @@
   "title": "Счётчик визитов клиента",
   "prompt": "Добавь в список клиентов количество визитов и количество питомцев",
   "tests": "PASS  tests/clients.test.ts (6)\n  ✓ считает визиты\n  ✓ считает питомцев\n\nTests  6 passed (6)",
-  "diff": "--- a/src/client_stats.sql\n+++ b/src/client_stats.sql\n@@ -1,5 +1,9 @@\n SELECT c.id, c.name,\n+  COUNT(v.id) AS visits,\n+  COUNT(p.id) AS pets\n FROM clients c\n+LEFT JOIN visits v ON v.client_id = c.id\n+LEFT JOIN pets p ON p.client_id = c.id\n GROUP BY c.id, c.name\n",
+  "diff": "--- a/src/client_stats.sql\n+++ b/src/client_stats.sql\n@@ -1,12 +1,27 @@\n -- Карточка клиента в списке: сколько у него питомцев и сколько было визитов.\n \n-SELECT c.id, c.name\n+SELECT c.id, c.name, c.phone,\n+  COUNT(v.id) AS visits,\n+  COUNT(p.id) AS pets,\n+  MAX(v.started_at) AS last_visit\n FROM clients c\n+LEFT JOIN visits v ON v.client_id = c.id\n+LEFT JOIN pets p ON p.client_id = c.id\n WHERE c.clinic_id = :clinic\n+  AND c.deleted_at IS NULL\n GROUP BY c.id, c.name, c.phone\n ORDER BY c.name\n",
   "clean": false,
   "bugs": [
     {
@@ -19,8 +19,12 @@
   ],
   "decoys": [
     {
-      "match": "GROUP BY c.id, c.name",
+      "match": "GROUP BY c.id, c.name, c.phone",
       "why": "группировка по двум полям вместо первичного ключа — многословно, но верно"
+    },
+    {
+      "match": "  MAX(v.started_at) AS last_visit",
+      "why": "максимум по датам от размножения строк не страдает — единственная честная колонка здесь"
     }
   ],
   "verified_by": "",

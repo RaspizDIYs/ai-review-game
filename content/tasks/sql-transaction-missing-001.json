@@ -5,7 +5,7 @@
   "title": "Списание со склада при продаже",
   "prompt": "Списывай препарат со склада, когда пробили чек",
   "tests": "PASS  tests/sale.test.ts (6)\n  ✓ списывает остаток\n  ✓ пишет движение\n\nTests  6 passed (6)",
-  "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,2 +1,9 @@\n+UPDATE stock\n+SET quantity = quantity - :qty\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n",
+  "diff": "--- a/src/sell.sql\n+++ b/src/sell.sql\n@@ -1,10 +1,27 @@\n -- Продажа препарата с кассы. Вызывается из обработчика чека,\n -- по одному вызову на позицию в чеке.\n \n+UPDATE stock\n+SET quantity = quantity - :qty,\n+    updated_at = NOW()\n+WHERE clinic_id = :clinic AND sku = :sku;\n+\n+INSERT INTO stock_moves (clinic_id, sku, delta, receipt_id, created_at)\n+VALUES (:clinic, :sku, -:qty, :receipt, NOW());\n+\n+UPDATE receipts\n+SET items_count = items_count + 1\n+WHERE id = :receipt;\n",
   "clean": false,
   "bugs": [
     {
@@ -21,6 +21,10 @@
     {
       "match": "VALUES (:clinic, :sku, -:qty, :receipt, NOW());",
       "why": "NOW() вместо времени чека — расхождение в секунды, на фоне остального мелочь"
+    },
+    {
+      "match": "SET items_count = items_count + 1",
+      "why": "счётчик позиций инкрементом — при повторе обработки задвоится, но это следствие того же"
     }
   ],
   "verified_by": "",
