@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Выкладка «Ревью за ИИ» на glprod.
+# Выкладка «Ревью за ИИ» на свой сервер с Traefik.
 #
 #   ./deploy/deploy.sh
 #
-# Домен берётся из deploy/.env на сервере — здесь его нет намеренно,
+# Домен берётся из .env на сервере — здесь его нет намеренно,
 # чтобы сменить его можно было без правки репозитория.
 set -euo pipefail
 
-HOST="${HOST:-glprod}"
+HOST="${HOST:?укажи хост: HOST=myserver ./deploy/deploy.sh}"
 DIR="${DIR:-/root/review-after-ai}"
 
 cd "$(dirname "$0")/.."
