@@ -1,0 +1,32 @@
+{
+  "id": "js-test-mocks-itself-001",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Тесты на getUser",
+  "prompt": "Покрой getUser тестами, а то он у нас голый",
+  "tests": "PASS  src/user-service.test.ts (2)\n  ✓ нормализует имя\n  ✓ подставляет роль по умолчанию\n\nTests  2 passed (2)",
+  "diff": "--- a/src/user-service.test.ts\n+++ b/src/user-service.test.ts\n@@ -1,3 +1,17 @@\n import { describe, expect, test, vi } from 'vitest'\n-import { getUser } from './user-service'\n+import { getUser, normalizeName } from './user-service'\n+\n+vi.mock('./api', () => ({\n+  fetchUser: async (id: number) => ({ id, name: 'Боб', role: 'vet' }),\n+}))\n+\n+describe('getUser', () => {\n+  test('нормализует имя', () => {\n+    expect(normalizeName('  боб ')).toBe('Боб')\n+  })\n+\n+  test('подставляет роль по умолчанию', async () => {\n+    const user = await getUser(2)\n+    expect(user.role).toBe('vet')\n+  })\n+})\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/user-service.test.ts",
+      "match": "expect(user.role).toBe('vet')",
+      "kind": "wrong",
+      "tag": "test-asserts-the-mock",
+      "explain": "Роль 'vet' положил в ответ сам мок. Тест сверяет мок с самим собой, а подстановку роли по умолчанию не трогает вовсе.",
+      "consequence": "Логику дефолтной роли можно удалить целиком — тесты останутся зелёными. Обнаружится в тот день, когда у половины пользователей роль окажется пустой."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "fetchUser: async (id: number)",
+      "why": "мок объявлен на весь файл и утечёт в соседние тесты — придирка справедливая, но ломает не он"
+    },
+    {
+      "match": "expect(normalizeName('  боб ')).toBe('Боб')",
+      "why": "тест на чистой функции, здесь как раз всё честно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

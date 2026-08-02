@@ -1,0 +1,28 @@
+{
+  "id": "js-local-date-001",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Дата визита в отчёте",
+  "prompt": "Группируй визиты по дням для дневного отчёта",
+  "tests": "PASS  src/report.test.ts (6)\n  ✓ группирует визиты по дню\n  ✓ пустой день не попадает в отчёт\n\nTests  6 passed (6)",
+  "diff": "--- a/src/report.ts\n+++ b/src/report.ts\n@@ -2,6 +2,11 @@\n+function dayOf(visit: Visit): string {\n+  return new Date(visit.startsAt).toISOString().slice(0, 10)\n+}\n+\n export function groupByDay(visits: Visit[]) {\n-  return groupBy(visits, (v) => v.startsAt)\n+  return groupBy(visits, dayOf)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/report.ts",
+      "match": "toISOString().slice(0, 10)",
+      "kind": "wrong",
+      "tag": "utc-vs-local-day",
+      "explain": "toISOString отдаёт день по UTC, а клиника живёт по своему часовому поясу.",
+      "consequence": "Вечерние визиты в Краснодаре уезжают в отчёт следующего дня, а в Владивостоке — предыдущего. Дневная выручка не сходится ровно на вечерний приём, и никто не понимает почему."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "return groupBy(visits, dayOf)",
+      "why": "группировка сама по себе корректна, вопрос в том, что считает ключом"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

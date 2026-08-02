@@ -1,9 +1,12 @@
 import { parseDiff, isClickable, type DiffLine } from '../diff.ts'
+import type { Task } from '../types'
 
 export type LineState = 'idle' | 'wrong' | 'correct' | 'decoy'
 
 interface Props {
   diff: string
+  /** Подсветка из сборки пака. Нет — рисуем текстом, игра от этого не ломается. */
+  tokens?: Task['tokens']
   /** Номер новой строки → состояние подсветки. */
   marks: Map<number, LineState>
   onPick?: (newNo: number) => void
@@ -38,7 +41,7 @@ function marker(line: DiffLine): string {
   return ' '
 }
 
-export function DiffView({ diff, marks, onPick, disabled }: Props) {
+export function DiffView({ diff, tokens, marks, onPick, disabled }: Props) {
   const lines = parseDiff(diff)
 
   return (
@@ -66,7 +69,15 @@ export function DiffView({ diff, marks, onPick, disabled }: Props) {
                   {line.newNo ?? ''}
                 </td>
                 <td className="w-5 select-none pl-2 text-zinc-600">{marker(line)}</td>
-                <td className="whitespace-pre pr-4">{line.text || ' '}</td>
+                <td className="whitespace-pre pr-4">
+                  {tokens?.[line.index]
+                    ? tokens[line.index]!.map(([text, color], i) => (
+                        <span key={i} style={color ? { color } : undefined}>
+                          {text}
+                        </span>
+                      ))
+                    : line.text || ' '}
+                </td>
               </tr>
             )
           })}

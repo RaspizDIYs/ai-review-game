@@ -1,0 +1,28 @@
+{
+  "id": "py-path-join-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Путь до вложения",
+  "prompt": "Собери путь до файла вложения по имени, которое пришло из формы",
+  "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_storage.py .....           [100%]\n\n==== 5 passed in 0.15s ====",
+  "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -3,4 +3,8 @@\n UPLOADS = \"/var/vetmanager/uploads\"\n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "storage.py",
+      "match": "    return os.path.join(UPLOADS, filename)",
+      "kind": "wrong",
+      "tag": "path-traversal",
+      "explain": "os.path.join с абсолютным вторым аргументом молча отбрасывает первый, а ../ он не нормализует вовсе. Имя приходит из формы.",
+      "consequence": "Запрос с filename вида /etc/passwd или ../../config.py отдаёт файл за пределами каталога загрузок. Это уже не баг, а дыра: читать можно всё, до чего дотягивается пользователь процесса."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "UPLOADS = \"/var/vetmanager/uploads\"",
+      "why": "путь захардкожен — в конфиг бы его, но опасность не здесь"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

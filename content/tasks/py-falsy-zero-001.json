@@ -1,0 +1,28 @@
+{
+  "id": "py-falsy-zero-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Вес пациента в карточке",
+  "prompt": "Подставляй прошлый вес, если в этот приём его не измеряли",
+  "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_chart.py ....              [100%]\n\n==== 4 passed in 0.13s ====",
+  "diff": "--- a/chart.py\n+++ b/chart.py\n@@ -11,4 +11,9 @@\n+def effective_weight(visit, previous):\n+    if not visit.weight:\n+        return previous.weight\n+\n+    return visit.weight\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "chart.py",
+      "match": "    if not visit.weight:",
+      "kind": "wrong",
+      "tag": "falsy-vs-none",
+      "explain": "not срабатывает не только на None, но и на 0 и на 0.0. «Не измеряли» и «измерили и получили ноль» становятся одним случаем.",
+      "consequence": "Ошибка весов или ввод нуля подменяются прошлым весом молча, и в карточке появляется правдоподобное число, которого никто не измерял. По нему считают дозу препарата."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return previous.weight",
+      "why": "previous не проверяется на None — упадёт шумно и сразу, в отличие от подлянки"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

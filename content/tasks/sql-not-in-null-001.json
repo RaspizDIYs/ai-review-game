@@ -1,0 +1,28 @@
+{
+  "id": "sql-not-in-null-001",
+  "stack": "sql",
+  "difficulty": 4,
+  "title": "Услуги без назначений",
+  "prompt": "Найди услуги, которые ни разу не назначали за год",
+  "tests": "PASS  tests/services.test.ts (5)\n  ✓ отдаёт неиспользуемые услуги\n  ✓ учитывает границу года\n\nTests  5 passed (5)",
+  "diff": "--- a/src/unused_services.sql\n+++ b/src/unused_services.sql\n@@ -1,3 +1,8 @@\n SELECT s.id, s.name\n FROM services s\n+WHERE s.id NOT IN (\n+  SELECT p.service_id FROM prescriptions p\n+  WHERE p.created_at >= :year_start\n+)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/unused_services.sql",
+      "match": "WHERE s.id NOT IN (",
+      "kind": "wrong",
+      "tag": "not-in-with-null",
+      "explain": "Если в prescriptions.service_id встретится хоть один NULL, NOT IN даёт неизвестность вместо истины и выборка становится пустой.",
+      "consequence": "Отчёт «неиспользуемые услуги» показывает ноль строк, и это выглядит как хорошая новость, а не как поломка. Ломается от одной осиротевшей записи, которую занесли год назад."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  SELECT p.service_id FROM prescriptions p",
+      "why": "подзапрос без DISTINCT — планировщику всё равно, на результат не влияет"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

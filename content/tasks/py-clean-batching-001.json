@@ -1,0 +1,27 @@
+{
+  "id": "py-clean-batching-001",
+  "stack": "py",
+  "difficulty": 4,
+  "title": "Батчевая рассылка",
+  "prompt": "Отправляй напоминания пачками по сотне, чтобы не класть SMS-шлюз",
+  "tests": "==== test session starts ====\ncollected 7 items\n\ntests/test_batch.py .......           [100%]\n\n==== 7 passed in 0.34s ====",
+  "diff": "--- a/batch.py\n+++ b/batch.py\n@@ -1,3 +1,16 @@\n+def chunks(items, size):\n+    batch = []\n+    for item in items:\n+        batch.append(item)\n+        if len(batch) == size:\n+            yield batch\n+            batch = []\n+\n+    if batch:\n+        yield batch\n+\n+def send_all(reminders):\n+    for batch in chunks(reminders, 100):\n+        gateway.send_many(batch)\n",
+  "clean": true,
+  "bugs": [],
+  "decoys": [
+    {
+      "match": "            batch = []",
+      "why": "переприсваивание вместо batch.clear() выглядит небрежно — но здесь оно обязательно, иначе отданная пачка обнулится у получателя"
+    },
+    {
+      "match": "    if batch:",
+      "why": "хвост отдельным условием кажется лишним — без него теряется последняя неполная пачка"
+    },
+    {
+      "match": "        gateway.send_many(batch)",
+      "why": "нет обработки ошибки шлюза — вопрос справедливый, но в задаче просили только батчи"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

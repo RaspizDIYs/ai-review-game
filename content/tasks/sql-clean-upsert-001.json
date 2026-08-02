@@ -1,0 +1,27 @@
+{
+  "id": "sql-clean-upsert-001",
+  "stack": "sql",
+  "difficulty": 4,
+  "title": "Обновление остатков склада",
+  "prompt": "Обнови остатки по приходу, а если позиции ещё нет — заведи её",
+  "tests": "PASS  tests/stock.test.ts (5)\n  ✓ создаёт новую позицию\n  ✓ прибавляет к существующей\n  ✓ повторный прогон не задваивает\n\nTests  5 passed (5)",
+  "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,2 +1,9 @@\n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n",
+  "clean": true,
+  "bugs": [],
+  "decoys": [
+    {
+      "match": "  quantity = stock.quantity + EXCLUDED.quantity",
+      "why": "сложение выглядит как источник задвоения — но это приход, его и надо прибавлять, а конфликт ловится по ключу"
+    },
+    {
+      "match": "ON CONFLICT (clinic_id, sku)",
+      "why": "конфликт по паре колонок кажется хрупким — он и опирается на уникальный индекс, который для ON CONFLICT обязателен"
+    },
+    {
+      "match": "  updated_at = EXCLUDED.updated_at",
+      "why": "берётся время из вставляемой строки, а не NOW() заново — разницы нет, значение то же самое"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

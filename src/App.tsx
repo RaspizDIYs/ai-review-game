@@ -204,7 +204,7 @@ export default function App() {
             )}
           </p>
 
-          <DiffView diff={task.diff} marks={marks} onPick={pickLine} />
+          <DiffView diff={task.diff} tokens={task.tokens} marks={marks} onPick={pickLine} />
 
           <button
             onClick={claimClean}

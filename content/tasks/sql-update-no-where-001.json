@@ -1,0 +1,28 @@
+{
+  "id": "sql-update-no-where-001",
+  "stack": "sql",
+  "difficulty": 1,
+  "title": "Миграция статусов",
+  "prompt": "Перенеси старый статус визита 'закрыт' в новое поле state",
+  "tests": "PASS  tests/migrations.test.ts (3)\n  ✓ переносит закрытые визиты\n  ✓ миграция идемпотентна\n\nTests  3 passed (3)",
+  "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,2 +1,6 @@\n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'open';\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "migrations/031_visit_state.sql",
+      "match": "UPDATE visits SET state = 'open';",
+      "kind": "wrong",
+      "tag": "update-without-where",
+      "explain": "Второй UPDATE идёт без WHERE и переписывает вообще все строки, включая те, что первый только что пометил закрытыми.",
+      "consequence": "После миграции все визиты за всю историю становятся открытыми. Откатить нечем: прошлое значение уже затёрто, а старая колонка в следующей миграции удаляется."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "ALTER TABLE visits ADD COLUMN state VARCHAR(16);",
+      "why": "колонка без NOT NULL и без индекса — вопросы к схеме, но данные не портит"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

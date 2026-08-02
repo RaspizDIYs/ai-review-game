@@ -55,7 +55,7 @@ export function Verdict({ task, outcome, score, picked, onNext, hasNext }: Props
         <span className="font-mono text-2xl tabular-nums text-zinc-200">+{score}</span>
       </div>
 
-      <DiffView diff={task.diff} marks={marks} disabled />
+      <DiffView diff={task.diff} tokens={task.tokens} marks={marks} disabled />
 
       {task.bugs.map((bug) => (
         <div key={bug.line} className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">

@@ -1,0 +1,27 @@
+{
+  "id": "js-clean-abort-001",
+  "stack": "js",
+  "difficulty": 5,
+  "title": "Отмена устаревшего запроса",
+  "prompt": "Отменяй предыдущий запрос, когда пользователь печатает дальше",
+  "tests": "PASS  src/search.test.ts (7)\n  ✓ отдаёт результат последнего запроса\n  ✓ отменённый запрос не пишет в состояние\n  ✓ не глотает настоящую ошибку\n\nTests  7 passed (7)",
+  "diff": "--- a/src/search.ts\n+++ b/src/search.ts\n@@ -3,10 +3,20 @@\n-export async function search(query: string) {\n-  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)\n-  return res.json()\n+let inFlight: AbortController | undefined\n+\n+export async function search(query: string) {\n+  inFlight?.abort()\n+\n+  const controller = new AbortController()\n+  inFlight = controller\n+\n+  try {\n+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {\n+      signal: controller.signal,\n+    })\n+    return await res.json()\n+  } finally {\n+    if (inFlight === controller) inFlight = undefined\n+  }\n }\n",
+  "clean": true,
+  "bugs": [],
+  "decoys": [
+    {
+      "match": "let inFlight: AbortController | undefined",
+      "why": "модульная переменная выглядит опасно, но именно она и хранит текущий запрос — иначе отменять нечего"
+    },
+    {
+      "match": "if (inFlight === controller) inFlight = undefined",
+      "why": "проверка кажется избыточной — она как раз и не даёт затереть уже начатый следующий запрос"
+    },
+    {
+      "match": "    return await res.json()",
+      "why": "await перед return внутри try выглядит лишним — но без него finally отработает раньше разбора тела"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

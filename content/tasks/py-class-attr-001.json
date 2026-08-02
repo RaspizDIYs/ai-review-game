@@ -1,0 +1,28 @@
+{
+  "id": "py-class-attr-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Корзина назначений",
+  "prompt": "Сделай класс, в который врач складывает назначения по ходу приёма",
+  "tests": "==== test session starts ====\ncollected 3 items\n\ntests/test_cart.py ...                [100%]\n\n==== 3 passed in 0.11s ====",
+  "diff": "--- a/cart.py\n+++ b/cart.py\n@@ -1,2 +1,12 @@\n+class PrescriptionCart:\n+    items = []\n+\n+    def __init__(self, visit_id):\n+        self.visit_id = visit_id\n+\n+    def add(self, prescription):\n+        self.items.append(prescription)\n+\n+    def clear(self):\n+        self.items = []\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "cart.py",
+      "match": "    items = []",
+      "kind": "wrong",
+      "tag": "shared-class-attribute",
+      "explain": "items объявлен на классе, а не в __init__, поэтому список один на все экземпляры. add дописывает в общий.",
+      "consequence": "Два приёма в одном процессе — и назначения одного пациента появляются в карточке другого. Хуже того, clear создаёт экземпляру собственный атрибут, так что после первой очистки поведение у объектов расходится и баг перестаёт воспроизводиться."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        self.items = []",
+      "why": "clear через присваивание, а не через .clear() — как раз это и маскирует подлянку, но само по себе корректно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

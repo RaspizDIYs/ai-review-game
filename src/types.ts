@@ -43,6 +43,11 @@ export interface Task {
   decoys: Decoy[]
   verified_by: string
   verified_at: string
+  /**
+   * Подсветка, разложенная сборкой пака по индексам строк из parseDiff:
+   * [текст, цвет]. null — строку подсвечивать нечем (заголовок файла, @@).
+   */
+  tokens?: (([string, string])[] | null)[]
 }
 
 /** Чем закончился раунд. Живёт здесь, а не в компоненте: от него зависят

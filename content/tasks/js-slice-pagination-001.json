@@ -1,0 +1,28 @@
+{
+  "id": "js-slice-pagination-001",
+  "stack": "js",
+  "difficulty": 2,
+  "title": "Пагинация справочника",
+  "prompt": "Разбей справочник пород на страницы по 20 штук",
+  "tests": "PASS  src/paginate.test.ts (5)\n  ✓ первая страница\n  ✓ последняя страница неполная\n\nTests  5 passed (5)",
+  "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,3 +1,8 @@\n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/paginate.ts",
+      "match": "const from = pageNumber * PAGE_SIZE",
+      "kind": "wrong",
+      "tag": "off-by-one-pagination",
+      "explain": "Страницы в интерфейсе нумеруются с единицы, а смещение считается так, будто с нуля.",
+      "consequence": "Первая страница показывает записи с 21-й, а первые двадцать пород не видит никто. Заметят не сразу: список длинный, а начало алфавита никто не проверяет."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "export function page<T>(items: T[], pageNumber: number): T[]",
+      "why": "нет валидации отрицательного номера — slice это переживёт, поведение не ломается"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

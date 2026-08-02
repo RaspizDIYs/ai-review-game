@@ -1,0 +1,27 @@
+{
+  "id": "js-clean-generator-001",
+  "stack": "js",
+  "difficulty": 5,
+  "title": "Потоковая выгрузка",
+  "prompt": "Перепиши выгрузку, чтобы не держала весь список в памяти",
+  "tests": "PASS  src/export.test.ts (6)\n  ✓ отдаёт все строки\n  ✓ не падает на пустой таблице\n  ✓ последняя страница неполная\n\nTests  6 passed (6)\nBuild  ✓ built in 0.98s",
+  "diff": "--- a/src/export.ts\n+++ b/src/export.ts\n@@ -3,5 +3,13 @@\n-export async function exportAll(): Promise<string> {\n-  const rows = await db.visits.findAll()\n-  return rows.map(toCsvLine).join('\\n')\n+export async function* exportAll(): AsyncGenerator<string> {\n+  let offset = 0\n+  const size = 500\n+\n+  while (true) {\n+    const rows = await db.visits.findPage(offset, size)\n+    if (rows.length === 0) return\n+    for (const row of rows) yield toCsvLine(row)\n+    offset += rows.length\n+  }\n }\n",
+  "clean": true,
+  "bugs": [],
+  "decoys": [
+    {
+      "match": "export async function* exportAll(): AsyncGenerator<string> {",
+      "why": "смена сигнатуры на генератор ломает вызывающий код — но это видно на сборке, а сборка зелёная"
+    },
+    {
+      "match": "while (true) {",
+      "why": "while (true) выглядит опасно, но выход есть и он корректный"
+    },
+    {
+      "match": "offset += rows.length",
+      "why": "offset += rows.length, а не += size — выглядит ошибкой, а на деле именно так и правильно для неполной последней страницы"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,28 @@
+{
+  "id": "sql-left-join-where-001",
+  "stack": "sql",
+  "difficulty": 3,
+  "title": "Клиенты без визитов",
+  "prompt": "Покажи всех клиентов и их последний визит, включая тех, кто ещё не приходил",
+  "tests": "PASS  tests/clients.test.ts (4)\n  ✓ отдаёт клиентов с визитами\n  ✓ фильтрует по клинике\n\nTests  4 passed (4)",
+  "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,4 +1,7 @@\n SELECT c.id, c.name, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+ORDER BY v.started_at DESC\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/clients.sql",
+      "match": "WHERE v.clinic_id = :clinic",
+      "kind": "wrong",
+      "tag": "left-join-killed-by-where",
+      "explain": "Условие на правую таблицу в WHERE отбрасывает строки, где визита нет: там v.clinic_id равен NULL. LEFT JOIN превращается обратно в INNER.",
+      "consequence": "Запрос честно заменили на LEFT JOIN ровно ради клиентов без визитов — и именно они из выборки и пропали. Считают по нему отток и удивляются, что новых клиентов в отчёте ноль."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "ORDER BY v.started_at DESC",
+      "why": "сортировка без LIMIT по клиенту не даёт «последний визит» — отдельная недоделка, но не эта"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

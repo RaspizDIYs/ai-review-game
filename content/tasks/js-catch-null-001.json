@@ -1,0 +1,28 @@
+{
+  "id": "js-catch-null-001",
+  "stack": "js",
+  "difficulty": 2,
+  "title": "Загрузка карточки пациента",
+  "prompt": "Пусть страница не падает, если карточка не загрузилась",
+  "tests": "PASS  src/patient.test.ts (3)\n  ✓ отдаёт карточку\n  ✓ не бросает при ошибке сети\n\nTests  3 passed (3)",
+  "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -5,5 +5,9 @@\n export async function loadPatient(id: number) {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: [] }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/patient.ts",
+      "match": ".catch(() => null)",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "Отвалившаяся сеть и отсутствующий пациент теперь неразличимы: и то и другое превращается в пустую карточку.",
+      "consequence": "Врач при упавшем бэкенде видит карточку с пустой историей визитов и делает назначение вслепую. Ошибки в мониторинге нет, потому что никто не бросил исключение."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "return patient ?? { id, name: 'Без имени', visits: [] }",
+      "why": "выдуманная заглушка вместо ошибки — следствие, а не причина"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,28 @@
+{
+  "id": "py-open-encoding-001",
+  "stack": "py",
+  "difficulty": 2,
+  "title": "Выгрузка справочника",
+  "prompt": "Выгружай справочник услуг в CSV для бухгалтерии",
+  "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_export.py ....             [100%]\n\n==== 4 passed in 0.22s ====",
+  "diff": "--- a/export.py\n+++ b/export.py\n@@ -6,5 +6,10 @@\n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "export.py",
+      "match": "with open(path, \"w\", newline=\"\") as f",
+      "kind": "missing",
+      "tag": "platform-default-encoding",
+      "explain": "Кодировка не указана, поэтому берётся системная. На сервере это UTF-8, на машине бухгалтера под Windows — cp1251.",
+      "consequence": "Файл, собранный в тестах и на проде, открывается по-разному, а на части машин выгрузка падает с UnicodeEncodeError на первом же названии с ё. Классический баг, который не воспроизводится у того, кто его чинит."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "writer.writerow([\"Код\", \"Название\", \"Цена\"])",
+      "why": "заголовок без BOM — Excel откроет криво, но это следствие той же причины"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

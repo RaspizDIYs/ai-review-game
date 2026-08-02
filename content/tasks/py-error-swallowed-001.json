@@ -1,0 +1,28 @@
+{
+  "id": "py-error-swallowed-001",
+  "stack": "py",
+  "difficulty": 1,
+  "title": "Устойчивый синк",
+  "prompt": "Сделай синк устойчивым, а то один упавший элемент роняет весь прогон",
+  "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_sync.py ....                [100%]\n\n==== 4 passed in 0.31s ====",
+  "diff": "--- a/sync.py\n+++ b/sync.py\n@@ -12,6 +12,9 @@\n def sync_all(items):\n     ok = 0\n     for item in items:\n-        push(item)\n-        ok += 1\n+        try:\n+            push(item)\n+        except Exception as e:\n+            logger.warning(\"push failed: %s\", e)\n+        ok += 1\n     return ok\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "sync.py",
+      "match": "ok += 1",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "ok увеличивается независимо от того, упал push или нет — счётчик стоит вне try.",
+      "consequence": "Синк отчитывается «отправлено 500», отправлено 480. Расхождение всплывает через месяц, когда клиент не находит своих данных, и разбираться придётся по логам уровня warning, которые никто не читает."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "except Exception as e:",
+      "why": "except Exception — широкий перехват, придирка справедливая, но не баг этой задачи"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

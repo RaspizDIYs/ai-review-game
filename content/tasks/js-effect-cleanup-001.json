@@ -1,0 +1,28 @@
+{
+  "id": "js-effect-cleanup-001",
+  "stack": "js",
+  "difficulty": 3,
+  "title": "Автообновление очереди",
+  "prompt": "Пусть очередь на приём сама обновляется раз в 5 секунд",
+  "tests": "PASS  src/Queue.test.tsx (3)\n  ✓ рисует очередь\n  ✓ обновляет по таймеру\n\nTests  3 passed (3)",
+  "diff": "--- a/src/Queue.tsx\n+++ b/src/Queue.tsx\n@@ -6,6 +6,12 @@\n export function Queue({ clinicId }: { clinicId: number }) {\n   const [items, setItems] = useState<QueueItem[]>([])\n+\n+  useEffect(() => {\n+    const id = setInterval(() => {\n+      fetchQueue(clinicId).then(setItems)\n+    }, 5000)\n+  }, [clinicId])\n \n   return <QueueTable items={items} />\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Queue.tsx",
+      "match": "}, [clinicId])",
+      "kind": "missing",
+      "tag": "effect-without-cleanup",
+      "explain": "Эффект заводит интервал и не возвращает функцию очистки. Каждая смена clinicId добавляет ещё один живой таймер.",
+      "consequence": "Регистратор за смену переключает клиники десяток раз — к обеду в браузере десять таймеров долбят бэкенд каждые пять секунд и наперегонки перезаписывают список. Выглядит как «очередь скачет»."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "fetchQueue(clinicId).then(setItems)",
+      "why": "результат запроса не отменяется при размонтировании — тоже проблема, но вторичная"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

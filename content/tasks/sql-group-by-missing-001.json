@@ -1,0 +1,28 @@
+{
+  "id": "sql-group-by-missing-001",
+  "stack": "sql",
+  "difficulty": 2,
+  "title": "Выручка по врачам",
+  "prompt": "Посчитай выручку по каждому врачу за месяц",
+  "tests": "PASS  tests/revenue.test.ts (4)\n  ✓ считает сумму по врачу\n  ✓ отдаёт имя врача\n\nTests  4 passed (4)",
+  "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,4 +1,8 @@\n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n GROUP BY d.id\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/revenue.sql",
+      "match": "GROUP BY d.id",
+      "kind": "wrong",
+      "tag": "group-by-incomplete",
+      "explain": "В выборке появились d.name и d.clinic_id, а группировка осталась только по d.id. MySQL в нестрогом режиме это проглотит и вернёт произвольное значение, PostgreSQL откажется выполнять запрос.",
+      "consequence": "На дев-базе с ONLY_FULL_GROUP_BY выключенным всё работает, на проде с включённым запрос падает при первом же открытии отчёта. Либо, что хуже, не падает — и врач видит чужую клинику в своей строке."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "WHERE i.paid_at >= :month_start",
+      "why": "верхняя граница месяца не задана — отчёт захватит и следующий, но это другая ошибка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

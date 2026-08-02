@@ -1,0 +1,27 @@
+{
+  "id": "js-clean-debounce-001",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Поиск по клиентам",
+  "prompt": "Не дёргай поиск на каждую букву, подожди, пока человек допечатает",
+  "tests": "PASS  src/debounce.test.ts (5)\n  ✓ вызывает один раз за серию\n  ✓ отдаёт последние аргументы\n  ✓ таймер сбрасывается\n\nTests  5 passed (5)\nBuild  ✓ built in 0.71s",
+  "diff": "--- a/src/debounce.ts\n+++ b/src/debounce.ts\n@@ -1,3 +1,14 @@\n+export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: number) {\n+  let timer: ReturnType<typeof setTimeout> | undefined\n+\n+  return (...args: A) => {\n+    if (timer !== undefined) clearTimeout(timer)\n+\n+    timer = setTimeout(() => {\n+      timer = undefined\n+      fn(...args)\n+    }, ms)\n+  }\n+}\n",
+  "clean": true,
+  "bugs": [],
+  "decoys": [
+    {
+      "match": "if (timer !== undefined) clearTimeout(timer)",
+      "why": "явная проверка выглядит лишней — clearTimeout(undefined) безопасен, но и вреда в ней нет"
+    },
+    {
+      "match": "let timer: ReturnType<typeof setTimeout> | undefined",
+      "why": "замыкание на общий таймер выглядит как гонка, но вызовы в JS однопоточные"
+    },
+    {
+      "match": "      fn(...args)",
+      "why": "аргументы берутся из последнего вызова — так debounce и должен работать"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

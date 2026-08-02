@@ -11,77 +11,1657 @@
     "bugs": [
       {
         "file": "src/user-cache.ts",
-        "line": 16,
         "kind": "missing",
         "tag": "cache-no-invalidation",
         "explain": "updateUser пишет в базу, но не трогает кэш — записи в нём живут вечно.",
-        "consequence": "Пользователь меняет имя и продолжает видеть старое. На локалке процесс живёт минуту и всё «работает»; в проде инстанс живёт неделями. Классический баг, который воспроизводится только у клиента."
+        "consequence": "Пользователь меняет имя и продолжает видеть старое. На локалке процесс живёт минуту и всё «работает»; в проде инстанс живёт неделями. Классический баг, который воспроизводится только у клиента.",
+        "line": 16
       }
     ],
     "decoys": [
       {
-        "line": 4,
-        "why": "Map без ограничения размера — вопрос к памяти, но не баг этой задачи"
+        "why": "Map без ограничения размера — вопрос к памяти, но не баг этой задачи",
+        "line": 4
       }
     ],
-    "verified_by": "—",
-    "verified_at": ""
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { db } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./db'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "type",
+          "#FF7B72"
+        ],
+        [
+          " { User } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./types'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "cache",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Map",
+          "#D2A8FF"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "User",
+          "#FFA657"
+        ],
+        [
+          ">()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "getUser",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Promise",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "User",
+          "#FFA657"
+        ],
+        [
+          "> {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " db.users.",
+          "#E6EDF3"
+        ],
+        [
+          "findById",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "hit",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " cache.",
+          "#E6EDF3"
+        ],
+        [
+          "get",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (hit) ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " hit",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "user",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " db.users.",
+          "#E6EDF3"
+        ],
+        [
+          "findById",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  cache.",
+          "#E6EDF3"
+        ],
+        [
+          "set",
+          "#D2A8FF"
+        ],
+        [
+          "(id, user)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " user",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "updateUser",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "patch",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Partial",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "User",
+          "#FFA657"
+        ],
+        [
+          ">) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " db.users.",
+          "#E6EDF3"
+        ],
+        [
+          "update",
+          "#D2A8FF"
+        ],
+        [
+          "(id, patch)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
   },
   {
-    "id": "py-error-swallowed-001",
-    "stack": "py",
-    "difficulty": 1,
-    "title": "Устойчивый синк",
-    "prompt": "Сделай синк устойчивым, а то один упавший элемент роняет весь прогон",
-    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_sync.py ....                [100%]\n\n==== 4 passed in 0.31s ====",
-    "diff": "--- a/sync.py\n+++ b/sync.py\n@@ -12,6 +12,9 @@\n def sync_all(items):\n     ok = 0\n     for item in items:\n-        push(item)\n-        ok += 1\n+        try:\n+            push(item)\n+        except Exception as e:\n+            logger.warning(\"push failed: %s\", e)\n+        ok += 1\n     return ok\n",
+    "id": "js-catch-null-001",
+    "stack": "js",
+    "difficulty": 2,
+    "title": "Загрузка карточки пациента",
+    "prompt": "Пусть страница не падает, если карточка не загрузилась",
+    "tests": "PASS  src/patient.test.ts (3)\n  ✓ отдаёт карточку\n  ✓ не бросает при ошибке сети\n\nTests  3 passed (3)",
+    "diff": "--- a/src/patient.ts\n+++ b/src/patient.ts\n@@ -5,5 +5,9 @@\n export async function loadPatient(id: number) {\n-  return api.get(`/patients/${id}`)\n+  const patient = await api.get(`/patients/${id}`).catch(() => null)\n+\n+  return patient ?? { id, name: 'Без имени', visits: [] }\n }\n",
     "clean": false,
     "bugs": [
       {
-        "file": "sync.py",
-        "line": 19,
+        "file": "src/patient.ts",
         "kind": "wrong",
         "tag": "error-swallowed",
-        "explain": "ok увеличивается независимо от того, упал push или нет — счётчик стоит вне try.",
-        "consequence": "Синк отчитывается «отправлено 500», отправлено 480. Расхождение всплывает через месяц, когда клиент не находит своих данных, и разбираться придётся по логам уровня warning, которые никто не читает."
+        "explain": "Отвалившаяся сеть и отсутствующий пациент теперь неразличимы: и то и другое превращается в пустую карточку.",
+        "consequence": "Врач при упавшем бэкенде видит карточку с пустой историей визитов и делает назначение вслепую. Ошибки в мониторинге нет, потому что никто не бросил исключение.",
+        "line": 6
       }
     ],
     "decoys": [
       {
-        "line": 17,
-        "why": "except Exception — широкий перехват, придирка справедливая, но не баг этой задачи"
+        "why": "выдуманная заглушка вместо ошибки — следствие, а не причина",
+        "line": 8
       }
     ],
-    "verified_by": "—",
-    "verified_at": ""
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "loadPatient",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "get",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "`/patients/${",
+          "#A5D6FF"
+        ],
+        [
+          "id",
+          "#E6EDF3"
+        ],
+        [
+          "}`",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "patient",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " api.",
+          "#E6EDF3"
+        ],
+        [
+          "get",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "`/patients/${",
+          "#A5D6FF"
+        ],
+        [
+          "id",
+          "#E6EDF3"
+        ],
+        [
+          "}`",
+          "#A5D6FF"
+        ],
+        [
+          ").",
+          "#E6EDF3"
+        ],
+        [
+          "catch",
+          "#D2A8FF"
+        ],
+        [
+          "(() ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "null",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " patient ",
+          "#E6EDF3"
+        ],
+        [
+          "??",
+          "#FF7B72"
+        ],
+        [
+          " { id, name: ",
+          "#E6EDF3"
+        ],
+        [
+          "'Без имени'",
+          "#A5D6FF"
+        ],
+        [
+          ", visits: [] }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
   },
   {
-    "id": "sql-boundary-001",
-    "stack": "sql",
-    "difficulty": 4,
-    "title": "Отчёт за период",
-    "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
-    "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
-    "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
-    "clean": false,
-    "bugs": [
-      {
-        "file": "src/report.sql",
-        "line": 4,
-        "kind": "wrong",
-        "tag": "off-by-one-boundary",
-        "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
-        "consequence": "Месячный отчёт стабильно недосчитывает один день. Никто не замечает, пока бухгалтерия не сведёт цифры за год."
-      }
-    ],
+    "id": "js-clean-abort-001",
+    "stack": "js",
+    "difficulty": 5,
+    "title": "Отмена устаревшего запроса",
+    "prompt": "Отменяй предыдущий запрос, когда пользователь печатает дальше",
+    "tests": "PASS  src/search.test.ts (7)\n  ✓ отдаёт результат последнего запроса\n  ✓ отменённый запрос не пишет в состояние\n  ✓ не глотает настоящую ошибку\n\nTests  7 passed (7)",
+    "diff": "--- a/src/search.ts\n+++ b/src/search.ts\n@@ -3,10 +3,20 @@\n-export async function search(query: string) {\n-  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)\n-  return res.json()\n+let inFlight: AbortController | undefined\n+\n+export async function search(query: string) {\n+  inFlight?.abort()\n+\n+  const controller = new AbortController()\n+  inFlight = controller\n+\n+  try {\n+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {\n+      signal: controller.signal,\n+    })\n+    return await res.json()\n+  } finally {\n+    if (inFlight === controller) inFlight = undefined\n+  }\n }\n",
+    "clean": true,
+    "bugs": [],
     "decoys": [
       {
-        "line": 5,
-        "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка"
+        "why": "модульная переменная выглядит опасно, но именно она и хранит текущий запрос — иначе отменять нечего",
+        "line": 3
+      },
+      {
+        "why": "проверка кажется избыточной — она как раз и не даёт затереть уже начатый следующий запрос",
+        "line": 17
+      },
+      {
+        "why": "await перед return внутри try выглядит лишним — но без него finally отработает раньше разбора тела",
+        "line": 15
       }
     ],
-    "verified_by": "—",
-    "verified_at": ""
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "search",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "query",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "res",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "fetch",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "`/api/search?q=${",
+          "#A5D6FF"
+        ],
+        [
+          "encodeURIComponent",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#A5D6FF"
+        ],
+        [
+          "query",
+          "#E6EDF3"
+        ],
+        [
+          ")",
+          "#A5D6FF"
+        ],
+        [
+          "}`",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " res.",
+          "#E6EDF3"
+        ],
+        [
+          "json",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "let",
+          "#FF7B72"
+        ],
+        [
+          " inFlight",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AbortController",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "|",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "undefined",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "search",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "query",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  inFlight?.",
+          "#E6EDF3"
+        ],
+        [
+          "abort",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "controller",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AbortController",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  inFlight ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " controller",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "try",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "res",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "fetch",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "`/api/search?q=${",
+          "#A5D6FF"
+        ],
+        [
+          "encodeURIComponent",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#A5D6FF"
+        ],
+        [
+          "query",
+          "#E6EDF3"
+        ],
+        [
+          ")",
+          "#A5D6FF"
+        ],
+        [
+          "}`",
+          "#A5D6FF"
+        ],
+        [
+          ", {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      signal: controller.signal,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    })",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " res.",
+          "#E6EDF3"
+        ],
+        [
+          "json",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  } ",
+          "#E6EDF3"
+        ],
+        [
+          "finally",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (inFlight ",
+          "#E6EDF3"
+        ],
+        [
+          "===",
+          "#FF7B72"
+        ],
+        [
+          " controller) inFlight ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "undefined",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-clean-debounce-001",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Поиск по клиентам",
+    "prompt": "Не дёргай поиск на каждую букву, подожди, пока человек допечатает",
+    "tests": "PASS  src/debounce.test.ts (5)\n  ✓ вызывает один раз за серию\n  ✓ отдаёт последние аргументы\n  ✓ таймер сбрасывается\n\nTests  5 passed (5)\nBuild  ✓ built in 0.71s",
+    "diff": "--- a/src/debounce.ts\n+++ b/src/debounce.ts\n@@ -1,3 +1,14 @@\n+export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: number) {\n+  let timer: ReturnType<typeof setTimeout> | undefined\n+\n+  return (...args: A) => {\n+    if (timer !== undefined) clearTimeout(timer)\n+\n+    timer = setTimeout(() => {\n+      timer = undefined\n+      fn(...args)\n+    }, ms)\n+  }\n+}\n",
+    "clean": true,
+    "bugs": [],
+    "decoys": [
+      {
+        "why": "явная проверка выглядит лишней — clearTimeout(undefined) безопасен, но и вреда в ней нет",
+        "line": 5
+      },
+      {
+        "why": "замыкание на общий таймер выглядит как гонка, но вызовы в JS однопоточные",
+        "line": 2
+      },
+      {
+        "why": "аргументы берутся из последнего вызова — так debounce и должен работать",
+        "line": 9
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "debounce",
+          "#D2A8FF"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "A",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "extends",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "unknown",
+          "#79C0FF"
+        ],
+        [
+          "[]>(",
+          "#E6EDF3"
+        ],
+        [
+          "fn",
+          "#D2A8FF"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "args",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "A",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "void",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "ms",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "let",
+          "#FF7B72"
+        ],
+        [
+          " timer",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ReturnType",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "typeof",
+          "#FF7B72"
+        ],
+        [
+          " setTimeout> ",
+          "#E6EDF3"
+        ],
+        [
+          "|",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "undefined",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "args",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "A",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (timer ",
+          "#E6EDF3"
+        ],
+        [
+          "!==",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "undefined",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "clearTimeout",
+          "#D2A8FF"
+        ],
+        [
+          "(timer)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    timer ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "setTimeout",
+          "#D2A8FF"
+        ],
+        [
+          "(() ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      timer ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "undefined",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "fn",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "args)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    }, ms)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
   },
   {
     "id": "js-clean-generator-001",
@@ -95,19 +1675,6293 @@
     "bugs": [],
     "decoys": [
       {
-        "line": 3,
-        "why": "смена сигнатуры на генератор ломает вызывающий код — но это видно на сборке, а сборка зелёная"
+        "why": "смена сигнатуры на генератор ломает вызывающий код — но это видно на сборке, а сборка зелёная",
+        "line": 3
       },
       {
-        "line": 7,
-        "why": "while (true) выглядит опасно, но выход есть и он корректный"
+        "why": "while (true) выглядит опасно, но выход есть и он корректный",
+        "line": 7
       },
       {
-        "line": 11,
-        "why": "offset += rows.length, а не += size — выглядит ошибкой, а на деле именно так и правильно для неполной последней страницы"
+        "why": "offset += rows.length, а не += size — выглядит ошибкой, а на деле именно так и правильно для неполной последней страницы",
+        "line": 11
       }
     ],
-    "verified_by": "—",
-    "verified_at": ""
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "exportAll",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Promise",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          "> {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "rows",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " db.visits.",
+          "#E6EDF3"
+        ],
+        [
+          "findAll",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " rows.",
+          "#E6EDF3"
+        ],
+        [
+          "map",
+          "#D2A8FF"
+        ],
+        [
+          "(toCsvLine).",
+          "#E6EDF3"
+        ],
+        [
+          "join",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          "\\n",
+          "#FF7B72"
+        ],
+        [
+          "'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function*",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "exportAll",
+          "#D2A8FF"
+        ],
+        [
+          "()",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AsyncGenerator",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          "> {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "let",
+          "#FF7B72"
+        ],
+        [
+          " offset ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "size",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "500",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "while",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "true",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "rows",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " db.visits.",
+          "#E6EDF3"
+        ],
+        [
+          "findPage",
+          "#D2A8FF"
+        ],
+        [
+          "(offset, size)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " (rows.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "===",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "row",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "of",
+          "#FF7B72"
+        ],
+        [
+          " rows) ",
+          "#E6EDF3"
+        ],
+        [
+          "yield",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "toCsvLine",
+          "#D2A8FF"
+        ],
+        [
+          "(row)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    offset ",
+          "#E6EDF3"
+        ],
+        [
+          "+=",
+          "#FF7B72"
+        ],
+        [
+          " rows.",
+          "#E6EDF3"
+        ],
+        [
+          "length",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "  }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-effect-cleanup-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Автообновление очереди",
+    "prompt": "Пусть очередь на приём сама обновляется раз в 5 секунд",
+    "tests": "PASS  src/Queue.test.tsx (3)\n  ✓ рисует очередь\n  ✓ обновляет по таймеру\n\nTests  3 passed (3)",
+    "diff": "--- a/src/Queue.tsx\n+++ b/src/Queue.tsx\n@@ -6,6 +6,12 @@\n export function Queue({ clinicId }: { clinicId: number }) {\n   const [items, setItems] = useState<QueueItem[]>([])\n+\n+  useEffect(() => {\n+    const id = setInterval(() => {\n+      fetchQueue(clinicId).then(setItems)\n+    }, 5000)\n+  }, [clinicId])\n \n   return <QueueTable items={items} />\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/Queue.tsx",
+        "kind": "missing",
+        "tag": "effect-without-cleanup",
+        "explain": "Эффект заводит интервал и не возвращает функцию очистки. Каждая смена clinicId добавляет ещё один живой таймер.",
+        "consequence": "Регистратор за смену переключает клиники десяток раз — к обеду в браузере десять таймеров долбят бэкенд каждые пять секунд и наперегонки перезаписывают список. Выглядит как «очередь скачет».",
+        "line": 13
+      }
+    ],
+    "decoys": [
+      {
+        "why": "результат запроса не отменяется при размонтировании — тоже проблема, но вторичная",
+        "line": 11
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Queue",
+          "#D2A8FF"
+        ],
+        [
+          "({ ",
+          "#E6EDF3"
+        ],
+        [
+          "clinicId",
+          "#FFA657"
+        ],
+        [
+          " }",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " { ",
+          "#E6EDF3"
+        ],
+        [
+          "clinicId",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          " }) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " [",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "setItems",
+          "#79C0FF"
+        ],
+        [
+          "] ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "useState",
+          "#D2A8FF"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "QueueItem",
+          "#FFA657"
+        ],
+        [
+          "[]>([])",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "useEffect",
+          "#D2A8FF"
+        ],
+        [
+          "(() ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "setInterval",
+          "#D2A8FF"
+        ],
+        [
+          "(() ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "fetchQueue",
+          "#D2A8FF"
+        ],
+        [
+          "(clinicId).",
+          "#E6EDF3"
+        ],
+        [
+          "then",
+          "#D2A8FF"
+        ],
+        [
+          "(setItems)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    }, ",
+          "#E6EDF3"
+        ],
+        [
+          "5000",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  }, [clinicId])",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "QueueTable",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "{",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          "} />",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-floating-promise-001",
+    "stack": "js",
+    "difficulty": 2,
+    "title": "Уведомление о визите",
+    "prompt": "Отправляй уведомление владельцу, когда визит закрыли",
+    "tests": "PASS  src/visit.test.ts (4)\n  ✓ закрывает визит\n  ✓ шлёт уведомление\n\nTests  4 passed (4)\nBuild  ✓ built in 0.87s",
+    "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -8,6 +8,11 @@\n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n   return visit\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/visit.ts",
+        "kind": "wrong",
+        "tag": "floating-promise",
+        "explain": "notify возвращает промис, но его никто не ждёт и ошибку из него никто не поймает.",
+        "consequence": "Упавшее уведомление становится unhandled rejection: владелец ничего не получил, в логах пусто, а под Node с strict-режимом это ещё и валит процесс целиком.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "аудит после уведомления — порядок спорный, но корректности не ломает",
+        "line": 13
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "closeVisit",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "visit",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " db.visits.",
+          "#E6EDF3"
+        ],
+        [
+          "close",
+          "#D2A8FF"
+        ],
+        [
+          "(id)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "notify",
+          "#D2A8FF"
+        ],
+        [
+          "(visit.ownerId, ",
+          "#E6EDF3"
+        ],
+        [
+          "`Визит ${",
+          "#A5D6FF"
+        ],
+        [
+          "visit",
+          "#E6EDF3"
+        ],
+        [
+          ".",
+          "#A5D6FF"
+        ],
+        [
+          "id",
+          "#E6EDF3"
+        ],
+        [
+          "} закрыт`",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " audit.",
+          "#E6EDF3"
+        ],
+        [
+          "record",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'visit.closed'",
+          "#A5D6FF"
+        ],
+        [
+          ", visit.id)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " visit",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-local-date-001",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Дата визита в отчёте",
+    "prompt": "Группируй визиты по дням для дневного отчёта",
+    "tests": "PASS  src/report.test.ts (6)\n  ✓ группирует визиты по дню\n  ✓ пустой день не попадает в отчёт\n\nTests  6 passed (6)",
+    "diff": "--- a/src/report.ts\n+++ b/src/report.ts\n@@ -2,6 +2,11 @@\n+function dayOf(visit: Visit): string {\n+  return new Date(visit.startsAt).toISOString().slice(0, 10)\n+}\n+\n export function groupByDay(visits: Visit[]) {\n-  return groupBy(visits, (v) => v.startsAt)\n+  return groupBy(visits, dayOf)\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/report.ts",
+        "kind": "wrong",
+        "tag": "utc-vs-local-day",
+        "explain": "toISOString отдаёт день по UTC, а клиника живёт по своему часовому поясу.",
+        "consequence": "Вечерние визиты в Краснодаре уезжают в отчёт следующего дня, а в Владивостоке — предыдущего. Дневная выручка не сходится ровно на вечерний приём, и никто не понимает почему.",
+        "line": 3
+      }
+    ],
+    "decoys": [
+      {
+        "why": "группировка сама по себе корректна, вопрос в том, что считает ключом",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "dayOf",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "visit",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Visit",
+          "#FFA657"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "string",
+          "#79C0FF"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "new",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Date",
+          "#D2A8FF"
+        ],
+        [
+          "(visit.startsAt).",
+          "#E6EDF3"
+        ],
+        [
+          "toISOString",
+          "#D2A8FF"
+        ],
+        [
+          "().",
+          "#E6EDF3"
+        ],
+        [
+          "slice",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "10",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "groupByDay",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "visits",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Visit",
+          "#FFA657"
+        ],
+        [
+          "[]) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "groupBy",
+          "#D2A8FF"
+        ],
+        [
+          "(visits, (",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " v.startsAt)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "groupBy",
+          "#D2A8FF"
+        ],
+        [
+          "(visits, dayOf)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-shallow-merge-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Настройки клиники",
+    "prompt": "Сделай функцию, которая накатывает настройки клиники поверх дефолтных",
+    "tests": "PASS  src/settings.test.ts (4)\n  ✓ берёт значение из дефолтов\n  ✓ перекрывает значение клиники\n\nTests  4 passed (4)",
+    "diff": "--- a/src/settings.ts\n+++ b/src/settings.ts\n@@ -10,4 +10,9 @@\n+export function resolveSettings(clinic: Partial<Settings>): Settings {\n+  return { ...DEFAULTS, ...clinic }\n+}\n+\n+export const DEFAULTS: Settings = { theme: 'light', notifications: { email: true, sms: false } }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/settings.ts",
+        "kind": "wrong",
+        "tag": "shallow-merge",
+        "explain": "Спред копирует только верхний уровень. Клиника, задавшая notifications.sms, теряет notifications.email, а не переопределившая notifications получает ссылку на общий объект дефолтов.",
+        "consequence": "Одна клиника меняет настройку уведомлений — она меняется у всех, кто не переопределял этот блок, потому что объект в памяти один. Воспроизводится только на проде, где клиник больше одной.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "константа объявлена ниже использования — для const это хойстится и работает, читается плохо, но не ломается",
+        "line": 14
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "resolveSettings",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "clinic",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Partial",
+          "#FFA657"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "Settings",
+          "#FFA657"
+        ],
+        [
+          ">)",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Settings",
+          "#FFA657"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " { ",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "DEFAULTS",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "...",
+          "#FF7B72"
+        ],
+        [
+          "clinic }",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "DEFAULTS",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Settings",
+          "#FFA657"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " { theme: ",
+          "#E6EDF3"
+        ],
+        [
+          "'light'",
+          "#A5D6FF"
+        ],
+        [
+          ", notifications: { email: ",
+          "#E6EDF3"
+        ],
+        [
+          "true",
+          "#79C0FF"
+        ],
+        [
+          ", sms: ",
+          "#E6EDF3"
+        ],
+        [
+          "false",
+          "#79C0FF"
+        ],
+        [
+          " } }",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-slice-pagination-001",
+    "stack": "js",
+    "difficulty": 2,
+    "title": "Пагинация справочника",
+    "prompt": "Разбей справочник пород на страницы по 20 штук",
+    "tests": "PASS  src/paginate.test.ts (5)\n  ✓ первая страница\n  ✓ последняя страница неполная\n\nTests  5 passed (5)",
+    "diff": "--- a/src/paginate.ts\n+++ b/src/paginate.ts\n@@ -1,3 +1,8 @@\n+const PAGE_SIZE = 20\n+\n+export function page<T>(items: T[], pageNumber: number): T[] {\n+  const from = pageNumber * PAGE_SIZE\n+  return items.slice(from, from + PAGE_SIZE)\n+}\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/paginate.ts",
+        "kind": "wrong",
+        "tag": "off-by-one-pagination",
+        "explain": "Страницы в интерфейсе нумеруются с единицы, а смещение считается так, будто с нуля.",
+        "consequence": "Первая страница показывает записи с 21-й, а первые двадцать пород не видит никто. Заметят не сразу: список длинный, а начало алфавита никто не проверяет.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "нет валидации отрицательного номера — slice это переживёт, поведение не ломается",
+        "line": 3
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PAGE_SIZE",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "20",
+          "#79C0FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "page",
+          "#D2A8FF"
+        ],
+        [
+          "<",
+          "#E6EDF3"
+        ],
+        [
+          "T",
+          "#FFA657"
+        ],
+        [
+          ">(",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "T",
+          "#FFA657"
+        ],
+        [
+          "[], ",
+          "#E6EDF3"
+        ],
+        [
+          "pageNumber",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "T",
+          "#FFA657"
+        ],
+        [
+          "[] {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " pageNumber ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PAGE_SIZE",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " items.",
+          "#E6EDF3"
+        ],
+        [
+          "slice",
+          "#D2A8FF"
+        ],
+        [
+          "(from, from ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PAGE_SIZE",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-sort-mutates-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Сортировка списка приёмов",
+    "prompt": "Покажи приёмы по времени, самые ранние сверху",
+    "tests": "PASS  src/AppointmentList.test.tsx (3)\n  ✓ рисует все приёмы\n  ✓ сортирует по времени\n\nTests  3 passed (3)",
+    "diff": "--- a/src/AppointmentList.tsx\n+++ b/src/AppointmentList.tsx\n@@ -4,7 +4,11 @@\n export function AppointmentList({ items }: { items: Appointment[] }) {\n-  return <ul>{items.map(renderRow)}</ul>\n+  const sorted = items.sort((a, b) => a.startsAt - b.startsAt)\n+\n+  return <ul>{sorted.map(renderRow)}</ul>\n }\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/AppointmentList.tsx",
+        "kind": "wrong",
+        "tag": "props-mutated-in-place",
+        "explain": "Array.sort сортирует на месте, а items — это пропс. Компонент молча переставляет массив, который ему не принадлежит.",
+        "consequence": "Родитель хранит тот же массив в состоянии, его порядок меняется без setState — и соседний список, читающий те же данные, начинает рисовать не то. Ловится днями, потому что зависит от порядка рендера.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "нет key у строк — реальная претензия к React, но не эта подлянка",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "export",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "function",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AppointmentList",
+          "#D2A8FF"
+        ],
+        [
+          "({ ",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          " }",
+          "#E6EDF3"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " { ",
+          "#E6EDF3"
+        ],
+        [
+          "items",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Appointment",
+          "#FFA657"
+        ],
+        [
+          "[] }) {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "ul",
+          "#FFA657"
+        ],
+        [
+          ">{items.map(renderRow)}",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "ul",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "sorted",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " items.",
+          "#E6EDF3"
+        ],
+        [
+          "sort",
+          "#D2A8FF"
+        ],
+        [
+          "((",
+          "#E6EDF3"
+        ],
+        [
+          "a",
+          "#FFA657"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "b",
+          "#FFA657"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " a.startsAt ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          " b.startsAt)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " <",
+          "#E6EDF3"
+        ],
+        [
+          "ul",
+          "#FFA657"
+        ],
+        [
+          ">{sorted.map(renderRow)}",
+          "#E6EDF3"
+        ],
+        [
+          "</",
+          "#FF7B72"
+        ],
+        [
+          "ul",
+          "#E6EDF3"
+        ],
+        [
+          ">",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "}",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "js-test-mocks-itself-001",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Тесты на getUser",
+    "prompt": "Покрой getUser тестами, а то он у нас голый",
+    "tests": "PASS  src/user-service.test.ts (2)\n  ✓ нормализует имя\n  ✓ подставляет роль по умолчанию\n\nTests  2 passed (2)",
+    "diff": "--- a/src/user-service.test.ts\n+++ b/src/user-service.test.ts\n@@ -1,3 +1,17 @@\n import { describe, expect, test, vi } from 'vitest'\n-import { getUser } from './user-service'\n+import { getUser, normalizeName } from './user-service'\n+\n+vi.mock('./api', () => ({\n+  fetchUser: async (id: number) => ({ id, name: 'Боб', role: 'vet' }),\n+}))\n+\n+describe('getUser', () => {\n+  test('нормализует имя', () => {\n+    expect(normalizeName('  боб ')).toBe('Боб')\n+  })\n+\n+  test('подставляет роль по умолчанию', async () => {\n+    const user = await getUser(2)\n+    expect(user.role).toBe('vet')\n+  })\n+})\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/user-service.test.ts",
+        "kind": "wrong",
+        "tag": "test-asserts-the-mock",
+        "explain": "Роль 'vet' положил в ответ сам мок. Тест сверяет мок с самим собой, а подстановку роли по умолчанию не трогает вовсе.",
+        "consequence": "Логику дефолтной роли можно удалить целиком — тесты останутся зелёными. Обнаружится в тот день, когда у половины пользователей роль окажется пустой.",
+        "line": 15
+      }
+    ],
+    "decoys": [
+      {
+        "why": "мок объявлен на весь файл и утечёт в соседние тесты — придирка справедливая, но ломает не он",
+        "line": 5
+      },
+      {
+        "why": "тест на чистой функции, здесь как раз всё честно",
+        "line": 10
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { describe, expect, test, vi } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'vitest'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { getUser } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./user-service'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " { getUser, normalizeName } ",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'./user-service'",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "vi.",
+          "#E6EDF3"
+        ],
+        [
+          "mock",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'./api'",
+          "#A5D6FF"
+        ],
+        [
+          ", () ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " ({",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "fetchUser",
+          "#D2A8FF"
+        ],
+        [
+          ": ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "number",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " ({ id, name: ",
+          "#E6EDF3"
+        ],
+        [
+          "'Боб'",
+          "#A5D6FF"
+        ],
+        [
+          ", role: ",
+          "#E6EDF3"
+        ],
+        [
+          "'vet'",
+          "#A5D6FF"
+        ],
+        [
+          " }),",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "}))",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "describe",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'getUser'",
+          "#A5D6FF"
+        ],
+        [
+          ", () ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "test",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'нормализует имя'",
+          "#A5D6FF"
+        ],
+        [
+          ", () ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "expect",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "normalizeName",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'  боб '",
+          "#A5D6FF"
+        ],
+        [
+          ")).",
+          "#E6EDF3"
+        ],
+        [
+          "toBe",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'Боб'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  })",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "test",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'подставляет роль по умолчанию'",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "async",
+          "#FF7B72"
+        ],
+        [
+          " () ",
+          "#E6EDF3"
+        ],
+        [
+          "=>",
+          "#FF7B72"
+        ],
+        [
+          " {",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "const",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "user",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "await",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "getUser",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "2",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "expect",
+          "#D2A8FF"
+        ],
+        [
+          "(user.role).",
+          "#E6EDF3"
+        ],
+        [
+          "toBe",
+          "#D2A8FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "'vet'",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  })",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "})",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-class-attr-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Корзина назначений",
+    "prompt": "Сделай класс, в который врач складывает назначения по ходу приёма",
+    "tests": "==== test session starts ====\ncollected 3 items\n\ntests/test_cart.py ...                [100%]\n\n==== 3 passed in 0.11s ====",
+    "diff": "--- a/cart.py\n+++ b/cart.py\n@@ -1,2 +1,12 @@\n+class PrescriptionCart:\n+    items = []\n+\n+    def __init__(self, visit_id):\n+        self.visit_id = visit_id\n+\n+    def add(self, prescription):\n+        self.items.append(prescription)\n+\n+    def clear(self):\n+        self.items = []\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "cart.py",
+        "kind": "wrong",
+        "tag": "shared-class-attribute",
+        "explain": "items объявлен на классе, а не в __init__, поэтому список один на все экземпляры. add дописывает в общий.",
+        "consequence": "Два приёма в одном процессе — и назначения одного пациента появляются в карточке другого. Хуже того, clear создаёт экземпляру собственный атрибут, так что после первой очистки поведение у объектов расходится и баг перестаёт воспроизводиться.",
+        "line": 2
+      }
+    ],
+    "decoys": [
+      {
+        "why": "clear через присваивание, а не через .clear() — как раз это и маскирует подлянку, но само по себе корректно",
+        "line": 11
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "class",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "PrescriptionCart",
+          "#FFA657"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    items ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "__init__",
+          "#79C0FF"
+        ],
+        [
+          "(self, visit_id):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "self",
+          "#79C0FF"
+        ],
+        [
+          ".visit_id ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " visit_id",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "add",
+          "#D2A8FF"
+        ],
+        [
+          "(self, prescription):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "self",
+          "#79C0FF"
+        ],
+        [
+          ".items.append(prescription)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "clear",
+          "#D2A8FF"
+        ],
+        [
+          "(self):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "self",
+          "#79C0FF"
+        ],
+        [
+          ".items ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-clean-batching-001",
+    "stack": "py",
+    "difficulty": 4,
+    "title": "Батчевая рассылка",
+    "prompt": "Отправляй напоминания пачками по сотне, чтобы не класть SMS-шлюз",
+    "tests": "==== test session starts ====\ncollected 7 items\n\ntests/test_batch.py .......           [100%]\n\n==== 7 passed in 0.34s ====",
+    "diff": "--- a/batch.py\n+++ b/batch.py\n@@ -1,3 +1,16 @@\n+def chunks(items, size):\n+    batch = []\n+    for item in items:\n+        batch.append(item)\n+        if len(batch) == size:\n+            yield batch\n+            batch = []\n+\n+    if batch:\n+        yield batch\n+\n+def send_all(reminders):\n+    for batch in chunks(reminders, 100):\n+        gateway.send_many(batch)\n",
+    "clean": true,
+    "bugs": [],
+    "decoys": [
+      {
+        "why": "переприсваивание вместо batch.clear() выглядит небрежно — но здесь оно обязательно, иначе отданная пачка обнулится у получателя",
+        "line": 7
+      },
+      {
+        "why": "хвост отдельным условием кажется лишним — без него теряется последняя неполная пачка",
+        "line": 9
+      },
+      {
+        "why": "нет обработки ошибки шлюза — вопрос справедливый, но в задаче просили только батчи",
+        "line": 14
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "chunks",
+          "#D2A8FF"
+        ],
+        [
+          "(items, size):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    batch ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " item ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " items:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        batch.append(item)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "len",
+          "#79C0FF"
+        ],
+        [
+          "(batch) ",
+          "#E6EDF3"
+        ],
+        [
+          "==",
+          "#FF7B72"
+        ],
+        [
+          " size:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            ",
+          "#E6EDF3"
+        ],
+        [
+          "yield",
+          "#FF7B72"
+        ],
+        [
+          " batch",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            batch ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " batch:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "yield",
+          "#FF7B72"
+        ],
+        [
+          " batch",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "send_all",
+          "#D2A8FF"
+        ],
+        [
+          "(reminders):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " batch ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " chunks(reminders, ",
+          "#E6EDF3"
+        ],
+        [
+          "100",
+          "#79C0FF"
+        ],
+        [
+          "):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        gateway.send_many(batch)",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-error-swallowed-001",
+    "stack": "py",
+    "difficulty": 1,
+    "title": "Устойчивый синк",
+    "prompt": "Сделай синк устойчивым, а то один упавший элемент роняет весь прогон",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_sync.py ....                [100%]\n\n==== 4 passed in 0.31s ====",
+    "diff": "--- a/sync.py\n+++ b/sync.py\n@@ -12,6 +12,9 @@\n def sync_all(items):\n     ok = 0\n     for item in items:\n-        push(item)\n-        ok += 1\n+        try:\n+            push(item)\n+        except Exception as e:\n+            logger.warning(\"push failed: %s\", e)\n+        ok += 1\n     return ok\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "sync.py",
+        "kind": "wrong",
+        "tag": "error-swallowed",
+        "explain": "ok увеличивается независимо от того, упал push или нет — счётчик стоит вне try.",
+        "consequence": "Синк отчитывается «отправлено 500», отправлено 480. Расхождение всплывает через месяц, когда клиент не находит своих данных, и разбираться придётся по логам уровня warning, которые никто не читает.",
+        "line": 19
+      }
+    ],
+    "decoys": [
+      {
+        "why": "except Exception — широкий перехват, придирка справедливая, но не баг этой задачи",
+        "line": 17
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "sync_all",
+          "#D2A8FF"
+        ],
+        [
+          "(items):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ok ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " item ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " items:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        push(item)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ok ",
+          "#E6EDF3"
+        ],
+        [
+          "+=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "try",
+          "#FF7B72"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            push(item)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "except",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Exception",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "as",
+          "#FF7B72"
+        ],
+        [
+          " e:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            logger.warning(",
+          "#E6EDF3"
+        ],
+        [
+          "\"push failed: ",
+          "#A5D6FF"
+        ],
+        [
+          "%s",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          ", e)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ok ",
+          "#E6EDF3"
+        ],
+        [
+          "+=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ok",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-falsy-zero-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Вес пациента в карточке",
+    "prompt": "Подставляй прошлый вес, если в этот приём его не измеряли",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_chart.py ....              [100%]\n\n==== 4 passed in 0.13s ====",
+    "diff": "--- a/chart.py\n+++ b/chart.py\n@@ -11,4 +11,9 @@\n+def effective_weight(visit, previous):\n+    if not visit.weight:\n+        return previous.weight\n+\n+    return visit.weight\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "chart.py",
+        "kind": "wrong",
+        "tag": "falsy-vs-none",
+        "explain": "not срабатывает не только на None, но и на 0 и на 0.0. «Не измеряли» и «измерили и получили ноль» становятся одним случаем.",
+        "consequence": "Ошибка весов или ввод нуля подменяются прошлым весом молча, и в карточке появляется правдоподобное число, которого никто не измерял. По нему считают дозу препарата.",
+        "line": 12
+      }
+    ],
+    "decoys": [
+      {
+        "why": "previous не проверяется на None — упадёт шумно и сразу, в отличие от подлянки",
+        "line": 13
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "effective_weight",
+          "#D2A8FF"
+        ],
+        [
+          "(visit, previous):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "if",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "not",
+          "#FF7B72"
+        ],
+        [
+          " visit.weight:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " previous.weight",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " visit.weight",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-float-money-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Итог по чеку",
+    "prompt": "Посчитай итог по позициям чека со скидкой",
+    "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_billing.py ......           [100%]\n\n==== 6 passed in 0.29s ====",
+    "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -4,6 +4,12 @@\n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "billing.py",
+        "kind": "wrong",
+        "tag": "float-money",
+        "explain": "Деньги считаются в float. 0.1 + 0.2 в двоичной дроби не даёт 0.3, и ошибка копится на каждой позиции.",
+        "consequence": "Итог по чеку из тридцати позиций расходится с суммой строк на копейку, и это ровно та копейка, из-за которой не сходится кассовая смена. Разбираться будет бухгалтер, а не программист.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "округление в конце выглядит как затычка — оно и есть затычка, но не первопричина",
+        "line": 9
+      },
+      {
+        "why": "скидка числом, а не долей — неудобно, но считается верно",
+        "line": 4
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "total",
+          "#D2A8FF"
+        ],
+        [
+          "(items, discount_percent",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "0",
+          "#79C0FF"
+        ],
+        [
+          "):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    subtotal ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "0.0",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " item ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " items:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        subtotal ",
+          "#E6EDF3"
+        ],
+        [
+          "+=",
+          "#FF7B72"
+        ],
+        [
+          " item.price ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " item.qty",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "round",
+          "#79C0FF"
+        ],
+        [
+          "(subtotal ",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          " discount_percent ",
+          "#E6EDF3"
+        ],
+        [
+          "/",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "100",
+          "#79C0FF"
+        ],
+        [
+          "), ",
+          "#E6EDF3"
+        ],
+        [
+          "2",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-mutable-default-001",
+    "stack": "py",
+    "difficulty": 2,
+    "title": "Накопитель ошибок импорта",
+    "prompt": "Собери ошибки построчно при импорте прайса, чтобы показать их разом",
+    "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_import.py .....            [100%]\n\n==== 5 passed in 0.44s ====",
+    "diff": "--- a/importer.py\n+++ b/importer.py\n@@ -18,7 +18,12 @@\n-def import_price(rows):\n-    return [parse(row) for row in rows]\n+def import_price(rows, errors=[]):\n+    parsed = []\n+    for i, row in enumerate(rows):\n+        try:\n+            parsed.append(parse(row))\n+        except ValueError as e:\n+            errors.append(f\"строка {i}: {e}\")\n+    return parsed, errors\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "importer.py",
+        "kind": "wrong",
+        "tag": "mutable-default-arg",
+        "explain": "Список по умолчанию создаётся один раз при объявлении функции, а не на каждый вызов. Он общий для всех импортов за время жизни процесса.",
+        "consequence": "Второй импорт прайса показывает ошибки первого, третий — обоих. Клиника видит претензии к строкам, которых в её файле нет, и приходит в поддержку с скриншотом, который невозможно воспроизвести на пустом процессе.",
+        "line": 18
+      }
+    ],
+    "decoys": [
+      {
+        "why": "функция стала возвращать кортеж вместо списка — вызывающий код чинить придётся, но сборка это ловит",
+        "line": 25
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "import_price",
+          "#D2A8FF"
+        ],
+        [
+          "(rows):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " [parse(row) ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " row ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " rows]",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "import_price",
+          "#D2A8FF"
+        ],
+        [
+          "(rows, errors",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "[]):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    parsed ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " []",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " i, row ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "enumerate",
+          "#79C0FF"
+        ],
+        [
+          "(rows):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "try",
+          "#FF7B72"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            parsed.append(parse(row))",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "except",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "ValueError",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "as",
+          "#FF7B72"
+        ],
+        [
+          " e:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            errors.append(",
+          "#E6EDF3"
+        ],
+        [
+          "f",
+          "#FF7B72"
+        ],
+        [
+          "\"строка ",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "i",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          ": ",
+          "#A5D6FF"
+        ],
+        [
+          "{",
+          "#FF7B72"
+        ],
+        [
+          "e",
+          "#E6EDF3"
+        ],
+        [
+          "}",
+          "#FF7B72"
+        ],
+        [
+          "\"",
+          "#A5D6FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " parsed, errors",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-naive-datetime-001",
+    "stack": "py",
+    "difficulty": 4,
+    "title": "Напоминание о вакцинации",
+    "prompt": "Шли напоминание, если до ревакцинации осталось меньше недели",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_reminders.py ....          [100%]\n\n==== 4 passed in 0.18s ====",
+    "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,8 +1,13 @@\n from datetime import datetime, timedelta\n \n+WINDOW = timedelta(days=7)\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+    return vaccination.due_at - now <= WINDOW\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "reminders.py",
+        "kind": "wrong",
+        "tag": "naive-datetime",
+        "explain": "datetime.now() отдаёт время без зоны и по времени машины, а due_at приходит из базы в UTC с зоной.",
+        "consequence": "На сервере в UTC сравнение просто съезжает на разницу поясов, а если due_at всё-таки с таймзоной — Python бросит TypeError прямо в задаче по расписанию. Напоминания либо уходят не в тот день, либо не уходят вовсе, и узнают об этом от клиентов.",
+        "line": 6
+      }
+    ],
+    "decoys": [
+      {
+        "why": "окно константой — как раз хорошо, придраться не к чему",
+        "line": 3
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " datetime ",
+          "#E6EDF3"
+        ],
+        [
+          "import",
+          "#FF7B72"
+        ],
+        [
+          " datetime, timedelta",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "WINDOW",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " timedelta(",
+          "#E6EDF3"
+        ],
+        [
+          "days",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "7",
+          "#79C0FF"
+        ],
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "needs_reminder",
+          "#D2A8FF"
+        ],
+        [
+          "(vaccination):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    now ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " datetime.now()",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " vaccination.due_at ",
+          "#E6EDF3"
+        ],
+        [
+          "-",
+          "#FF7B72"
+        ],
+        [
+          " now ",
+          "#E6EDF3"
+        ],
+        [
+          "<=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "WINDOW",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-open-encoding-001",
+    "stack": "py",
+    "difficulty": 2,
+    "title": "Выгрузка справочника",
+    "prompt": "Выгружай справочник услуг в CSV для бухгалтерии",
+    "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_export.py ....             [100%]\n\n==== 4 passed in 0.22s ====",
+    "diff": "--- a/export.py\n+++ b/export.py\n@@ -6,5 +6,10 @@\n+def export_services(services, path):\n+    with open(path, \"w\", newline=\"\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"Код\", \"Название\", \"Цена\"])\n+        writer.writerows([s.code, s.name, s.price] for s in services)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "export.py",
+        "kind": "missing",
+        "tag": "platform-default-encoding",
+        "explain": "Кодировка не указана, поэтому берётся системная. На сервере это UTF-8, на машине бухгалтера под Windows — cp1251.",
+        "consequence": "Файл, собранный в тестах и на проде, открывается по-разному, а на части машин выгрузка падает с UnicodeEncodeError на первом же названии с ё. Классический баг, который не воспроизводится у того, кто его чинит.",
+        "line": 7
+      }
+    ],
+    "decoys": [
+      {
+        "why": "заголовок без BOM — Excel откроет криво, но это следствие той же причины",
+        "line": 9
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "export_services",
+          "#D2A8FF"
+        ],
+        [
+          "(services, path):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "with",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "open",
+          "#79C0FF"
+        ],
+        [
+          "(path, ",
+          "#E6EDF3"
+        ],
+        [
+          "\"w\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "newline",
+          "#FFA657"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          "\"\"",
+          "#A5D6FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "as",
+          "#FF7B72"
+        ],
+        [
+          " f:",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        writer ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " csv.writer(f)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        writer.writerow([",
+          "#E6EDF3"
+        ],
+        [
+          "\"Код\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "\"Название\"",
+          "#A5D6FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "\"Цена\"",
+          "#A5D6FF"
+        ],
+        [
+          "])",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        writer.writerows([s.code, s.name, s.price] ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " s ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " services)",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-path-join-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Путь до вложения",
+    "prompt": "Собери путь до файла вложения по имени, которое пришло из формы",
+    "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_storage.py .....           [100%]\n\n==== 5 passed in 0.15s ====",
+    "diff": "--- a/storage.py\n+++ b/storage.py\n@@ -3,4 +3,8 @@\n UPLOADS = \"/var/vetmanager/uploads\"\n \n+def attachment_path(filename):\n+    return os.path.join(UPLOADS, filename)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "storage.py",
+        "kind": "wrong",
+        "tag": "path-traversal",
+        "explain": "os.path.join с абсолютным вторым аргументом молча отбрасывает первый, а ../ он не нормализует вовсе. Имя приходит из формы.",
+        "consequence": "Запрос с filename вида /etc/passwd или ../../config.py отдаёт файл за пределами каталога загрузок. Это уже не баг, а дыра: читать можно всё, до чего дотягивается пользователь процесса.",
+        "line": 6
+      }
+    ],
+    "decoys": [
+      {
+        "why": "путь захардкожен — в конфиг бы его, но опасность не здесь",
+        "line": 3
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "UPLOADS",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "\"/var/vetmanager/uploads\"",
+          "#A5D6FF"
+        ]
+      ],
+      [],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "attachment_path",
+          "#D2A8FF"
+        ],
+        [
+          "(filename):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " os.path.join(",
+          "#E6EDF3"
+        ],
+        [
+          "UPLOADS",
+          "#79C0FF"
+        ],
+        [
+          ", filename)",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "py-retry-broad-001",
+    "stack": "py",
+    "difficulty": 4,
+    "title": "Повтор отправки в ОФД",
+    "prompt": "Повторяй отправку чека в ОФД, если сеть моргнула",
+    "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_ofd.py ......              [100%]\n\n==== 6 passed in 1.02s ====",
+    "diff": "--- a/ofd.py\n+++ b/ofd.py\n@@ -14,6 +14,14 @@\n-def send_receipt(receipt):\n-    return client.post(\"/receipts\", receipt.as_dict())\n+def send_receipt(receipt):\n+    for attempt in range(5):\n+        try:\n+            return client.post(\"/receipts\", receipt.as_dict())\n+        except Exception:\n+            time.sleep(2 ** attempt)\n+\n+    raise OfdUnavailable(receipt.id)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "ofd.py",
+        "kind": "wrong",
+        "tag": "retry-on-non-retryable",
+        "explain": "Повторяется всё подряд, включая отказы, которые повтором не лечатся: невалидный чек, просроченный токен, отказ фискального накопителя.",
+        "consequence": "Один битый чек отправляется пять раз с нарастающей паузой, забивая очередь на полминуты, и в ОФД может уехать пять дублей одного чека. Настоящую причину при этом не видно: исходное исключение потеряно, наружу летит OfdUnavailable.",
+        "line": 18
+      }
+    ],
+    "decoys": [
+      {
+        "why": "экспоненциальная пауза без джиттера — на масштабе будет синхронный наплыв, но не сейчас",
+        "line": 19
+      },
+      {
+        "why": "своё исключение вместо исходного — часть той же проблемы, но не её корень",
+        "line": 21
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "send_receipt",
+          "#D2A8FF"
+        ],
+        [
+          "(receipt):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " client.post(",
+          "#E6EDF3"
+        ],
+        [
+          "\"/receipts\"",
+          "#A5D6FF"
+        ],
+        [
+          ", receipt.as_dict())",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "def",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "send_receipt",
+          "#D2A8FF"
+        ],
+        [
+          "(receipt):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "for",
+          "#FF7B72"
+        ],
+        [
+          " attempt ",
+          "#E6EDF3"
+        ],
+        [
+          "in",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "range",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "5",
+          "#79C0FF"
+        ],
+        [
+          "):",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "try",
+          "#FF7B72"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            ",
+          "#E6EDF3"
+        ],
+        [
+          "return",
+          "#FF7B72"
+        ],
+        [
+          " client.post(",
+          "#E6EDF3"
+        ],
+        [
+          "\"/receipts\"",
+          "#A5D6FF"
+        ],
+        [
+          ", receipt.as_dict())",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "        ",
+          "#E6EDF3"
+        ],
+        [
+          "except",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "Exception",
+          "#79C0FF"
+        ],
+        [
+          ":",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "            time.sleep(",
+          "#E6EDF3"
+        ],
+        [
+          "2",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "**",
+          "#FF7B72"
+        ],
+        [
+          " attempt)",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "raise",
+          "#FF7B72"
+        ],
+        [
+          " OfdUnavailable(receipt.id)",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-boundary-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Отчёт за период",
+    "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
+    "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
+    "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/report.sql",
+        "kind": "wrong",
+        "tag": "off-by-one-boundary",
+        "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
+        "consequence": "Месячный отчёт стабильно недосчитывает один день. Никто не замечает, пока бухгалтерия не сведёт цифры за год.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка",
+        "line": 5
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "created_at",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " visits v",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " patients p ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "patient_id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "created_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "BETWEEN",
+          "#FF7B72"
+        ],
+        [
+          " :",
+          "#E6EDF3"
+        ],
+        [
+          "from",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "AND",
+          "#FF7B72"
+        ],
+        [
+          " :",
+          "#E6EDF3"
+        ],
+        [
+          "to",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "created_at",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "LIMIT",
+          "#FF7B72"
+        ],
+        [
+          " :",
+          "#E6EDF3"
+        ],
+        [
+          "limit",
+          "#FF7B72"
+        ],
+        [
+          " OFFSET :offset",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-clean-upsert-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Обновление остатков склада",
+    "prompt": "Обнови остатки по приходу, а если позиции ещё нет — заведи её",
+    "tests": "PASS  tests/stock.test.ts (5)\n  ✓ создаёт новую позицию\n  ✓ прибавляет к существующей\n  ✓ повторный прогон не задваивает\n\nTests  5 passed (5)",
+    "diff": "--- a/src/stock_upsert.sql\n+++ b/src/stock_upsert.sql\n@@ -1,2 +1,9 @@\n+INSERT INTO stock (clinic_id, sku, quantity, updated_at)\n+VALUES (:clinic, :sku, :quantity, NOW())\n+ON CONFLICT (clinic_id, sku)\n+DO UPDATE SET\n+  quantity = stock.quantity + EXCLUDED.quantity,\n+  updated_at = EXCLUDED.updated_at\n",
+    "clean": true,
+    "bugs": [],
+    "decoys": [
+      {
+        "why": "сложение выглядит как источник задвоения — но это приход, его и надо прибавлять, а конфликт ловится по ключу",
+        "line": 5
+      },
+      {
+        "why": "конфликт по паре колонок кажется хрупким — он и опирается на уникальный индекс, который для ON CONFLICT обязателен",
+        "line": 3
+      },
+      {
+        "why": "берётся время из вставляемой строки, а не NOW() заново — разницы нет, значение то же самое",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "INSERT INTO",
+          "#FF7B72"
+        ],
+        [
+          " stock (clinic_id, sku, quantity, updated_at)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "VALUES",
+          "#FF7B72"
+        ],
+        [
+          " (:clinic, :sku, :quantity, ",
+          "#E6EDF3"
+        ],
+        [
+          "NOW",
+          "#FF7B72"
+        ],
+        [
+          "())",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " CONFLICT (clinic_id, sku)",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "DO ",
+          "#E6EDF3"
+        ],
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "SET",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "  quantity ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "stock",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "quantity",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "+",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "EXCLUDED",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "quantity",
+          "#79C0FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  updated_at ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "EXCLUDED",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "updated_at",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-clean-window-001",
+    "stack": "sql",
+    "difficulty": 5,
+    "title": "Последний визит каждого питомца",
+    "prompt": "Для каждого питомца покажи его самый последний визит, по одной строке на питомца",
+    "tests": "PASS  tests/last_visit.test.ts (6)\n  ✓ одна строка на питомца\n  ✓ берёт самый свежий визит\n  ✓ питомцы без визитов не попадают\n\nTests  6 passed (6)",
+    "diff": "--- a/src/last_visit.sql\n+++ b/src/last_visit.sql\n@@ -1,3 +1,14 @@\n+WITH ranked AS (\n+  SELECT v.*,\n+    ROW_NUMBER() OVER (\n+      PARTITION BY v.pet_id\n+      ORDER BY v.started_at DESC, v.id DESC\n+    ) AS rn\n+  FROM visits v\n+  WHERE v.clinic_id = :clinic\n+)\n+SELECT pet_id, id AS visit_id, started_at\n+FROM ranked\n+WHERE rn = 1\n",
+    "clean": true,
+    "bugs": [],
+    "decoys": [
+      {
+        "why": "ROW_NUMBER вместо RANK выглядит спорно — но нужна ровно одна строка, и RANK при равных датах вернул бы две",
+        "line": 3
+      },
+      {
+        "why": "вторичная сортировка кажется лишней — она как раз и делает результат детерминированным при совпадающих датах",
+        "line": 5
+      },
+      {
+        "why": "звёздочка в подзапросе — стилистически так себе, но снаружи колонки выбраны явно",
+        "line": 2
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "WITH",
+          "#FF7B72"
+        ],
+        [
+          " ranked ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " v.",
+          "#E6EDF3"
+        ],
+        [
+          "*",
+          "#FF7B72"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "    ",
+          "#E6EDF3"
+        ],
+        [
+          "ROW_NUMBER",
+          "#79C0FF"
+        ],
+        [
+          "() ",
+          "#E6EDF3"
+        ],
+        [
+          "OVER",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "PARTITION",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "pet_id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "      ",
+          "#E6EDF3"
+        ],
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "started_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "DESC",
+          "#FF7B72"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "DESC",
+          "#FF7B72"
+        ]
+      ],
+      [
+        [
+          "    ) ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " rn",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " visits v",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " pet_id, id ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " visit_id, started_at",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " ranked",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " rn ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "1",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-count-inflate-001",
+    "stack": "sql",
+    "difficulty": 3,
+    "title": "Счётчик визитов клиента",
+    "prompt": "Добавь в список клиентов количество визитов и количество питомцев",
+    "tests": "PASS  tests/clients.test.ts (6)\n  ✓ считает визиты\n  ✓ считает питомцев\n\nTests  6 passed (6)",
+    "diff": "--- a/src/client_stats.sql\n+++ b/src/client_stats.sql\n@@ -1,5 +1,9 @@\n SELECT c.id, c.name,\n+  COUNT(v.id) AS visits,\n+  COUNT(p.id) AS pets\n FROM clients c\n+LEFT JOIN visits v ON v.client_id = c.id\n+LEFT JOIN pets p ON p.client_id = c.id\n GROUP BY c.id, c.name\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/client_stats.sql",
+        "kind": "wrong",
+        "tag": "count-inflated-by-join",
+        "explain": "Два независимых JOIN дают декартово произведение: каждая строка визита умножается на число питомцев. Оба счётчика раздуваются, а не один.",
+        "consequence": "У клиента с тремя питомцами и четырьмя визитами в отчёте будет двенадцать визитов и двенадцать питомцев. Цифры правдоподобные, поэтому проверять их никто не станет, а по ним считают нагрузку на клинику.",
+        "line": 2
+      }
+    ],
+    "decoys": [
+      {
+        "why": "группировка по двум полям вместо первичного ключа — многословно, но верно",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          ",",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "COUNT",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " visits,",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "COUNT",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " pets",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " clients c",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "LEFT JOIN",
+          "#FF7B72"
+        ],
+        [
+          " visits v ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "client_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "LEFT JOIN",
+          "#FF7B72"
+        ],
+        [
+          " pets p ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "client_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "GROUP BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-group-by-missing-001",
+    "stack": "sql",
+    "difficulty": 2,
+    "title": "Выручка по врачам",
+    "prompt": "Посчитай выручку по каждому врачу за месяц",
+    "tests": "PASS  tests/revenue.test.ts (4)\n  ✓ считает сумму по врачу\n  ✓ отдаёт имя врача\n\nTests  4 passed (4)",
+    "diff": "--- a/src/revenue.sql\n+++ b/src/revenue.sql\n@@ -1,4 +1,8 @@\n-SELECT d.id, SUM(i.total) AS revenue\n+SELECT d.id, d.name, d.clinic_id, SUM(i.total) AS revenue\n FROM invoices i\n JOIN doctors d ON d.id = i.doctor_id\n+WHERE i.paid_at >= :month_start\n GROUP BY d.id\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/revenue.sql",
+        "kind": "wrong",
+        "tag": "group-by-incomplete",
+        "explain": "В выборке появились d.name и d.clinic_id, а группировка осталась только по d.id. MySQL в нестрогом режиме это проглотит и вернёт произвольное значение, PostgreSQL откажется выполнять запрос.",
+        "consequence": "На дев-базе с ONLY_FULL_GROUP_BY выключенным всё работает, на проде с включённым запрос падает при первом же открытии отчёта. Либо, что хуже, не падает — и врач видит чужую клинику в своей строке.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "верхняя граница месяца не задана — отчёт захватит и следующий, но это другая ошибка",
+        "line": 4
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "SUM",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "total",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " revenue",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "SUM",
+          "#79C0FF"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "total",
+          "#79C0FF"
+        ],
+        [
+          ") ",
+          "#E6EDF3"
+        ],
+        [
+          "AS",
+          "#FF7B72"
+        ],
+        [
+          " revenue",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " invoices i",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " doctors d ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "doctor_id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "i",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "paid_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          ">=",
+          "#FF7B72"
+        ],
+        [
+          " :month_start",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "GROUP BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "d",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-left-join-where-001",
+    "stack": "sql",
+    "difficulty": 3,
+    "title": "Клиенты без визитов",
+    "prompt": "Покажи всех клиентов и их последний визит, включая тех, кто ещё не приходил",
+    "tests": "PASS  tests/clients.test.ts (4)\n  ✓ отдаёт клиентов с визитами\n  ✓ фильтрует по клинике\n\nTests  4 passed (4)",
+    "diff": "--- a/src/clients.sql\n+++ b/src/clients.sql\n@@ -1,4 +1,7 @@\n SELECT c.id, c.name, v.started_at\n FROM clients c\n-JOIN visits v ON v.client_id = c.id\n+LEFT JOIN visits v ON v.client_id = c.id\n+WHERE v.clinic_id = :clinic\n+ORDER BY v.started_at DESC\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/clients.sql",
+        "kind": "wrong",
+        "tag": "left-join-killed-by-where",
+        "explain": "Условие на правую таблицу в WHERE отбрасывает строки, где визита нет: там v.clinic_id равен NULL. LEFT JOIN превращается обратно в INNER.",
+        "consequence": "Запрос честно заменили на LEFT JOIN ровно ради клиентов без визитов — и именно они из выборки и пропали. Считают по нему отток и удивляются, что новых клиентов в отчёте ноль.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "сортировка без LIMIT по клиенту не даёт «последний визит» — отдельная недоделка, но не эта",
+        "line": 5
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "started_at",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " clients c",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "JOIN",
+          "#FF7B72"
+        ],
+        [
+          " visits v ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "client_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "LEFT JOIN",
+          "#FF7B72"
+        ],
+        [
+          " visits v ",
+          "#E6EDF3"
+        ],
+        [
+          "ON",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "client_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "c",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "clinic_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " :clinic",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "ORDER BY",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "v",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "started_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "DESC",
+          "#FF7B72"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-not-in-null-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Услуги без назначений",
+    "prompt": "Найди услуги, которые ни разу не назначали за год",
+    "tests": "PASS  tests/services.test.ts (5)\n  ✓ отдаёт неиспользуемые услуги\n  ✓ учитывает границу года\n\nTests  5 passed (5)",
+    "diff": "--- a/src/unused_services.sql\n+++ b/src/unused_services.sql\n@@ -1,3 +1,8 @@\n SELECT s.id, s.name\n FROM services s\n+WHERE s.id NOT IN (\n+  SELECT p.service_id FROM prescriptions p\n+  WHERE p.created_at >= :year_start\n+)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/unused_services.sql",
+        "kind": "wrong",
+        "tag": "not-in-with-null",
+        "explain": "Если в prescriptions.service_id встретится хоть один NULL, NOT IN даёт неизвестность вместо истины и выборка становится пустой.",
+        "consequence": "Отчёт «неиспользуемые услуги» показывает ноль строк, и это выглядит как хорошая новость, а не как поломка. Ломается от одной осиротевшей записи, которую занесли год назад.",
+        "line": 3
+      }
+    ],
+    "decoys": [
+      {
+        "why": "подзапрос без DISTINCT — планировщику всё равно, на результат не влияет",
+        "line": 4
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          ", ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "name",
+          "#79C0FF"
+        ]
+      ],
+      [
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " services s",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "s",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "NOT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "IN",
+          "#FF7B72"
+        ],
+        [
+          " (",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "SELECT",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "service_id",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "FROM",
+          "#FF7B72"
+        ],
+        [
+          " prescriptions p",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          "  ",
+          "#E6EDF3"
+        ],
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "p",
+          "#79C0FF"
+        ],
+        [
+          ".",
+          "#E6EDF3"
+        ],
+        [
+          "created_at",
+          "#79C0FF"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          ">=",
+          "#FF7B72"
+        ],
+        [
+          " :year_start",
+          "#E6EDF3"
+        ]
+      ],
+      [
+        [
+          ")",
+          "#E6EDF3"
+        ]
+      ]
+    ]
+  },
+  {
+    "id": "sql-update-no-where-001",
+    "stack": "sql",
+    "difficulty": 1,
+    "title": "Миграция статусов",
+    "prompt": "Перенеси старый статус визита 'закрыт' в новое поле state",
+    "tests": "PASS  tests/migrations.test.ts (3)\n  ✓ переносит закрытые визиты\n  ✓ миграция идемпотентна\n\nTests  3 passed (3)",
+    "diff": "--- a/migrations/031_visit_state.sql\n+++ b/migrations/031_visit_state.sql\n@@ -1,2 +1,6 @@\n ALTER TABLE visits ADD COLUMN state VARCHAR(16);\n \n+UPDATE visits SET state = 'closed'\n+WHERE status = 'закрыт';\n+\n+UPDATE visits SET state = 'open';\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "migrations/031_visit_state.sql",
+        "kind": "wrong",
+        "tag": "update-without-where",
+        "explain": "Второй UPDATE идёт без WHERE и переписывает вообще все строки, включая те, что первый только что пометил закрытыми.",
+        "consequence": "После миграции все визиты за всю историю становятся открытыми. Откатить нечем: прошлое значение уже затёрто, а старая колонка в следующей миграции удаляется.",
+        "line": 6
+      }
+    ],
+    "decoys": [
+      {
+        "why": "колонка без NOT NULL и без индекса — вопросы к схеме, но данные не портит",
+        "line": 1
+      }
+    ],
+    "verified_by": "",
+    "verified_at": "",
+    "tokens": [
+      null,
+      null,
+      null,
+      [
+        [
+          "ALTER",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "TABLE",
+          "#FF7B72"
+        ],
+        [
+          " visits ",
+          "#E6EDF3"
+        ],
+        [
+          "ADD",
+          "#FF7B72"
+        ],
+        [
+          " COLUMN ",
+          "#E6EDF3"
+        ],
+        [
+          "state",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "VARCHAR",
+          "#FF7B72"
+        ],
+        [
+          "(",
+          "#E6EDF3"
+        ],
+        [
+          "16",
+          "#79C0FF"
+        ],
+        [
+          ");",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " visits ",
+          "#E6EDF3"
+        ],
+        [
+          "SET",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "state",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'closed'",
+          "#A5D6FF"
+        ]
+      ],
+      [
+        [
+          "WHERE",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "status",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'закрыт'",
+          "#A5D6FF"
+        ],
+        [
+          ";",
+          "#E6EDF3"
+        ]
+      ],
+      [],
+      [
+        [
+          "UPDATE",
+          "#FF7B72"
+        ],
+        [
+          " visits ",
+          "#E6EDF3"
+        ],
+        [
+          "SET",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "state",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "=",
+          "#FF7B72"
+        ],
+        [
+          " ",
+          "#E6EDF3"
+        ],
+        [
+          "'open'",
+          "#A5D6FF"
+        ],
+        [
+          ";",
+          "#E6EDF3"
+        ]
+      ]
+    ]
   }
 ]

@@ -1,0 +1,28 @@
+{
+  "id": "sql-boundary-001",
+  "stack": "sql",
+  "difficulty": 4,
+  "title": "Отчёт за период",
+  "prompt": "Добавь в отчёт фильтр по датам и пагинацию",
+  "tests": "PASS  tests/report.test.ts (5)\n  ✓ отдаёт визиты за период\n  ✓ вторая страница не повторяет первую\n  ✓ пустой период отдаёт пусто\n\nTests  5 passed (5)",
+  "diff": "--- a/src/report.sql\n+++ b/src/report.sql\n@@ -1,4 +1,6 @@\n SELECT v.id, v.created_at, p.name\n FROM visits v\n JOIN patients p ON p.id = v.patient_id\n+WHERE v.created_at BETWEEN :from AND :to\n ORDER BY v.created_at\n+LIMIT :limit OFFSET :offset\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/report.sql",
+      "match": "WHERE v.created_at BETWEEN :from AND :to",
+      "kind": "wrong",
+      "tag": "off-by-one-boundary",
+      "explain": ":to приходит как дата без времени, то есть 2026-08-31 00:00:00. BETWEEN включает границу, но весь последний день периода в неё не попадает.",
+      "consequence": "Месячный отчёт стабильно недосчитывает один день. Никто не замечает, пока бухгалтерия не сведёт цифры за год."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "ORDER BY v.created_at",
+      "why": "ORDER BY без вторичного ключа — при равных датах порядок между страницами не гарантирован; справедливо, но не эта подлянка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

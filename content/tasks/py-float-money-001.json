@@ -1,0 +1,32 @@
+{
+  "id": "py-float-money-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Итог по чеку",
+  "prompt": "Посчитай итог по позициям чека со скидкой",
+  "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_billing.py ......           [100%]\n\n==== 6 passed in 0.29s ====",
+  "diff": "--- a/billing.py\n+++ b/billing.py\n@@ -4,6 +4,12 @@\n+def total(items, discount_percent=0):\n+    subtotal = 0.0\n+    for item in items:\n+        subtotal += item.price * item.qty\n+\n+    return round(subtotal * (1 - discount_percent / 100), 2)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "billing.py",
+      "match": "subtotal = 0.0",
+      "kind": "wrong",
+      "tag": "float-money",
+      "explain": "Деньги считаются в float. 0.1 + 0.2 в двоичной дроби не даёт 0.3, и ошибка копится на каждой позиции.",
+      "consequence": "Итог по чеку из тридцати позиций расходится с суммой строк на копейку, и это ровно та копейка, из-за которой не сходится кассовая смена. Разбираться будет бухгалтер, а не программист."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    return round(subtotal * (1 - discount_percent / 100), 2)",
+      "why": "округление в конце выглядит как затычка — оно и есть затычка, но не первопричина"
+    },
+    {
+      "match": "def total(items, discount_percent=0)",
+      "why": "скидка числом, а не долей — неудобно, но считается верно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

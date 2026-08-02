@@ -1,0 +1,28 @@
+{
+  "id": "js-floating-promise-001",
+  "stack": "js",
+  "difficulty": 2,
+  "title": "Уведомление о визите",
+  "prompt": "Отправляй уведомление владельцу, когда визит закрыли",
+  "tests": "PASS  src/visit.test.ts (4)\n  ✓ закрывает визит\n  ✓ шлёт уведомление\n\nTests  4 passed (4)\nBuild  ✓ built in 0.87s",
+  "diff": "--- a/src/visit.ts\n+++ b/src/visit.ts\n@@ -8,6 +8,11 @@\n export async function closeVisit(id: number) {\n   const visit = await db.visits.close(id)\n+\n+  notify(visit.ownerId, `Визит ${visit.id} закрыт`)\n+\n   await audit.record('visit.closed', visit.id)\n   return visit\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/visit.ts",
+      "match": "notify(visit.ownerId",
+      "kind": "wrong",
+      "tag": "floating-promise",
+      "explain": "notify возвращает промис, но его никто не ждёт и ошибку из него никто не поймает.",
+      "consequence": "Упавшее уведомление становится unhandled rejection: владелец ничего не получил, в логах пусто, а под Node с strict-режимом это ещё и валит процесс целиком."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "await audit.record('visit.closed', visit.id)",
+      "why": "аудит после уведомления — порядок спорный, но корректности не ломает"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

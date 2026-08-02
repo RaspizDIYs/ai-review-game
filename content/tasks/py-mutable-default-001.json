@@ -1,0 +1,28 @@
+{
+  "id": "py-mutable-default-001",
+  "stack": "py",
+  "difficulty": 2,
+  "title": "Накопитель ошибок импорта",
+  "prompt": "Собери ошибки построчно при импорте прайса, чтобы показать их разом",
+  "tests": "==== test session starts ====\ncollected 5 items\n\ntests/test_import.py .....            [100%]\n\n==== 5 passed in 0.44s ====",
+  "diff": "--- a/importer.py\n+++ b/importer.py\n@@ -18,7 +18,12 @@\n-def import_price(rows):\n-    return [parse(row) for row in rows]\n+def import_price(rows, errors=[]):\n+    parsed = []\n+    for i, row in enumerate(rows):\n+        try:\n+            parsed.append(parse(row))\n+        except ValueError as e:\n+            errors.append(f\"строка {i}: {e}\")\n+    return parsed, errors\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "importer.py",
+      "match": "def import_price(rows, errors=[])",
+      "kind": "wrong",
+      "tag": "mutable-default-arg",
+      "explain": "Список по умолчанию создаётся один раз при объявлении функции, а не на каждый вызов. Он общий для всех импортов за время жизни процесса.",
+      "consequence": "Второй импорт прайса показывает ошибки первого, третий — обоих. Клиника видит претензии к строкам, которых в её файле нет, и приходит в поддержку с скриншотом, который невозможно воспроизвести на пустом процессе."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    return parsed, errors",
+      "why": "функция стала возвращать кортеж вместо списка — вызывающий код чинить придётся, но сборка это ловит"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

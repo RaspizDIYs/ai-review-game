@@ -1,0 +1,28 @@
+{
+  "id": "py-naive-datetime-001",
+  "stack": "py",
+  "difficulty": 4,
+  "title": "Напоминание о вакцинации",
+  "prompt": "Шли напоминание, если до ревакцинации осталось меньше недели",
+  "tests": "==== test session starts ====\ncollected 4 items\n\ntests/test_reminders.py ....          [100%]\n\n==== 4 passed in 0.18s ====",
+  "diff": "--- a/reminders.py\n+++ b/reminders.py\n@@ -1,8 +1,13 @@\n from datetime import datetime, timedelta\n \n+WINDOW = timedelta(days=7)\n+\n+def needs_reminder(vaccination):\n+    now = datetime.now()\n+    return vaccination.due_at - now <= WINDOW\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "reminders.py",
+      "match": "    now = datetime.now()",
+      "kind": "wrong",
+      "tag": "naive-datetime",
+      "explain": "datetime.now() отдаёт время без зоны и по времени машины, а due_at приходит из базы в UTC с зоной.",
+      "consequence": "На сервере в UTC сравнение просто съезжает на разницу поясов, а если due_at всё-таки с таймзоной — Python бросит TypeError прямо в задаче по расписанию. Напоминания либо уходят не в тот день, либо не уходят вовсе, и узнают об этом от клиентов."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "WINDOW = timedelta(days=7)",
+      "why": "окно константой — как раз хорошо, придраться не к чему"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

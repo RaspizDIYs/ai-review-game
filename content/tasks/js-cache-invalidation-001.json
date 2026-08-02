@@ -1,0 +1,28 @@
+{
+  "id": "js-cache-invalidation-001",
+  "stack": "js",
+  "difficulty": 2,
+  "title": "Кэш пользователей",
+  "prompt": "Добавь кэш в getUser, а то мы дёргаем базу на каждый чих",
+  "tests": "PASS  src/user-cache.test.ts (3)\n  ✓ возвращает пользователя\n  ✓ второй вызов не ходит в базу\n  ✓ updateUser сохраняет изменения\n\nTests  3 passed (3)\nBuild  ✓ built in 1.24s",
+  "diff": "--- a/src/user-cache.ts\n+++ b/src/user-cache.ts\n@@ -1,8 +1,17 @@\n import { db } from './db'\n import type { User } from './types'\n \n+const cache = new Map<number, User>()\n+\n export async function getUser(id: number): Promise<User> {\n-  return db.users.findById(id)\n+  const hit = cache.get(id)\n+  if (hit) return hit\n+\n+  const user = await db.users.findById(id)\n+  cache.set(id, user)\n+  return user\n }\n+\n+export async function updateUser(id: number, patch: Partial<User>) {\n+  await db.users.update(id, patch)\n+}\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/user-cache.ts",
+      "match": "await db.users.update(id, patch)",
+      "kind": "missing",
+      "tag": "cache-no-invalidation",
+      "explain": "updateUser пишет в базу, но не трогает кэш — записи в нём живут вечно.",
+      "consequence": "Пользователь меняет имя и продолжает видеть старое. На локалке процесс живёт минуту и всё «работает»; в проде инстанс живёт неделями. Классический баг, который воспроизводится только у клиента."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "const cache = new Map<number, User>()",
+      "why": "Map без ограничения размера — вопрос к памяти, но не баг этой задачи"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

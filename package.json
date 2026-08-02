@@ -4,13 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run pack && vite",
+    "build": "npm run pack && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node --test \"src/*.test.ts\"",
     "validate": "node scripts/validate-pack.mjs",
-    "check": "tsc -b && npm run test && npm run validate"
+    "check": "npm run pack && tsc -b && npm run test && npm run validate",
+    "pack": "node scripts/build-pack.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -23,6 +24,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "oxlint": "^1.75.0",
+    "shiki": "^4.4.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"

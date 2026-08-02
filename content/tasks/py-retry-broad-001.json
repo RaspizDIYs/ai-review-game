@@ -1,0 +1,32 @@
+{
+  "id": "py-retry-broad-001",
+  "stack": "py",
+  "difficulty": 4,
+  "title": "Повтор отправки в ОФД",
+  "prompt": "Повторяй отправку чека в ОФД, если сеть моргнула",
+  "tests": "==== test session starts ====\ncollected 6 items\n\ntests/test_ofd.py ......              [100%]\n\n==== 6 passed in 1.02s ====",
+  "diff": "--- a/ofd.py\n+++ b/ofd.py\n@@ -14,6 +14,14 @@\n-def send_receipt(receipt):\n-    return client.post(\"/receipts\", receipt.as_dict())\n+def send_receipt(receipt):\n+    for attempt in range(5):\n+        try:\n+            return client.post(\"/receipts\", receipt.as_dict())\n+        except Exception:\n+            time.sleep(2 ** attempt)\n+\n+    raise OfdUnavailable(receipt.id)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "ofd.py",
+      "match": "        except Exception:",
+      "kind": "wrong",
+      "tag": "retry-on-non-retryable",
+      "explain": "Повторяется всё подряд, включая отказы, которые повтором не лечатся: невалидный чек, просроченный токен, отказ фискального накопителя.",
+      "consequence": "Один битый чек отправляется пять раз с нарастающей паузой, забивая очередь на полминуты, и в ОФД может уехать пять дублей одного чека. Настоящую причину при этом не видно: исходное исключение потеряно, наружу летит OfdUnavailable."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            time.sleep(2 ** attempt)",
+      "why": "экспоненциальная пауза без джиттера — на масштабе будет синхронный наплыв, но не сейчас"
+    },
+    {
+      "match": "    raise OfdUnavailable(receipt.id)",
+      "why": "своё исключение вместо исходного — часть той же проблемы, но не её корень"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -70,16 +70,6 @@ test('на паке боевого размера серии в разные д�
   assert.ok(new Set(series).size >= 10, `за 14 дней всего ${new Set(series).size} разных серий`)
 })
 
-// Известное ограничение, а не баг: пока задач в паке столько же, сколько слотов
-// в серии, каждый день выпадают все они, и план сложностей задаёт один и тот же
-// порядок. Уходит само, как только пак перевалит за пять задач — это M2.
-test('на паке меньше пяти задач серия одинаковая каждый день', () => {
-  assert.ok(POOL.length <= DIFFICULTY_PLAN.length, 'пак вырос — тест пора удалить')
-  const a = pickDaily(POOL, '2026-08-02').map((t) => t.id)
-  const b = pickDaily(POOL, '2027-03-19').map((t) => t.id)
-  assert.deepEqual(a, b)
-})
-
 test('задачи внутри серии не повторяются', () => {
   for (const day of ['2026-08-02', '2026-09-14', '2027-01-01']) {
     const ids = pickDaily(POOL, day).map((t) => t.id)
@@ -87,9 +77,14 @@ test('задачи внутри серии не повторяются', () => {
   }
 })
 
-test('серия не длиннее пака — пока задач меньше пяти, раундов тоже меньше', () => {
-  const series = pickDaily(POOL, '2026-08-02')
-  assert.equal(series.length, Math.min(DIFFICULTY_PLAN.length, POOL.length))
+test('в серии ровно столько раундов, сколько в плане сложностей', () => {
+  assert.ok(POOL.length > DIFFICULTY_PLAN.length, 'пак меньше серии — раундов будет меньше')
+  assert.equal(pickDaily(POOL, '2026-08-02').length, DIFFICULTY_PLAN.length)
+})
+
+test('сложность в серии растёт, а не скачет', () => {
+  const got = pickDaily(POOL, '2026-08-02').map((t) => t.difficulty)
+  assert.deepEqual([...got].sort((a, b) => a - b), got, `серия ${got}`)
 })
 
 test('серия из одной задачи не падает', () => {
