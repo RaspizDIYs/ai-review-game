@@ -1,7 +1,7 @@
-import type { Task } from '../types'
-import { DiffView, type LineState } from './DiffView'
+import type { Outcome, Task } from '../types'
+import { DiffView, type LineState } from './DiffView.tsx'
 
-export type Outcome = 'found' | 'missed' | 'clean-correct' | 'false-accusation'
+export type { Outcome }
 
 const HEAD: Record<Outcome, { title: string; tone: string; sub: string }> = {
   found: {

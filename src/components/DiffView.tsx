@@ -1,4 +1,4 @@
-import { parseDiff, isClickable, type DiffLine } from '../diff'
+import { parseDiff, isClickable, type DiffLine } from '../diff.ts'
 
 export type LineState = 'idle' | 'wrong' | 'correct' | 'decoy'
 

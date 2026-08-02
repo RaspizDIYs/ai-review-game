@@ -1,34 +1,57 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import pack from './content/pack.json'
-import type { Task } from './types'
-import { accuracy, isCorrectLine, roundScore, ROUND_SECONDS } from './scoring'
-import { Briefing } from './components/Briefing'
-import { DiffView, type LineState } from './components/DiffView'
-import { Timer, useCountdown } from './components/Timer'
-import { Verdict, type Outcome } from './components/Verdict'
+import type { Outcome, Task } from './types'
+import { accuracy, roundDuration, roundScore } from './scoring.ts'
+import {
+  ENDLESS_LIVES,
+  isRunOver,
+  MAX_ATTEMPTS,
+  resolveClaimClean,
+  resolveLineClick,
+  resolveTimeout,
+  type PickResult,
+} from './round.ts'
+import { dayKey, pickDaily, pickEndless } from './daily.ts'
+import { getBestEndless, getDaily, getStreak, saveDaily, saveEndless } from './storage.ts'
+import { isWin } from './share.ts'
+import { Briefing } from './components/Briefing.tsx'
+import { DiffView, type LineState } from './components/DiffView.tsx'
+import { Home } from './components/Home.tsx'
+import { Summary, type Played } from './components/Summary.tsx'
+import { Timer, useCountdown } from './components/Timer.tsx'
+import { Verdict } from './components/Verdict.tsx'
 
-const TASKS = pack as Task[]
-const MAX_ATTEMPTS = 2
+const POOL = pack as Task[]
 
-type Phase = 'briefing' | 'review' | 'verdict' | 'summary'
-
-interface Done {
-  task: Task
-  outcome: Outcome
-  score: number
-}
+type Screen = 'home' | 'briefing' | 'review' | 'verdict' | 'summary'
+type Mode = 'daily' | 'endless'
 
 export default function App() {
-  const [current, setCurrent] = useState(0)
-  const [phase, setPhase] = useState<Phase>('briefing')
+  const today = useMemo(() => dayKey(), [])
+  const dailySeries = useMemo(() => pickDaily(POOL, today), [today])
+
+  const [screen, setScreen] = useState<Screen>('home')
+  const [mode, setMode] = useState<Mode>('daily')
+  const [index, setIndex] = useState(0)
+  const [task, setTask] = useState<Task>(dailySeries[0])
+
   const [wrongPicks, setWrongPicks] = useState<number[]>([])
   const [picked, setPicked] = useState<number | null>(null)
   const [outcome, setOutcome] = useState<Outcome>('missed')
   const [score, setScore] = useState(0)
-  const [history, setHistory] = useState<Done[]>([])
 
-  const task = TASKS[current]
-  const hasNext = current < TASKS.length - 1
+  const [history, setHistory] = useState<Played[]>([])
+  const [missed, setMissed] = useState(0)
+  const [seconds, setSeconds] = useState(0)
+  const [newRecord, setNewRecord] = useState(false)
+
+  const endlessSeed = useRef('')
+
+  const played = getDaily(today)
+  const streak = getStreak(today)
+  const duration = roundDuration(missed)
+
+  const runOver = isRunOver(mode, index, dailySeries.length, missed)
 
   const finish = useCallback(
     (result: Outcome, secondsLeft: number, attempt: number, line: number | null) => {
@@ -39,15 +62,29 @@ export default function App() {
       setPicked(line)
       setOutcome(result)
       setScore(points)
+      setSeconds((s) => s + (duration - secondsLeft))
       setHistory((h) => [...h, { task, outcome: result, score: points }])
-      setPhase('verdict')
+      if (!isWin(result)) setMissed((m) => m + 1)
+      setScreen('verdict')
     },
-    [task],
+    [task, duration],
   )
 
-  const { left } = useCountdown(
-    phase === 'review',
-    useCallback(() => finish('missed', 0, MAX_ATTEMPTS + 1, null), [finish]),
+  const apply = useCallback(
+    (result: PickResult, secondsLeft: number) => {
+      if (result.kind === 'continue') {
+        setWrongPicks(result.wrongPicks)
+        return
+      }
+      finish(result.outcome, secondsLeft, result.attempt, result.line)
+    },
+    [finish],
+  )
+
+  const left = useCountdown(
+    screen === 'review',
+    duration,
+    useCallback(() => apply(resolveTimeout(), 0), [apply]),
   )
 
   const marks = useMemo(() => {
@@ -56,66 +93,107 @@ export default function App() {
     return m
   }, [wrongPicks])
 
-  function pickLine(line: number) {
-    if (phase !== 'review') return
-
-    // На чистом раунде любой клик по строке — это обвинение. Второй попытки нет.
-    if (task.clean) {
-      finish('false-accusation', left, 1, line)
-      return
-    }
-
-    if (isCorrectLine(task, line)) {
-      finish('found', left, wrongPicks.length + 1, line)
-      return
-    }
-
-    const next = [...wrongPicks, line]
-    setWrongPicks(next)
-    if (next.length >= MAX_ATTEMPTS) finish('missed', left, MAX_ATTEMPTS + 1, line)
+  function startDaily() {
+    setMode('daily')
+    setIndex(0)
+    setTask(dailySeries[0])
+    resetRun()
+    setScreen('briefing')
   }
 
-  function claimClean() {
-    if (phase !== 'review') return
-    if (task.clean) finish('clean-correct', left, wrongPicks.length + 1, null)
-    else finish('missed', left, MAX_ATTEMPTS + 1, null)
+  function startEndless() {
+    endlessSeed.current = `${today}:${performance.now()}`
+    setMode('endless')
+    setIndex(0)
+    setTask(pickEndless(POOL, endlessSeed.current, 0))
+    resetRun()
+    setScreen('briefing')
   }
 
-  function next() {
-    if (!hasNext) {
-      setPhase('summary')
-      return
-    }
-    setCurrent((i) => i + 1)
-    setWrongPicks([])
-    setPicked(null)
-    setPhase('briefing')
-  }
-
-  function restart() {
-    setCurrent(0)
+  function resetRun() {
     setWrongPicks([])
     setPicked(null)
     setHistory([])
-    setPhase('briefing')
+    setMissed(0)
+    setSeconds(0)
+    setNewRecord(false)
   }
 
-  const total = history.reduce((s, r) => s + r.score, 0)
+  function pickLine(line: number) {
+    if (screen !== 'review') return
+    apply(resolveLineClick(task, line, wrongPicks), left)
+  }
+
+  function claimClean() {
+    if (screen !== 'review') return
+    apply(resolveClaimClean(task, wrongPicks), left)
+  }
+
+  function endRun() {
+    if (mode === 'daily') {
+      saveDaily(today, {
+        outcomes: history.map((h) => h.outcome),
+        score: history.reduce((s, h) => s + h.score, 0),
+        seconds,
+      })
+    } else {
+      setNewRecord(saveEndless(history.reduce((s, h) => s + h.score, 0)))
+    }
+    setScreen('summary')
+  }
+
+  function next() {
+    if (runOver) {
+      endRun()
+      return
+    }
+
+    const i = index + 1
+    setIndex(i)
+    setTask(mode === 'daily' ? dailySeries[i] : pickEndless(POOL, endlessSeed.current, i))
+    setWrongPicks([])
+    setPicked(null)
+    setScreen('briefing')
+  }
+
+  const runningTotal = history.reduce((s, r) => s + r.score, 0)
 
   return (
     <div className="mx-auto min-h-full max-w-3xl px-4 py-8 sm:px-6">
-      <header className="mb-8 flex items-baseline justify-between border-b border-zinc-800 pb-4">
-        <span className="text-sm font-medium tracking-tight text-zinc-300">Ревью за ИИ</span>
-        <span className="font-mono text-xs text-zinc-500">
-          раунд {Math.min(current + 1, TASKS.length)}/{TASKS.length} · {total} очков
-        </span>
-      </header>
+      {screen !== 'home' && (
+        <header className="mb-8 flex items-baseline justify-between border-b border-zinc-800 pb-4">
+          <button
+            onClick={() => setScreen('home')}
+            className="text-sm font-medium tracking-tight text-zinc-400 transition hover:text-zinc-100"
+          >
+            ← Ревью за ИИ
+          </button>
+          <span className="font-mono text-xs text-zinc-500">
+            {mode === 'daily'
+              ? `раунд ${index + 1}/${dailySeries.length}`
+              : `раунд ${index + 1} · жизней ${ENDLESS_LIVES - missed}`}{' '}
+            · {runningTotal} очков
+          </span>
+        </header>
+      )}
 
-      {phase === 'briefing' && <Briefing task={task} onStart={() => setPhase('review')} />}
+      {screen === 'home' && (
+        <Home
+          day={today}
+          played={played}
+          streak={streak}
+          bestEndless={getBestEndless()}
+          seriesLength={dailySeries.length}
+          onDaily={startDaily}
+          onEndless={startEndless}
+        />
+      )}
 
-      {phase === 'review' && (
+      {screen === 'briefing' && <Briefing task={task} onStart={() => setScreen('review')} />}
+
+      {screen === 'review' && (
         <div className="space-y-5">
-          <Timer left={left} />
+          <Timer left={left} duration={duration} />
 
           <p className="text-sm text-zinc-400">
             Кликни строку, в которой подлянка.{' '}
@@ -137,49 +215,27 @@ export default function App() {
         </div>
       )}
 
-      {phase === 'verdict' && (
+      {screen === 'verdict' && (
         <Verdict
           task={task}
           outcome={outcome}
           score={score}
           picked={picked}
           onNext={next}
-          hasNext={hasNext}
+          hasNext={!runOver}
         />
       )}
 
-      {phase === 'summary' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold text-zinc-100">Смена окончена</h2>
-            <p className="mt-1 text-zinc-400">
-              {total} очков за {history.length} раундов
-            </p>
-          </div>
-
-          <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800">
-            {history.map((r, i) => (
-              <li key={i} className="flex items-center justify-between px-4 py-3">
-                <span className="text-zinc-300">{r.task.title}</span>
-                <span className="font-mono text-sm tabular-nums text-zinc-500">
-                  {r.outcome === 'found' || r.outcome === 'clean-correct' ? '🟩' : '🟥'} {r.score}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <button
-            onClick={restart}
-            className="w-full rounded-lg bg-zinc-100 px-6 py-3 font-medium text-zinc-900 transition hover:bg-white"
-          >
-            Ещё раз
-          </button>
-        </div>
+      {screen === 'summary' && (
+        <Summary
+          mode={mode}
+          day={today}
+          history={history}
+          seconds={seconds}
+          newRecord={newRecord}
+          onHome={() => setScreen('home')}
+        />
       )}
-
-      <footer className="mt-12 border-t border-zinc-800 pt-4 text-xs text-zinc-600">
-        M0 — прототип. Раунд {ROUND_SECONDS} с, две попытки.
-      </footer>
     </div>
   )
 }

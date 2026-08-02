@@ -4,6 +4,14 @@ import type { Task } from './types'
 
 export const ROUND_SECONDS = 90
 
+/** Пропустил подлянку — ночью инцидент, следующий раунд играешь уставшим. */
+const FATIGUE_PENALTY = 15
+const MIN_ROUND_SECONDS = 45
+
+export function roundDuration(missed: number): number {
+  return Math.max(MIN_ROUND_SECONDS, ROUND_SECONDS - FATIGUE_PENALTY * missed)
+}
+
 /** Промах по подлянке типа `missing` засчитывается в пределах ±1 строки. */
 const MISSING_TOLERANCE = 1
 

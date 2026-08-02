@@ -2,7 +2,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "skipLibCheck": true,
 
@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.test.ts", "src/diff.ts", "src/scoring.ts", "src/types.ts"]
+  "include": ["src/**/*.test.ts", "src/diff.ts", "src/scoring.ts", "src/types.ts", "src/daily.ts", "src/share.ts", "src/round.ts"]
 }

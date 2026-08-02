@@ -44,3 +44,7 @@ export interface Task {
   verified_by: string
   verified_at: string
 }
+
+/** Чем закончился раунд. Живёт здесь, а не в компоненте: от него зависят
+ *  подсчёт очков, сохранение и строка шеринга. */
+export type Outcome = 'found' | 'missed' | 'clean-correct' | 'false-accusation'
