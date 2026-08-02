@@ -1,0 +1,39 @@
+# «Ревью за ИИ» — статика за Traefik на glprod.
+#
+# Отдельный контейнер, а не общий с goodluck: у игры своя жизнь, свой домен
+# и свой цикл выкладки. Перезапуск игры не должен трогать турниры.
+#
+# Домен меняется одной строкой в .env — сюда лезть не нужно.
+
+services:
+  review-after-ai:
+    image: nginx:1.29-alpine
+    container_name: review-after-ai
+    restart: unless-stopped
+
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      # Монтируем КАТАЛОГ, а не файл. Bind-mount одного файла привязан к inode:
+      # rsync заменяет файл целиком, inode меняется, и контейнер продолжает
+      # видеть старый конфиг — при этом всё выглядит успешно выложенным.
+      - ./conf:/etc/nginx/conf.d:ro
+
+    # На glprod памяти немного, а nginx со статикой ест единицы мегабайт.
+    # Лимит стоит не потому что боимся игры, а чтобы она не могла
+    # утащить за собой соседей, если что-то пойдёт не так.
+    mem_limit: 96m
+
+    networks:
+      - traefik-network
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik-network
+      traefik.http.routers.review.rule: "Host(`${DOMAIN}`)"
+      traefik.http.routers.review.entrypoints: websecure
+      traefik.http.routers.review.tls.certresolver: letsencrypt
+      traefik.http.services.review.loadbalancer.server.port: "80"
+
+networks:
+  traefik-network:
+    external: true
