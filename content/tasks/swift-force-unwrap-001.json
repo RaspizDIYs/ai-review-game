@@ -1,0 +1,32 @@
+{
+  "id": "swift-force-unwrap-001",
+  "stack": "swift",
+  "difficulty": 1,
+  "title": "Ссылка на карточку питомца",
+  "prompt": "Открывай карточку питомца по ссылке из уведомления",
+  "tests": "Test Suite 'All tests' passed at 2026-08-02 11:41:03.204.\n\t Executed 6 tests, with 0 failures (0 unexpected) in 0.019 seconds",
+  "diff": "--- a/Sources/Clinic/DeepLink.swift\n+++ b/Sources/Clinic/DeepLink.swift\n@@ -7,15 +7,28 @@ enum DeepLink {\n \n     static let scheme = \"clinic\"\n \n-    static func card(for id: String) -> URL {\n-        URL(string: \"\\(scheme)://cards\")!\n+    static func card(for id: String) -> URL {\n+        let path = \"\\(scheme)://cards/\\(id)\"\n+\n+        return URL(string: path)!\n+    }\n+\n+    static func open(_ notification: [String: Any], with router: Router) {\n+        guard let id = notification[\"petId\"] as? String else {\n+            return\n+        }\n+\n+        router.open(card(for: id))\n     }\n \n     static func isCard(_ url: URL) -> Bool {\n         url.scheme == scheme && url.host == \"cards\"\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Sources/Clinic/DeepLink.swift",
+      "match": "        return URL(string: path)!",
+      "kind": "wrong",
+      "tag": "force-unwrap",
+      "explain": "Идентификатор приходит из уведомления и попадает в строку без экранирования. Пробел или кириллица — и URL получится nil, а восклицательный знак превращает это в падение приложения.",
+      "consequence": "Одно кривое уведомление роняет приложение прямо на открытии — у всех, кому оно пришло. В отчётах о падениях это будет выглядеть как проблема роутера, а не бэкенда, который положил в пуш неожиданный идентификатор."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        guard let id = notification[\"petId\"] as? String else {",
+      "why": "Пуш без нужного поля молча игнорируется — стоило бы залогировать, но падения тут нет"
+    },
+    {
+      "match": "        url.scheme == scheme && url.host == \"cards\"",
+      "why": "Сравнение схемы с учётом регистра — на практике схема всегда в нижнем"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

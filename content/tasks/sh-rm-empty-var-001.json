@@ -1,0 +1,32 @@
+{
+  "id": "sh-rm-empty-var-001",
+  "stack": "sh",
+  "difficulty": 3,
+  "title": "Чистка старых выгрузок",
+  "prompt": "Раз в сутки чисти выгрузки старше недели, каталог задаётся переменной окружения",
+  "tests": "ok 1 - удаляет файлы старше недели\nok 2 - не трогает свежие\nok 3 - пишет счётчик в лог\n\n1..3\n# tests 3\n# pass  3",
+  "diff": "--- a/scripts/cleanup-exports.sh\n+++ b/scripts/cleanup-exports.sh\n@@ -4,16 +4,30 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n EXPORT_DIR=${EXPORT_DIR:-}\n KEEP_DAYS=${KEEP_DAYS:-7}\n \n-echo \"чистка выключена\"\n+before=$(find \"$EXPORT_DIR\" -type f | wc -l)\n+\n+find \"$EXPORT_DIR\"/ -type f -mtime +\"$KEEP_DAYS\" -delete\n+\n+after=$(find \"$EXPORT_DIR\" -type f | wc -l)\n+\n+echo \"удалено $((before - after)) файлов, осталось $after\"\n \n exit 0\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/cleanup-exports.sh",
+      "match": "find \"$EXPORT_DIR\"/ -type f -mtime +\"$KEEP_DAYS\" -delete",
+      "kind": "wrong",
+      "tag": "rm-with-empty-var",
+      "explain": "EXPORT_DIR по умолчанию пустая строка, а не путь. При незаданной переменной строка превращается в find / — обход всей файловой системы с удалением.",
+      "consequence": "Забытая переменная в новом окружении означает не «скрипт ничего не сделал», а сутки восстановления сервера из бэкапа. Значение по умолчанию тут же, строкой выше, и выглядит безобидно."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "before=$(find \"$EXPORT_DIR\" -type f | wc -l)",
+      "why": "Каталог обходится трижды за запуск — расточительно, но безопасно"
+    },
+    {
+      "match": "KEEP_DAYS=${KEEP_DAYS:-7}",
+      "why": "Число дней подставляется в аргумент find без проверки — нечисловое значение уронит find с ошибкой, и это видно сразу"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

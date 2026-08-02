@@ -1,0 +1,32 @@
+{
+  "id": "cs-httpclient-per-call-001",
+  "stack": "cs",
+  "difficulty": 3,
+  "title": "Проверка полиса в страховой",
+  "prompt": "Сходи в страховую за статусом полиса, обязательно с таймаутом",
+  "tests": "Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9, Duration: 148 ms",
+  "diff": "--- a/src/Insurance/PolicyChecker.cs\n+++ b/src/Insurance/PolicyChecker.cs\n@@ -14,13 +14,29 @@ public class PolicyChecker\n     private readonly IOptions<InsuranceOptions> _options;\n \n     public PolicyChecker(IOptions<InsuranceOptions> options) => _options = options;\n \n-    public Task<PolicyStatus> CheckAsync(string number) =>\n-        Task.FromResult(PolicyStatus.Unknown);\n+    public async Task<PolicyStatus> CheckAsync(string number, CancellationToken ct)\n+    {\n+        using var http = new HttpClient\n+        {\n+            Timeout = TimeSpan.FromSeconds(3),\n+        };\n+\n+        var url = $\"{_options.Value.BaseUrl}/policies/{number}\";\n+        using var response = await http.GetAsync(url, ct);\n+\n+        if (!response.IsSuccessStatusCode)\n+        {\n+            return PolicyStatus.Unknown;\n+        }\n+\n+        var body = await response.Content.ReadFromJsonAsync<PolicyDto>(ct);\n+        return body?.Active == true ? PolicyStatus.Active : PolicyStatus.Expired;\n+    }\n \n     public bool IsSupported(string number) => number.Length == 16;\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Insurance/PolicyChecker.cs",
+      "match": "        using var http = new HttpClient",
+      "kind": "wrong",
+      "tag": "httpclient-per-call",
+      "explain": "HttpClient создаётся и уничтожается на каждый вызов. Сокет после Dispose остаётся в TIME_WAIT, и пул не переиспользуется — клиента берут из IHttpClientFactory один раз.",
+      "consequence": "На пиковой нагрузке порты кончаются, и сервис начинает отвечать «нет соединения» на все исходящие запросы сразу — включая те, что к страховой отношения не имеют. Проявляется только под нагрузкой, на стенде никогда."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            Timeout = TimeSpan.FromSeconds(3),",
+      "why": "Таймаут задан прямо в коде, а не в настройках — просили с таймаутом, здесь он есть"
+    },
+    {
+      "match": "            return PolicyStatus.Unknown;",
+      "why": "Неуспешный ответ превращается в Unknown без записи в лог — разбирать инцидент будет тяжело, но полис при этом не портится"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

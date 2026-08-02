@@ -1,0 +1,32 @@
+{
+  "id": "rb-symbol-string-key-001",
+  "stack": "rb",
+  "difficulty": 4,
+  "title": "Настройки напоминаний из вебхука",
+  "prompt": "Принимай настройки напоминаний вебхуком и накладывай их поверх дефолтных",
+  "tests": ".......\n\nFinished in 0.042 seconds (files took 0.39 seconds to load)\n7 examples, 0 failures",
+  "diff": "--- a/app/services/reminder_settings.rb\n+++ b/app/services/reminder_settings.rb\n@@ -4,17 +4,31 @@ class ReminderSettings\n \n   DEFAULTS = { channel: 'sms', hours_before: 24, enabled: true }.freeze\n \n-  def self.apply(clinic, payload)\n-    DEFAULTS\n+  def self.apply(clinic, payload)\n+    incoming = JSON.parse(payload)\n+\n+    settings = DEFAULTS.merge(incoming.symbolize_keys)\n+\n+    if settings[:hours_before].to_i <= 0\n+      settings[:hours_before] = DEFAULTS[:hours_before]\n+    end\n+\n+    clinic.update!(reminder_settings: settings)\n+\n+    settings\n+  end\n+\n+  def self.for(clinic)\n+    clinic.reminder_settings.presence || DEFAULTS\n   end\n end\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/services/reminder_settings.rb",
+      "match": "    clinic.reminder_settings.presence || DEFAULTS",
+      "kind": "wrong",
+      "tag": "symbol-string-key",
+      "explain": "Сохранили с символьными ключами, но из jsonb-колонки они возвращаются строками. Читающий код обращается к :channel и получает nil.",
+      "consequence": "Настройки сохраняются и на экране выглядят применёнными, а рассыльщик берёт дефолты и шлёт смс за сутки вместо выбранных двух часов. Тест проверяет apply и его же возвращаемое значение, а обратное чтение из базы — нет."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    settings = DEFAULTS.merge(incoming.symbolize_keys)",
+      "why": "Полезная нагрузка вебхука сливается с дефолтами без белого списка полей — лишние ключи доедут до базы"
+    },
+    {
+      "match": "    incoming = JSON.parse(payload)",
+      "why": "Разбор без обработки ошибки — битый вебхук поднимет исключение, но это как раз видно сразу"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

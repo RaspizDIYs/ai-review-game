@@ -1,0 +1,32 @@
+{
+  "id": "swift-off-main-thread-001",
+  "stack": "swift",
+  "difficulty": 3,
+  "title": "Загрузка фото питомца",
+  "prompt": "Подгружай фото питомца в фоне и показывай, когда придёт",
+  "tests": "Test Suite 'All tests' passed at 2026-08-02 12:03:44.117.\n\t Executed 5 tests, with 0 failures (0 unexpected) in 0.211 seconds",
+  "diff": "--- a/Sources/Clinic/PetPhotoLoader.swift\n+++ b/Sources/Clinic/PetPhotoLoader.swift\n@@ -8,16 +8,30 @@ final class PetPhotoLoader: ObservableObject {\n \n     @Published var image: UIImage?\n     @Published var isLoading = false\n \n     private let session: URLSession\n \n-    func load(_ url: URL) {\n-        isLoading = true\n+    func load(_ url: URL) {\n+        isLoading = true\n+\n+        session.dataTask(with: url) { data, _, _ in\n+            guard let data, let loaded = UIImage(data: data) else {\n+                return\n+            }\n+\n+            self.image = loaded\n+\n+            DispatchQueue.main.async {\n+                self.isLoading = false\n+            }\n+        }\n+        .resume()\n     }\n \n     func reset() {\n         image = nil\n         isLoading = false\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Sources/Clinic/PetPhotoLoader.swift",
+      "match": "            self.image = loaded",
+      "kind": "wrong",
+      "tag": "off-main-thread-ui",
+      "explain": "Замыкание dataTask выполняется на фоновой очереди, а публикуемое свойство, на которое подписан экран, обновляется прямо из неё. Соседняя строка про isLoading переключение на главный поток делает — это про image забыли.",
+      "consequence": "Интерфейс обновляется не из главного потока: обычно проносит, иногда картинка не появляется до следующего касания, а в сборке с проверками — падение с «Publishing changes from background threads». Воспроизводится через раз, поэтому чинить будут долго."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            guard let data, let loaded = UIImage(data: data) else {",
+      "why": "Ошибка загрузки молча оставляет isLoading включённым — крутилка навсегда, но это другая беда"
+    },
+    {
+      "match": "        isLoading = true",
+      "why": "Флаг ставится синхронно до запроса — здесь это как раз главный поток"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "go-nil-map-write-001",
+  "stack": "go",
+  "difficulty": 1,
+  "title": "Метки для метрик",
+  "prompt": "Собери метки для метрики визита: клиника обязательно, врач если известен",
+  "tests": "ok  \tapi/internal/metrics\t0.004s\n=== RUN   TestLabels_WithDoctor\n--- PASS: TestLabels_WithDoctor (0.00s)\nPASS",
+  "diff": "--- a/internal/metrics/labels.go\n+++ b/internal/metrics/labels.go\n@@ -5,14 +5,26 @@ package metrics\n \n type Visit struct {\n \tClinicID string\n \tDoctorID string\n }\n \n-func Labels(v Visit) map[string]string {\n-\treturn map[string]string{\"clinic\": v.ClinicID}\n+func Labels(v Visit) map[string]string {\n+\tvar labels map[string]string\n+\n+\tif v.DoctorID != \"\" {\n+\t\tlabels = map[string]string{\"doctor\": v.DoctorID}\n+\t}\n+\n+\tlabels[\"clinic\"] = v.ClinicID\n+\n+\treturn labels\n }\n \n func Count(labels map[string]string) int {\n \treturn len(labels)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "internal/metrics/labels.go",
+      "match": "\tlabels[\"clinic\"] = v.ClinicID",
+      "kind": "wrong",
+      "tag": "nil-map-write",
+      "explain": "Если врач неизвестен, мапа так и осталась nil, а запись в nil-мапу — это паника, а не пустая мапа.",
+      "consequence": "Любой визит без врача — например, забор анализов — роняет обработчик метрик, а вместе с ним и запрос. Тест кормит функцию визитом с врачом и до паники не доходит."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\t\tlabels = map[string]string{\"doctor\": v.DoctorID}",
+      "why": "Мапа создаётся внутри условия — некрасиво, но само по себе законно"
+    },
+    {
+      "match": "\treturn len(labels)",
+      "why": "len от nil-мапы работает и вернёт ноль — тут как раз всё в порядке"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

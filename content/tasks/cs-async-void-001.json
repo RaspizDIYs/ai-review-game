@@ -1,0 +1,32 @@
+{
+  "id": "cs-async-void-001",
+  "stack": "cs",
+  "difficulty": 1,
+  "title": "Уведомление после сохранения",
+  "prompt": "После сохранения записи отправляй уведомление, только не тормози на этом ответ",
+  "tests": "Passed!  - Failed: 0, Passed: 7, Skipped: 0, Total: 7, Duration: 63 ms\nBuild succeeded.",
+  "diff": "--- a/src/Appointments/AppointmentService.cs\n+++ b/src/Appointments/AppointmentService.cs\n@@ -21,12 +21,24 @@ public class AppointmentService\n     public async Task<int> SaveAsync(Appointment appointment)\n     {\n         _db.Appointments.Add(appointment);\n         await _db.SaveChangesAsync();\n \n+        NotifyAsync(appointment);\n+\n         return appointment.Id;\n     }\n \n+    private async void NotifyAsync(Appointment appointment)\n+    {\n+        var owner = await _db.Owners.FindAsync(appointment.OwnerId);\n+        if (owner is null)\n+        {\n+            return;\n+        }\n+\n+        await _sms.SendAsync(owner.Phone, Templates.Reminder(appointment));\n+    }\n+\n     public Task<Appointment?> FindAsync(int id) =>\n         _db.Appointments.FindAsync(id).AsTask();\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Appointments/AppointmentService.cs",
+      "match": "    private async void NotifyAsync(Appointment appointment)",
+      "kind": "wrong",
+      "tag": "async-void",
+      "explain": "async void вместо async Task: вызывающий код ничего не ждёт и, главное, не может поймать исключение — оно летит прямо в процесс.",
+      "consequence": "Отвалившаяся смс-шлюзом ручка роняет весь воркер, а не один вызов. В логах при этом остаётся успешное сохранение приёма: до падения оно уже прошло, и связь между двумя событиями никто не увидит."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        NotifyAsync(appointment);",
+      "why": "Вызов без await выглядит подозрительно, но он тут намеренный — просили не тормозить ответ"
+    },
+    {
+      "match": "        var owner = await _db.Owners.FindAsync(appointment.OwnerId);",
+      "why": "Ещё один поход в базу там, где владельца можно было подтянуть заранее — вопрос к производительности"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

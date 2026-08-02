@@ -1,0 +1,32 @@
+{
+  "id": "rb-integer-division-001",
+  "stack": "rb",
+  "difficulty": 1,
+  "title": "Доля оплаченных визитов",
+  "prompt": "Покажи на дашборде долю оплаченных визитов за день в процентах",
+  "tests": "....\n\nFinished in 0.014 seconds (files took 0.37 seconds to load)\n4 examples, 0 failures",
+  "diff": "--- a/app/dashboards/payment_share.rb\n+++ b/app/dashboards/payment_share.rb\n@@ -4,14 +4,27 @@ class PaymentShare\n \n   def initialize(visits)\n     @visits = visits\n   end\n \n-  def percent\n-    0\n+  def percent\n+    return 0 if @visits.empty?\n+\n+    paid = @visits.count(&:paid?)\n+\n+    (paid / @visits.size) * 100\n+  end\n+\n+  def label\n+    \"#{percent.round}% оплачено\"\n   end\n \n   def total_kop\n     @visits.sum(&:total_kop)\n   end\n end\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/dashboards/payment_share.rb",
+      "match": "    (paid / @visits.size) * 100",
+      "kind": "wrong",
+      "tag": "integer-division",
+      "explain": "Деление двух целых в руби тоже целое: пока оплачены не все визиты, результат — ноль.",
+      "consequence": "Дашборд показывает «0% оплачено» весь день и внезапно «100%» вечером, когда закроют последний визит. По этой цифре администратор решает, звонить ли должникам."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    paid = @visits.count(&:paid?)",
+      "why": "Подсчёт в памяти вместо запроса к базе — на дне визитов это допустимо"
+    },
+    {
+      "match": "    \"#{percent.round}% оплачено\"",
+      "why": "round у целого числа ничего не меняет — лишний вызов, но безвредный"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

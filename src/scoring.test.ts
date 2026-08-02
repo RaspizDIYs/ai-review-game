@@ -1,7 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { accuracy, isCorrectLine, roundScore, timeMultiplier, ROUND_SECONDS } from './scoring.ts'
+import {
+  accuracy,
+  isCorrectLine,
+  roundDuration,
+  roundScore,
+  timeMultiplier,
+  ROUND_SECONDS,
+} from './scoring.ts'
 import { parseDiff } from './diff.ts'
 import type { Task } from './types.ts'
 
@@ -14,10 +21,40 @@ test('множитель времени не падает ниже 0.2', () => {
   assert.equal(timeMultiplier(ROUND_SECONDS), 1)
 })
 
-test('второй клик стоит дешевле первого, промах — ноль', () => {
-  assert.equal(accuracy(1, true), 1)
-  assert.equal(accuracy(2, true), 0.6)
-  assert.equal(accuracy(1, false), 0)
+test('множитель считается от длительности этого раунда, а не от базовых 90', () => {
+  const tired = roundDuration(1)
+  assert.equal(timeMultiplier(tired, tired), 1)
+  // Мгновенный ответ в укороченном раунде стоит столько же, сколько в полном:
+  // усталость отнимает время, а не очки сверху.
+  assert.equal(
+    roundScore(3, tired, 1, tired),
+    roundScore(3, ROUND_SECONDS, 1, ROUND_SECONDS),
+  )
+})
+
+test('вторая попытка стоит дешевле первой, пропуск — ноль', () => {
+  const full = { found: 1, total: 1, extras: 0 }
+  assert.equal(accuracy('found', 1, full), 1)
+  assert.equal(accuracy('found', 2, full), 0.6)
+  assert.equal(accuracy('clean-correct', 1, null), 1)
+  assert.equal(accuracy('missed', 1, null), 0)
+  assert.equal(accuracy('false-accusation', 1, null), 0)
+})
+
+test('частичный ответ считается по покрытию, а лишние строки его режут', () => {
+  const half = accuracy('partial', 1, { found: 1, total: 2, extras: 0 })
+  const halfWithExtra = accuracy('partial', 1, { found: 1, total: 2, extras: 1 })
+
+  assert.equal(half, 0.5)
+  assert.ok(halfWithExtra < half, 'лишняя строка должна удешевлять ответ')
+  // Но не в ноль: строку-то нашёл.
+  assert.ok(accuracy('partial', 1, { found: 1, total: 3, extras: 3 }) >= 0.25)
+})
+
+test('частичный ответ никогда не дороже полного', () => {
+  const full = accuracy('found', 1, { found: 2, total: 2, extras: 0 })
+  const partial = accuracy('partial', 1, { found: 2, total: 2, extras: 1 })
+  assert.ok(partial < full)
 })
 
 test('за нулевую точность очков нет независимо от времени', () => {

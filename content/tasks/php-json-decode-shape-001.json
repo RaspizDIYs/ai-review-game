@@ -1,0 +1,32 @@
+{
+  "id": "php-json-decode-shape-001",
+  "stack": "php",
+  "difficulty": 1,
+  "title": "Ответ лаборатории",
+  "prompt": "Разбери ответ лаборатории и достань из него статус анализа",
+  "tests": "PHPUnit 11.2.0\n\n....                               4 / 4 (100%)\n\nOK (4 tests, 7 assertions)",
+  "diff": "--- a/src/Lab/LabResponse.php\n+++ b/src/Lab/LabResponse.php\n@@ -8,14 +8,27 @@ final class LabResponse\n \n     public const UNKNOWN = 'unknown';\n \n-    public function status(string $body): string\n-    {\n-        return self::UNKNOWN;\n+    public function status(string $body): string\n+    {\n+        $data = json_decode($body);\n+\n+        if (!is_array($data)) {\n+            return self::UNKNOWN;\n+        }\n+\n+        return $data['status'] ?? self::UNKNOWN;\n+    }\n+\n+    public function isReady(string $body): bool\n+    {\n+        return $this->status($body) === 'ready';\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Lab/LabResponse.php",
+      "match": "        $data = json_decode($body);",
+      "kind": "wrong",
+      "tag": "json-decode-shape",
+      "explain": "Без второго аргумента json_decode отдаёт объект, а не массив. Проверка is_array сразу отсекает нормальный ответ.",
+      "consequence": "Статус любого анализа всегда «unknown»: готовые результаты не показываются в карточке, и врач звонит в лабораторию вручную. Тесты кормят функцию json-массивом верхнего уровня, а лаборатория отдаёт объект."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return $data['status'] ?? self::UNKNOWN;",
+      "why": "Отсутствующий ключ честно превращается в «unknown» — правильная защита"
+    },
+    {
+      "match": "        return $this->status($body) === 'ready';",
+      "why": "Разбор тела повторяется на каждый вызов — лишняя работа, но результат тот же"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

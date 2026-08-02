@@ -1,0 +1,32 @@
+{
+  "id": "java-integer-division-001",
+  "stack": "java",
+  "difficulty": 1,
+  "title": "Загрузка кабинетов за день",
+  "prompt": "Посчитай процент загрузки кабинета: занятые минуты от рабочих",
+  "tests": "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS",
+  "diff": "--- a/src/main/java/clinic/stats/RoomLoad.java\n+++ b/src/main/java/clinic/stats/RoomLoad.java\n@@ -7,14 +7,27 @@ public class RoomLoad {\n \n     private static final int WORKING_MINUTES = 600;\n \n-    public double percent(int busyMinutes) {\n-        return 0.0;\n+    public double percent(int busyMinutes) {\n+        if (busyMinutes <= 0) {\n+            return 0.0;\n+        }\n+\n+        return (busyMinutes / WORKING_MINUTES) * 100.0;\n+    }\n+\n+    public String label(int busyMinutes) {\n+        return Math.round(percent(busyMinutes)) + \"%\";\n     }\n \n     public boolean isOverbooked(int busyMinutes) {\n         return busyMinutes > WORKING_MINUTES;\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/stats/RoomLoad.java",
+      "match": "        return (busyMinutes / WORKING_MINUTES) * 100.0;",
+      "kind": "wrong",
+      "tag": "integer-division",
+      "explain": "Оба числа целые, поэтому деление тоже целое: всё, что меньше рабочего дня, превращается в ноль ещё до умножения на сто.",
+      "consequence": "Загрузка любого кабинета показывается как 0% — кроме полностью занятого, у которого выйдет ровно 100%. Отчёт выглядит правдоподобно и им пользуются, планируя закупку оборудования."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return Math.round(percent(busyMinutes)) + \"%\";",
+      "why": "Округление до целых процентов теряет десятые — так и задумано для подписи"
+    },
+    {
+      "match": "        return busyMinutes > WORKING_MINUTES;",
+      "why": "Ровно рабочий день не считается переработкой — граничный случай, но осознанный"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

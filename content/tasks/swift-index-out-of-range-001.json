@@ -1,0 +1,32 @@
+{
+  "id": "swift-index-out-of-range-001",
+  "stack": "swift",
+  "difficulty": 1,
+  "title": "Ближайший приём на экране",
+  "prompt": "Покажи на главном экране ближайший приём, если он есть",
+  "tests": "Test Suite 'All tests' passed at 2026-08-02 12:31:55.402.\n\t Executed 5 tests, with 0 failures (0 unexpected) in 0.006 seconds",
+  "diff": "--- a/Sources/Clinic/NextVisit.swift\n+++ b/Sources/Clinic/NextVisit.swift\n@@ -5,15 +5,28 @@ struct NextVisit {\n \n     let visits: [Visit]\n \n-    var title: String {\n-        \"Приёмов нет\"\n+    var upcoming: [Visit] {\n+        visits\n+            .filter { $0.at > .now }\n+            .sorted { $0.at < $1.at }\n+    }\n+\n+    var title: String {\n+        let next = upcoming[0]\n+\n+        return \"\\(next.petName) — \\(next.at.formatted(date: .omitted, time: .shortened))\"\n+    }\n+\n+    var hasUpcoming: Bool {\n+        !upcoming.isEmpty\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Sources/Clinic/NextVisit.swift",
+      "match": "        let next = upcoming[0]",
+      "kind": "wrong",
+      "tag": "index-out-of-range",
+      "explain": "Обращение по индексу к массиву, который бывает пустым. Рядом есть hasUpcoming, но title его не спрашивает — здесь нужен first.",
+      "consequence": "Как только приёмов на сегодня не осталось — а это каждый вечер, — главный экран падает при отрисовке. Тесты передают непустой список, потому что писались вместе с happy path."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            .filter { $0.at > .now }",
+      "why": "Момент «сейчас» берётся при каждом обращении — свойство пересчитывается чаще, чем нужно"
+    },
+    {
+      "match": "        !upcoming.isEmpty",
+      "why": "Проверка пересобирает и сортирует весь список ради одного вопроса — расточительно, но верно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "cs-local-time-001",
+  "stack": "cs",
+  "difficulty": 2,
+  "title": "Просроченные напоминания",
+  "prompt": "Добавь выборку напоминаний, у которых вышел срок, — по ней будем слать повторы",
+  "tests": "Passed!  - Failed: 0, Passed: 5, Skipped: 0, Total: 5, Duration: 22 ms",
+  "diff": "--- a/src/Reminders/ReminderQuery.cs\n+++ b/src/Reminders/ReminderQuery.cs\n@@ -9,13 +9,25 @@ public class ReminderQuery\n     private readonly ClinicContext _db;\n \n     public ReminderQuery(ClinicContext db) => _db = db;\n \n-    public IQueryable<Reminder> Pending() =>\n-        _db.Reminders.Where(r => !r.Sent);\n+    public IQueryable<Reminder> Pending() =>\n+        _db.Reminders.Where(r => !r.Sent);\n+\n+    public async Task<List<Reminder>> OverdueAsync(int limit = 100)\n+    {\n+        var now = DateTime.Now;\n+\n+        return await _db.Reminders\n+            .Where(r => !r.Sent && r.DueAt <= now)\n+            .OrderBy(r => r.DueAt)\n+            .Take(limit)\n+            .ToListAsync();\n+    }\n \n     public Task<int> CountAsync() => _db.Reminders.CountAsync();\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Reminders/ReminderQuery.cs",
+      "match": "        var now = DateTime.Now;",
+      "kind": "wrong",
+      "tag": "naive-datetime",
+      "explain": "DateTime.Now отдаёт время машины в её часовом поясе, а DueAt лежит в базе в UTC.",
+      "consequence": "Разработчик в Москве видит, что напоминания уезжают на три часа раньше срока, а на сервере в UTC всё «работает». Летом сдвиг меняется, и баг воспроизводится по-разному в марте и в ноябре."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            .Take(limit)",
+      "why": "Лимит по умолчанию сотня — если просрочек больше, часть уедет в следующий проход, и это осознанно"
+    },
+    {
+      "match": "        _db.Reminders.Where(r => !r.Sent);",
+      "why": "Метод возвращает IQueryable наружу — течёт абстракция базы, но поведение от этого не ломается"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

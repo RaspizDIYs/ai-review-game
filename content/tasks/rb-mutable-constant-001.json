@@ -1,0 +1,32 @@
+{
+  "id": "rb-mutable-constant-001",
+  "stack": "rb",
+  "difficulty": 2,
+  "title": "Поля выгрузки для страховой",
+  "prompt": "Собери список полей выгрузки: базовые всегда, плюс поля страховой, если она указана",
+  "tests": "......\n\nFinished in 0.018 seconds (files took 0.38 seconds to load)\n6 examples, 0 failures",
+  "diff": "--- a/app/exports/visit_export.rb\n+++ b/app/exports/visit_export.rb\n@@ -4,16 +4,29 @@ class VisitExport\n \n   BASE_FIELDS = %w[id visited_at pet_name total].freeze\n   INSURANCE_FIELDS = %w[policy_number insurer_code].freeze\n \n-  def fields(_visit)\n-    BASE_FIELDS\n+  def fields(visit)\n+    result = BASE_FIELDS\n+\n+    if visit.insurance.present?\n+      result += INSURANCE_FIELDS\n+    end\n+\n+    if visit.discount.present?\n+      result << 'discount_percent'\n+    end\n+\n+    result\n   end\n \n   def header(visit)\n     fields(visit).map { |f| I18n.t(\"export.#{f}\") }.join(';')\n   end\n end\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/exports/visit_export.rb",
+      "match": "      result << 'discount_percent'",
+      "kind": "wrong",
+      "tag": "mutable-constant",
+      "explain": "Если страховки не было, result — это сам BASE_FIELDS, а не копия: += создаёт новый массив, а << дописывает в существующий. freeze спасает от этого только в строгом режиме.",
+      "consequence": "Первый же визит со скидкой добавляет колонку в константу на весь процесс — дальше она лезет во все выгрузки подряд, включая те, где скидки нет. Перезапуск «чинит», поэтому баг переживёт несколько разборов."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "      result += INSURANCE_FIELDS",
+      "why": "Здесь как раз создаётся новый массив — выглядит непоследовательно рядом с соседней веткой, но это правильный вариант"
+    },
+    {
+      "match": "    fields(visit).map { |f| I18n.t(\"export.#{f}\") }.join(';')",
+      "why": "Перевод по интерполированному ключу — если перевода нет, в шапку уедет техническое имя"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "swift-retain-cycle-001",
+  "stack": "swift",
+  "difficulty": 2,
+  "title": "Обновление списка приёмов",
+  "prompt": "Пусть список приёмов сам обновляется, когда приходит пуш об изменении расписания",
+  "tests": "Test Suite 'All tests' passed at 2026-08-02 11:52:10.882.\n\t Executed 8 tests, with 0 failures (0 unexpected) in 0.044 seconds",
+  "diff": "--- a/Sources/Clinic/VisitListViewModel.swift\n+++ b/Sources/Clinic/VisitListViewModel.swift\n@@ -9,16 +9,30 @@ final class VisitListViewModel: ObservableObject {\n \n     @Published private(set) var visits: [Visit] = []\n \n     private let api: API\n     private let center: NotificationCenter\n \n-    init(api: API, center: NotificationCenter = .default) {\n-        self.api = api\n-        self.center = center\n+    init(api: API, center: NotificationCenter = .default) {\n+        self.api = api\n+        self.center = center\n+\n+        center.addObserver(forName: .scheduleChanged, object: nil, queue: .main) { _ in\n+            self.reload()\n+        }\n+    }\n+\n+    func reload() {\n+        Task {\n+            visits = (try? await api.visits()) ?? visits\n+        }\n     }\n \n     deinit {\n         center.removeObserver(self)\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Sources/Clinic/VisitListViewModel.swift",
+      "match": "            self.reload()",
+      "kind": "wrong",
+      "tag": "retain-cycle",
+      "explain": "Замыкание наблюдателя сильно держит self, а сам наблюдатель живёт в центре уведомлений — модель уже не освободится. Нужен [weak self].",
+      "consequence": "Экран закрыли, а модель осталась и продолжает ходить в сеть на каждый пуш. Через десяток открытий списка запрос уходит десять раз, deinit не вызывается никогда — и снять наблюдателя тоже уже некому."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            visits = (try? await api.visits()) ?? visits",
+      "why": "Ошибка запроса молча оставляет старые данные — пользователю бы показать, что обновить не удалось"
+    },
+    {
+      "match": "        center.removeObserver(self)",
+      "why": "Снятие наблюдателя по объекту, а не по возвращённому токену — на блочной подписке это не работает, но проблема начинается раньше"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

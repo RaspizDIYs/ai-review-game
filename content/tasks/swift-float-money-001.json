@@ -1,0 +1,32 @@
+{
+  "id": "swift-float-money-001",
+  "stack": "swift",
+  "difficulty": 4,
+  "title": "Итог по корзине услуг",
+  "prompt": "Посчитай итог по выбранным услугам со скидкой и покажи в рублях",
+  "tests": "Test Suite 'All tests' passed at 2026-08-02 12:15:09.673.\n\t Executed 9 tests, with 0 failures (0 unexpected) in 0.008 seconds",
+  "diff": "--- a/Sources/Clinic/Cart.swift\n+++ b/Sources/Clinic/Cart.swift\n@@ -6,17 +6,31 @@ struct Service {\n     let priceKop: Int\n }\n \n struct Cart {\n \n     var services: [Service] = []\n     var discountPercent: Int = 0\n \n-    var totalKop: Int {\n-        services.reduce(0) { $0 + $1.priceKop }\n+    var total: Double {\n+        let sum = services.reduce(0.0) { $0 + Double($1.priceKop) / 100 }\n+        let discount = sum * Double(discountPercent) / 100\n+\n+        return sum - discount\n+    }\n+\n+    var formatted: String {\n+        String(format: \"%.2f ₽\", total)\n+    }\n+\n+    mutating func add(_ service: Service) {\n+        services.append(service)\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Sources/Clinic/Cart.swift",
+      "match": "        let sum = services.reduce(0.0) { $0 + Double($1.priceKop) / 100 }",
+      "kind": "wrong",
+      "tag": "float-money",
+      "explain": "Копейки переводятся в рубли и складываются в Double. Погрешность двоичной дроби копится на каждой позиции, а итог был целым числом копеек до этой правки.",
+      "consequence": "На корзине из десятка услуг со скидкой итог расходится с чеком на копейку. Касса не сходится в конце смены, и сверять руками будут не корзину, а платежи — искать станут не там, где сломано."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        String(format: \"%.2f ₽\", total)",
+      "why": "Формат без локали и без разделителя разрядов — на больших суммах читается плохо, но точность не при чём"
+    },
+    {
+      "match": "        services.append(service)",
+      "why": "Одну и ту же услугу можно добавить дважды — вопрос к продукту, не к деньгам"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

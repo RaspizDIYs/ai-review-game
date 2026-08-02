@@ -1,0 +1,32 @@
+{
+  "id": "rs-blocking-in-async-001",
+  "stack": "rs",
+  "difficulty": 4,
+  "title": "Выгрузка карточки в pdf",
+  "prompt": "Отдавай карточку питомца в pdf, файл шаблона лежит рядом с бинарником",
+  "tests": "running 3 tests\ntest export::tests::renders_card ... ok\ntest export::tests::uses_template ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored\n     Running `target/release/api`",
+  "diff": "--- a/src/export.rs\n+++ b/src/export.rs\n@@ -8,15 +8,29 @@ use crate::card::Card;\n \n const TEMPLATE: &str = \"assets/card.tpl\";\n \n-pub async fn card_pdf(card: &Card) -> Result<Vec<u8>, ExportError> {\n-    Err(ExportError::NotImplemented)\n+pub async fn card_pdf(card: &Card) -> Result<Vec<u8>, ExportError> {\n+    let template = std::fs::read_to_string(TEMPLATE)?;\n+\n+    let filled = template\n+        .replace(\"{{name}}\", &card.name)\n+        .replace(\"{{owner}}\", &card.owner);\n+\n+    let bytes = render(&filled).await?;\n+\n+    if bytes.is_empty() {\n+        return Err(ExportError::EmptyRender);\n+    }\n+\n+    Ok(bytes)\n }\n \n async fn render(html: &str) -> Result<Vec<u8>, ExportError> {\n     renderer::html_to_pdf(html).await.map_err(ExportError::Render)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/export.rs",
+      "match": "    let template = std::fs::read_to_string(TEMPLATE)?;",
+      "kind": "wrong",
+      "tag": "blocking-in-async",
+      "explain": "Синхронное чтение файла внутри async-функции блокирует поток исполнителя целиком — вместе со всеми задачами, которые на нём стоят.",
+      "consequence": "Пока диск отвечает медленно, встают не только выгрузки, а вообще все запросы, попавшие на тот же поток. Выглядит как случайные таймауты в никак не связанных ручках — самый неприятный вид инцидента."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        .replace(\"{{name}}\", &card.name)",
+      "why": "Подстановка в шаблон без экранирования — кличка с угловыми скобками попортит разметку, но это не про блокировки"
+    },
+    {
+      "match": "        return Err(ExportError::EmptyRender);",
+      "why": "Пустой результат считается ошибкой — спорное решение, зато явное"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

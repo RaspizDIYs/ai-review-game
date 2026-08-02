@@ -1,0 +1,32 @@
+{
+  "id": "sh-pipefail-missing-001",
+  "stack": "sh",
+  "difficulty": 2,
+  "title": "Проверка миграций перед деплоем",
+  "prompt": "Перед деплоем проверь, что непрогнанных миграций нет, иначе останови выкладку",
+  "tests": "ok 1 - падает на непрогнанной миграции\nok 2 - проходит на чистой базе\n\n1..2\n# tests 2\n# pass  2",
+  "diff": "--- a/scripts/predeploy.sh\n+++ b/scripts/predeploy.sh\n@@ -3,16 +3,29 @@\n #!/usr/bin/env bash\n set -eu\n \n-echo \"проверок нет\"\n+DB_URL=${DB_URL:?нужен DB_URL}\n+\n+pending=$(migrate -database \"$DB_URL\" status | grep -c '^pending')\n+\n+if [ \"$pending\" -gt 0 ]; then\n+  echo \"непрогнанных миграций: $pending\" >&2\n+  exit 1\n+fi\n+\n+echo \"миграции в порядке\"\n \n exit 0\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/predeploy.sh",
+      "match": "set -eu",
+      "kind": "missing",
+      "tag": "pipefail-missing",
+      "explain": "В конвейере важен код возврата migrate, а без pipefail оболочка смотрит только на последнюю команду — на grep. Здесь нужен set -euo pipefail.",
+      "consequence": "Упавший migrate отдаёт пустой вывод, grep честно считает ноль совпадений, проверка проходит — и выкладка идёт на базу без миграций. Тест подсовывает работающий migrate, поэтому оба случая зелёные."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "pending=$(migrate -database \"$DB_URL\" status | grep -c '^pending')",
+      "why": "grep -c возвращает единицу, когда совпадений нет, — но это гасится подстановкой, а не проблемой строки"
+    },
+    {
+      "match": "DB_URL=${DB_URL:?нужен DB_URL}",
+      "why": "Строка подключения приезжает из окружения и попадёт в вывод при ошибке — вопрос к секретам, не к проверке"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

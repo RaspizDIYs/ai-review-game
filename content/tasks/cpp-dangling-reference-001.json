@@ -1,0 +1,32 @@
+{
+  "id": "cpp-dangling-reference-001",
+  "stack": "cpp",
+  "difficulty": 1,
+  "title": "Имя кабинета по номеру",
+  "prompt": "Отдавай подпись кабинета по номеру, для неизвестных — «кабинет N»",
+  "tests": "[==========] Running 4 tests from 1 test suite.\n[  PASSED  ] 4 tests.",
+  "diff": "--- a/src/rooms.cpp\n+++ b/src/rooms.cpp\n@@ -8,15 +8,28 @@ namespace clinic {\n \n static const std::map<int, std::string> kNames = {\n     {1, \"Приёмная\"}, {2, \"Операционная\"}, {3, \"Рентген\"},\n };\n \n-const std::string& RoomName(int number) {\n-    return kNames.at(number);\n+const std::string& RoomName(int number) {\n+    auto it = kNames.find(number);\n+    if (it != kNames.end()) {\n+        return it->second;\n+    }\n+\n+    std::string fallback = \"кабинет \" + std::to_string(number);\n+\n+    return fallback;\n+}\n+\n+bool RoomExists(int number) {\n+    return kNames.count(number) > 0;\n }\n \n }  // namespace clinic\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/rooms.cpp",
+      "match": "    return fallback;",
+      "kind": "wrong",
+      "tag": "dangling-reference",
+      "explain": "Возвращается ссылка на локальную строку, которая умирает вместе с вызовом. Для известных кабинетов ссылка живая, для остальных — висячая.",
+      "consequence": "Подпись неизвестного кабинета печатается то верно, то мусором, то роняет процесс — зависит от того, что легло на освободившийся стек. Тесты гоняют только три кабинета из справочника, поэтому зелёные."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    return kNames.count(number) > 0;",
+      "why": "count вместо contains — старый стиль, но работает верно"
+    },
+    {
+      "match": "    std::string fallback = \"кабинет \" + std::to_string(number);",
+      "why": "Лишняя аллокация на каждый неизвестный кабинет — расточительно, но само по себе безопасно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

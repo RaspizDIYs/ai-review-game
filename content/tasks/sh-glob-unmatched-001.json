@@ -1,0 +1,32 @@
+{
+  "id": "sh-glob-unmatched-001",
+  "stack": "sh",
+  "difficulty": 1,
+  "title": "Прогрев кэша после выкладки",
+  "prompt": "После выкладки прогони прогревочные запросы из файлов в каталоге warmup",
+  "tests": "ok 1 - дёргает все урлы\nok 2 - код возврата 0\n\n1..2\n# tests 2\n# pass  2",
+  "diff": "--- a/scripts/warmup.sh\n+++ b/scripts/warmup.sh\n@@ -4,15 +4,28 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n BASE=${BASE:-https://clinic.example}\n WARMUP_DIR=${WARMUP_DIR:-warmup}\n \n-echo \"прогрев отключён\"\n+for file in \"$WARMUP_DIR\"/*.url; do\n+  url=$(cat \"$file\")\n+\n+  curl -fsS -o /dev/null \"$BASE$url\"\n+\n+  echo \"прогрет $url\"\n+done\n \n exit 0\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/warmup.sh",
+      "match": "for file in \"$WARMUP_DIR\"/*.url; do",
+      "kind": "wrong",
+      "tag": "glob-unmatched",
+      "explain": "Если файлов нет, оболочка подставляет саму маску, и цикл выполнится один раз с несуществующим путём. Спасает nullglob или проверка на существование файла внутри цикла.",
+      "consequence": "Пустой каталог прогрева не пропускает шаг, а роняет выкладку на cat: warmup/*.url: No such file. Ошибка выглядит как проблема с сетью, а причина в том, что каталог не доехал в образ."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  curl -fsS -o /dev/null \"$BASE$url\"",
+      "why": "Ответ выбрасывается в /dev/null — так и надо, важен только сам поход"
+    },
+    {
+      "match": "  url=$(cat \"$file\")",
+      "why": "Перевод строки в конце файла съедается подстановкой — здесь это работает в нашу пользу"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

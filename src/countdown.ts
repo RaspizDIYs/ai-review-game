@@ -30,32 +30,3 @@ export function useCountdown(running: boolean, duration: number, onExpire: () =>
 
   return left
 }
-
-export function Timer({ left, duration }: { left: number; duration: number }) {
-  const tense = left <= 20
-  const tired = duration < 90
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs uppercase tracking-widest text-zinc-500">
-          Осталось{tired && <span className="ml-2 text-red-500/80">после инцидента</span>}
-        </span>
-        <span
-          className={[
-            'font-mono text-lg tabular-nums',
-            tense ? 'text-red-400' : 'text-zinc-300',
-          ].join(' ')}
-        >
-          {Math.ceil(left)} с
-        </span>
-      </div>
-      <div className="h-1 overflow-hidden rounded-full bg-zinc-800">
-        <div
-          className={['h-full transition-[width]', tense ? 'bg-red-500' : 'bg-zinc-400'].join(' ')}
-          style={{ width: `${(left / duration) * 100}%` }}
-        />
-      </div>
-    </div>
-  )
-}

@@ -1,0 +1,32 @@
+{
+  "id": "php-loose-comparison-001",
+  "stack": "php",
+  "difficulty": 1,
+  "title": "Код подтверждения из смс",
+  "prompt": "Проверяй код из смс, три попытки, потом код сгорает",
+  "tests": "PHPUnit 11.2.0\n\n.....                              5 / 5 (100%)\n\nOK (5 tests, 9 assertions)",
+  "diff": "--- a/src/Auth/SmsCode.php\n+++ b/src/Auth/SmsCode.php\n@@ -14,15 +14,29 @@ final class SmsCode\n \n     public function __construct(private Storage $storage) {}\n \n-    public function verify(string $phone, string $code): bool\n-    {\n-        return false;\n+    public function verify(string $phone, string $code): bool\n+    {\n+        $stored = $this->storage->get(\"sms:$phone\");\n+\n+        if ($stored === null || $stored['attempts'] >= self::MAX_ATTEMPTS) {\n+            return false;\n+        }\n+\n+        $this->storage->increment(\"sms:$phone\", 'attempts');\n+\n+        if ($stored['code'] == $code) {\n+            $this->storage->forget(\"sms:$phone\");\n+\n+            return true;\n+        }\n+\n+        return false;\n     }\n \n     public function issue(string $phone): string\n     {\n         return (string) random_int(100000, 999999);\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Auth/SmsCode.php",
+      "match": "        if ($stored['code'] == $code) {",
+      "kind": "wrong",
+      "tag": "loose-comparison",
+      "explain": "Нестрогое сравнение приводит строки к числам. «0123456» и «123456» станут равны, а код вида «0e12345» совпадёт с любым другим таким же нулевым представлением.",
+      "consequence": "Подобрать код становится заметно проще, чем один шанс из миллиона, а тесты этого не видят: в них лежат обычные шестизначные строки без ведущих нулей."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        $this->storage->increment(\"sms:$phone\", 'attempts');",
+      "why": "Попытка засчитывается до проверки — верное решение, хотя выглядит странно"
+    },
+    {
+      "match": "        return (string) random_int(100000, 999999);",
+      "why": "Код не записывается в хранилище прямо здесь — это делает вызывающий, но глазу зацепиться есть за что"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

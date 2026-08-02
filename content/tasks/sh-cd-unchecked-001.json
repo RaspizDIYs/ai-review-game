@@ -1,0 +1,32 @@
+{
+  "id": "sh-cd-unchecked-001",
+  "stack": "sh",
+  "difficulty": 4,
+  "title": "Сборка отчёта в рабочем каталоге",
+  "prompt": "Собери отчёт во временном каталоге и положи результат рядом с исходниками",
+  "tests": "ok 1 - собирает отчёт\nok 2 - убирает временный каталог\nok 3 - возвращает код 0\n\n1..3\n# tests 3\n# pass  3",
+  "diff": "--- a/scripts/build-report.sh\n+++ b/scripts/build-report.sh\n@@ -5,17 +5,32 @@\n set -uo pipefail\n \n ROOT=$(pwd)\n WORK=$(mktemp -d)\n \n cleanup() {\n   rm -rf \"$WORK\"\n }\n trap cleanup EXIT\n \n-echo \"сборка отключена\"\n+cd \"$WORK\"\n+\n+cp \"$ROOT\"/templates/*.tpl .\n+\n+report-gen --out report.pdf\n+\n+mv report.pdf \"$ROOT/build/\"\n \n exit 0\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/build-report.sh",
+      "match": "cd \"$WORK\"",
+      "kind": "wrong",
+      "tag": "cd-unchecked",
+      "explain": "set -e здесь нет — только -uo pipefail. Неудачный cd не остановит скрипт, и всё дальнейшее выполнится в каталоге запуска.",
+      "consequence": "Шаблоны копируются в корень репозитория, отчёт собирается там же, а cleanup потом сносит временный каталог — не тот, где лежит мусор. На машине разработчика это грязный git status, на раннере — файлы, попавшие в артефакт сборки."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "cp \"$ROOT\"/templates/*.tpl .",
+      "why": "Шаблон раскрывается оболочкой без кавычек по звёздочке — так и надо, иначе маска не сработает"
+    },
+    {
+      "match": "trap cleanup EXIT",
+      "why": "Ловушка только на EXIT, без сигналов — по Ctrl+C каталог останется, но это мелочь рядом с основным"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

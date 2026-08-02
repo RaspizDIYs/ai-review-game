@@ -1,0 +1,32 @@
+{
+  "id": "cpp-shared-ptr-cycle-001",
+  "stack": "cpp",
+  "difficulty": 3,
+  "title": "Питомец знает своего владельца",
+  "prompt": "Пусть из карточки питомца можно дойти до владельца и обратно",
+  "tests": "[==========] Running 5 tests from 1 test suite.\n[  PASSED  ] 5 tests.",
+  "diff": "--- a/src/owner.h\n+++ b/src/owner.h\n@@ -6,17 +6,30 @@ namespace clinic {\n \n struct Owner;\n \n struct Pet {\n     std::string name;\n-    std::shared_ptr<Owner> owner;\n+    std::shared_ptr<Owner> owner;\n+    int visits = 0;\n };\n \n struct Owner {\n     std::string last_name;\n-    std::vector<std::string> pet_names;\n+    std::vector<std::shared_ptr<Pet>> pets;\n };\n \n+inline void Link(const std::shared_ptr<Owner>& owner, const std::shared_ptr<Pet>& pet) {\n+    pet->owner = owner;\n+    owner->pets.push_back(pet);\n+}\n+\n+inline int TotalVisits(const Owner& owner) {\n+    int total = 0;\n+    for (const auto& pet : owner.pets) {\n+        total += pet->visits;\n+    }\n+    return total;\n+}\n+\n }  // namespace clinic\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/owner.h",
+      "match": "    std::shared_ptr<Owner> owner;",
+      "kind": "wrong",
+      "tag": "shared-ptr-cycle",
+      "explain": "Владелец держит питомцев, питомец держит владельца — оба по shared_ptr. Счётчики ссылок никогда не дойдут до нуля; обратная ссылка должна быть weak_ptr.",
+      "consequence": "Каждая загруженная карточка остаётся в памяти навсегда. Сервис регистратуры на длинной смене распухает и уходит по OOM ближе к вечеру, а на коротком прогоне тестов утечка не видна вовсе."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    owner->pets.push_back(pet);",
+      "why": "Повторный вызов Link добавит питомца дважды — дубликат в списке, но не утечка"
+    },
+    {
+      "match": "        total += pet->visits;",
+      "why": "Разыменование без проверки на пустой указатель — упадёт, если в списке окажется nullptr"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

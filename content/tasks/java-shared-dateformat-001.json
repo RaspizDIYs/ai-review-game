@@ -1,0 +1,32 @@
+{
+  "id": "java-shared-dateformat-001",
+  "stack": "java",
+  "difficulty": 3,
+  "title": "Дата приёма в выгрузке",
+  "prompt": "В выгрузке для страховой дата должна быть в формате dd.MM.yyyy, вынеси форматирование в одно место",
+  "tests": "Tests run: 12, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS",
+  "diff": "--- a/src/main/java/clinic/export/VisitRow.java\n+++ b/src/main/java/clinic/export/VisitRow.java\n@@ -9,15 +9,29 @@ public class VisitRow {\n \n     private final Visit visit;\n \n-    public String date() {\n-        return visit.getAt().toString();\n+    private static final SimpleDateFormat DATE = new SimpleDateFormat(\"dd.MM.yyyy\");\n+\n+    public String date() {\n+        return DATE.format(visit.getAt());\n+    }\n+\n+    public String amount() {\n+        return String.format(\"%.2f\", visit.getKop() / 100.0);\n     }\n \n     public String toCsv() {\n-        return String.join(\";\", visit.getId(), date());\n+        return String.join(\";\", visit.getId(), date(), amount());\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/export/VisitRow.java",
+      "match": "    private static final SimpleDateFormat DATE = new SimpleDateFormat(\"dd.MM.yyyy\");",
+      "kind": "wrong",
+      "tag": "not-thread-safe-shared",
+      "explain": "SimpleDateFormat хранит состояние разбора внутри себя и потокобезопасным не является, а лежит он в статике — один на все потоки.",
+      "consequence": "Выгрузку собирают в несколько потоков, и раз в сотню строк дата приезжает от соседней записи или вовсе мусором вроде 31.12.0002. Страховая отказывает по всей выгрузке, а воспроизвести на одном потоке невозможно."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return String.format(\"%.2f\", visit.getKop() / 100.0);",
+      "why": "Сумма форматируется без явной локали — на машине с запятой в разделителе csv поедет, но это другая проблема"
+    },
+    {
+      "match": "        return String.join(\";\", visit.getId(), date(), amount());",
+      "why": "Точка с запятой без экранирования полей — сломается, если в поле окажется разделитель"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "rs-index-out-of-range-001",
+  "stack": "rs",
+  "difficulty": 1,
+  "title": "Инициалы владельца",
+  "prompt": "Сделай инициалы владельца из фамилии и имени для шапки карточки",
+  "tests": "running 4 tests\ntest initials::tests::two_words ... ok\ntest initials::tests::trims_spaces ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored",
+  "diff": "--- a/src/initials.rs\n+++ b/src/initials.rs\n@@ -3,13 +3,25 @@\n use crate::owner::Owner;\n \n-pub fn initials(owner: &Owner) -> String {\n-    String::new()\n+/// «Иванов Пётр» → «И. П.»\n+pub fn initials(owner: &Owner) -> String {\n+    let parts: Vec<&str> = owner.full_name.split_whitespace().collect();\n+\n+    let last = parts[0];\n+    let first = parts[1];\n+\n+    format!(\n+        \"{}. {}.\",\n+        last.chars().next().unwrap_or(' '),\n+        first.chars().next().unwrap_or(' ')\n+    )\n }\n \n pub fn short_name(owner: &Owner) -> String {\n     owner.full_name.split_whitespace().next().unwrap_or(\"\").to_string()\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/initials.rs",
+      "match": "    let first = parts[1];",
+      "kind": "wrong",
+      "tag": "index-out-of-range",
+      "explain": "Обращение по индексу к вектору, в котором может быть одно слово. Соседние строки аккуратно используют unwrap_or, а здесь — прямой доступ.",
+      "consequence": "Владелец, записанный одним словом — а таких в регистратуре хватает, — роняет отрисовку карточки паникой. Тесты гоняют только полные «Фамилия Имя»."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        last.chars().next().unwrap_or(' '),",
+      "why": "Пробел вместо буквы при пустой строке даст странные инициалы — некрасиво, но не падение"
+    },
+    {
+      "match": "    owner.full_name.split_whitespace().next().unwrap_or(\"\").to_string()",
+      "why": "Соседний метод делает то же самое безопасно — сравнение полезное, но баг не в нём"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

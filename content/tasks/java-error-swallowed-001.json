@@ -1,0 +1,32 @@
+{
+  "id": "java-error-swallowed-001",
+  "stack": "java",
+  "difficulty": 2,
+  "title": "Отправка чеков в очередь",
+  "prompt": "Складывай чеки в очередь пачкой, один плохой чек не должен рушить всю пачку",
+  "tests": "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS",
+  "diff": "--- a/src/main/java/clinic/billing/ReceiptPublisher.java\n+++ b/src/main/java/clinic/billing/ReceiptPublisher.java\n@@ -14,14 +14,29 @@ public class ReceiptPublisher {\n \n     private static final Logger log = LoggerFactory.getLogger(ReceiptPublisher.class);\n \n-    public int publish(List<Receipt> receipts) {\n-        return 0;\n+    public int publish(List<Receipt> receipts) {\n+        int sent = 0;\n+\n+        for (Receipt receipt : receipts) {\n+            try {\n+                queue.send(topic, receipt.toJson());\n+            } catch (Exception e) {\n+                log.warn(\"receipt {} skipped\", receipt.id());\n+            }\n+\n+            sent++;\n+        }\n+\n+        log.info(\"published {} of {}\", sent, receipts.size());\n+\n+        return sent;\n     }\n \n     public boolean isHealthy() {\n         return queue.isConnected();\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/billing/ReceiptPublisher.java",
+      "match": "            sent++;",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "Счётчик увеличивается и после исключения — он стоит вне try, а не в конце успешной ветки.",
+      "consequence": "Метод отчитывается «отправлено 500», в очереди 480. Расхождение всплывает через месяц при сверке с бухгалтерией, и восстанавливать придётся по логам уровня warn, которые к тому времени уже ротировались."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            } catch (Exception e) {",
+      "why": "Ловится вся Exception сразу — широковато, и стек в лог не пишется, но не из-за этого сбивается счёт"
+    },
+    {
+      "match": "        log.info(\"published {} of {}\", sent, receipts.size());",
+      "why": "Лог на каждую пачку без идентификатора пачки — искать потом неудобно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

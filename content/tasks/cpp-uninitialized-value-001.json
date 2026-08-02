@@ -1,0 +1,32 @@
+{
+  "id": "cpp-uninitialized-value-001",
+  "stack": "cpp",
+  "difficulty": 1,
+  "title": "Средний вес по приёмам",
+  "prompt": "Посчитай средний вес питомца по приёмам, на пустом списке верни ноль",
+  "tests": "[==========] Running 4 tests from 1 test suite.\n[  PASSED  ] 4 tests.",
+  "diff": "--- a/src/weight_stats.cpp\n+++ b/src/weight_stats.cpp\n@@ -6,15 +6,28 @@ namespace clinic {\n \n-double AverageWeight(const std::vector<Visit>& visits) {\n-    return 0.0;\n+double AverageWeight(const std::vector<Visit>& visits) {\n+    if (visits.empty()) {\n+        return 0.0;\n+    }\n+\n+    double sum;\n+\n+    for (const auto& visit : visits) {\n+        sum += visit.weight_kg;\n+    }\n+\n+    return sum / static_cast<double>(visits.size());\n }\n \n double MaxWeight(const std::vector<Visit>& visits) {\n     double max = 0.0;\n     for (const auto& visit : visits) {\n         max = std::max(max, visit.weight_kg);\n     }\n     return max;\n }\n \n }  // namespace clinic\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/weight_stats.cpp",
+      "match": "    double sum;",
+      "kind": "wrong",
+      "tag": "uninitialized-value",
+      "explain": "Локальная переменная не инициализирована, а к ней сразу прибавляют. Соседняя функция начинает с нуля явно — здесь про это забыли.",
+      "consequence": "Средний вес приезжает то верным, то астрономическим — зависит от того, что осталось на стеке. В отладочной сборке обычно ноль, поэтому тесты зелёные, а жалобы приходят только из продовой."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    return sum / static_cast<double>(visits.size());",
+      "why": "Приведение размера к double выглядит избыточно, но оно как раз правильное"
+    },
+    {
+      "match": "    double max = 0.0;",
+      "why": "Максимум с нуля не сработает для отрицательных значений — для веса это не случай"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

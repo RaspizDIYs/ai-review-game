@@ -1,0 +1,32 @@
+{
+  "id": "java-reference-equality-001",
+  "stack": "java",
+  "difficulty": 1,
+  "title": "Роль из токена",
+  "prompt": "Проверяй по токену, что роль врачебная, иначе не пускай в карточку",
+  "tests": "Tests run: 6, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS",
+  "diff": "--- a/src/main/java/clinic/auth/RoleGuard.java\n+++ b/src/main/java/clinic/auth/RoleGuard.java\n@@ -10,13 +10,26 @@ public class RoleGuard {\n \n     private static final String VET = \"vet\";\n \n-    public boolean canOpenCard(Token token) {\n-        return token != null;\n+    public boolean canOpenCard(Token token) {\n+        if (token == null || token.isExpired()) {\n+            return false;\n+        }\n+\n+        String role = token.claim(\"role\");\n+\n+        return role == VET;\n+    }\n+\n+    public boolean canEditCard(Token token) {\n+        return canOpenCard(token) && token.claim(\"scope\").contains(\"write\");\n     }\n \n     public String describe(Token token) {\n         return token == null ? \"anonymous\" : token.claim(\"role\");\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/auth/RoleGuard.java",
+      "match": "        return role == VET;",
+      "kind": "wrong",
+      "tag": "reference-equality",
+      "explain": "Строки сравниваются по ссылке. Литерал из константы лежит в пуле, а роль из токена собрана в рантайме — это разные объекты.",
+      "consequence": "Врач получает отказ в доступе к карточке, а вот сравнение с пустой ролью иногда срабатывает — поведение зависит от того, попала строка в пул или нет. Тест зелёный, потому что кладёт в токен ту же литеральную константу."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return canOpenCard(token) && token.claim(\"scope\").contains(\"write\");",
+      "why": "Проверка scope через contains — «write» найдётся и внутри «no-write», но роль ломается не здесь"
+    },
+    {
+      "match": "        return token == null ? \"anonymous\" : token.claim(\"role\");",
+      "why": "Метод для логов может вернуть null, если claim отсутствует — неприятно, но к доступу отношения не имеет"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

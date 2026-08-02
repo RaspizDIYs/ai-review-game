@@ -1,0 +1,32 @@
+{
+  "id": "cs-error-swallowed-001",
+  "stack": "cs",
+  "difficulty": 1,
+  "title": "Импорт справочника пород",
+  "prompt": "Импортируй породы из файла поставщика, кривые строки просто пропускай",
+  "tests": "Passed!  - Failed: 0, Passed: 4, Skipped: 0, Total: 4, Duration: 19 ms",
+  "diff": "--- a/src/Breeds/BreedImporter.cs\n+++ b/src/Breeds/BreedImporter.cs\n@@ -12,14 +12,28 @@ public class BreedImporter\n     private readonly ClinicContext _db;\n \n-    public int Import(IEnumerable<string> lines) => 0;\n+    public int Import(IEnumerable<string> lines)\n+    {\n+        var imported = 0;\n+\n+        foreach (var line in lines)\n+        {\n+            try\n+            {\n+                _db.Breeds.Add(Parse(line));\n+                imported++;\n+            }\n+            catch\n+            {\n+            }\n+        }\n+\n+        _db.SaveChanges();\n+\n+        return imported;\n+    }\n \n     private static Breed Parse(string line)\n     {\n         var cells = line.Split(';');\n \n         return new Breed { Code = cells[0], Name = cells[1] };\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Breeds/BreedImporter.cs",
+      "match": "            catch",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "Пустой catch без типа глотает вообще всё: и кривую строку, и обрыв соединения с базой, и опечатку в коде. Ни счётчика пропусков, ни записи в лог.",
+      "consequence": "Поставщик сменил разделитель — импорт отчитывается «0 пород» и считается успешным. Справочник пустеет, а в мониторинге ровно ничего: единственный след останется в цифре, на которую никто не смотрит."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return new Breed { Code = cells[0], Name = cells[1] };",
+      "why": "Обращение к ячейкам без проверки длины — но именно на этом и держится «просто пропускай»"
+    },
+    {
+      "match": "        _db.SaveChanges();",
+      "why": "Сохранение одним разом в конце — правильный выбор, хотя при падении пропадёт вся пачка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

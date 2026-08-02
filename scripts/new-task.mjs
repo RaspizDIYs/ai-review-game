@@ -7,12 +7,14 @@
  * и сразу подставляет свободный номер, если такая тема уже бралась.
  * Дальше — шесть шагов из content/README.md.
  */
-import { existsSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
+import { LANG } from './highlight.mjs'
 
+const STACKS = Object.keys(LANG)
 const [stack, topic, difficulty] = process.argv.slice(2)
 
-if (!['js', 'py', 'sql'].includes(stack) || !topic || !/^[1-5]$/.test(difficulty ?? '')) {
-  console.error('node scripts/new-task.mjs <js|py|sql> <тема-кебабом> <сложность 1-5>')
+if (!STACKS.includes(stack) || !topic || !/^[1-5]$/.test(difficulty ?? '')) {
+  console.error(`node scripts/new-task.mjs <${STACKS.join('|')}> <тема-кебабом> <сложность 1-5>`)
   process.exit(1)
 }
 
@@ -25,23 +27,44 @@ do {
   n++
 } while (existsSync(new URL(`${id}.json`, SRC)))
 
-const EXAMPLE = {
-  js: {
-    file: 'src/example.ts',
-    diff: `--- a/src/example.ts\n+++ b/src/example.ts\n@@ -1,3 +1,6 @@\n TODO: контекст\n+TODO: добавленная строка\n+TODO: строка с подлянкой\n`,
-    tests: 'PASS  src/example.test.ts (3)\n  ✓ TODO\n\nTests  3 passed (3)',
-  },
-  py: {
-    file: 'example.py',
-    diff: `--- a/example.py\n+++ b/example.py\n@@ -1,3 +1,6 @@\n TODO: контекст\n+TODO: добавленная строка\n+TODO: строка с подлянкой\n`,
-    tests: '==== test session starts ====\ncollected 4 items\n\ntests/test_example.py ....\n\n==== 4 passed in 0.2s ====',
-  },
-  sql: {
-    file: 'src/example.sql',
-    diff: `--- a/src/example.sql\n+++ b/src/example.sql\n@@ -1,3 +1,5 @@\n SELECT TODO\n+FROM TODO\n+WHERE TODO\n`,
-    tests: 'PASS  tests/example.test.ts (4)\n  ✓ TODO\n\nTests  4 passed (4)',
-  },
+/** Файл-пример и правдоподобный зелёный прогон для каждого стека. */
+const TEMPLATE = {
+  js: ['src/example.ts', 'PASS  src/example.test.ts (3)\n  ✓ TODO\n\nTests  3 passed (3)'],
+  py: [
+    'example.py',
+    '==== test session starts ====\ncollected 4 items\n\ntests/test_example.py ....\n\n==== 4 passed in 0.2s ====',
+  ],
+  sql: ['src/example.sql', 'PASS  tests/example.test.ts (4)\n  ✓ TODO\n\nTests  4 passed (4)'],
+  cs: [
+    'src/Example.cs',
+    'Passed!  - Failed: 0, Passed: 6, Skipped: 0, Total: 6, Duration: 41 ms',
+  ],
+  go: ['internal/example/example.go', 'ok  \texample/internal/example\t0.012s'],
+  rs: [
+    'src/example.rs',
+    'running 4 tests\ntest example::tests::works ... ok\n\ntest result: ok. 4 passed; 0 failed',
+  ],
+  java: [
+    'src/main/java/Example.java',
+    'Tests run: 5, Failures: 0, Errors: 0, Skipped: 0\nBUILD SUCCESS',
+  ],
+  php: ['src/Example.php', 'PHPUnit 11.2.0\n\n....                      4 / 4 (100%)\n\nOK (4 tests, 6 assertions)'],
+  cpp: ['src/example.cpp', '[==========] 4 tests from 1 test suite ran.\n[  PASSED  ] 4 tests.'],
+  rb: ['lib/example.rb', '....\n\nFinished in 0.021 seconds\n4 examples, 0 failures'],
+  swift: [
+    'Sources/Example/Example.swift',
+    "Test Suite 'All tests' passed at 2026-08-02 12:00:00.\n\t Executed 4 tests, with 0 failures",
+  ],
+  sh: ['scripts/example.sh', 'ok 4 - TODO\n\n1..4\n# tests 4\n# pass  4\n# fail  0'],
 }[stack]
+
+const EXAMPLE = {
+  file: TEMPLATE[0],
+  tests: TEMPLATE[1],
+  diff:
+    `--- a/${TEMPLATE[0]}\n+++ b/${TEMPLATE[0]}\n@@ -1,3 +1,6 @@\n` +
+    ` TODO: контекст\n+TODO: добавленная строка\n+TODO: строка с подлянкой\n`,
+}
 
 const skeleton = {
   id,

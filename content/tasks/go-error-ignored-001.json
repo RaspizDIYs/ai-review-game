@@ -1,0 +1,32 @@
+{
+  "id": "go-error-ignored-001",
+  "stack": "go",
+  "difficulty": 1,
+  "title": "Конфиг из файла",
+  "prompt": "Пусть сервис читает настройки из config.json, а если файла нет — работает на дефолтах",
+  "tests": "ok  \tapi/internal/config\t0.008s\nok  \tapi/internal/server\t0.114s",
+  "diff": "--- a/internal/config/config.go\n+++ b/internal/config/config.go\n@@ -12,10 +12,24 @@ type Config struct {\n \tAddr    string\n \tTimeout time.Duration\n }\n \n-func Load() Config {\n-\treturn defaults\n+var defaults = Config{Addr: \":8080\", Timeout: 5 * time.Second}\n+\n+func Load(path string) Config {\n+\tcfg := defaults\n+\n+\tdata, err := os.ReadFile(path)\n+\tif err != nil {\n+\t\treturn cfg\n+\t}\n+\n+\tjson.Unmarshal(data, &cfg)\n+\n+\treturn cfg\n }\n \n func (c Config) String() string {\n \treturn fmt.Sprintf(\"%s (timeout %s)\", c.Addr, c.Timeout)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "internal/config/config.go",
+      "match": "json.Unmarshal(data, &cfg)",
+      "kind": "wrong",
+      "tag": "error-ignored",
+      "explain": "Ошибка разбора не проверяется, а Unmarshal при этом успевает записать часть полей.",
+      "consequence": "Опечатка в config.json — и сервис поднимается с наполовину заполненными настройками: адрес из файла, таймаут дефолтный. Никакой строчки в логе, разбираться будут по симптомам через неделю."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\t\treturn cfg",
+      "why": "Отсутствующий файл молча даёт дефолты — спорно, но это ровно то, что просили в задаче"
+    },
+    {
+      "match": "var defaults = Config{Addr: \":8080\", Timeout: 5 * time.Second}",
+      "why": "Пакетная переменная вместо функции — её можно перезаписать из тестов, но на поведение это не влияет"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

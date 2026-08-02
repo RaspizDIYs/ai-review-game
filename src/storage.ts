@@ -3,7 +3,8 @@
  * см. заметку «Бэкенда в MVP нет».
  */
 
-import type { Outcome } from './types'
+import type { LevelId } from './levels'
+import type { Outcome, Stack } from './types'
 
 const KEY = 'review-after-ai:v1'
 
@@ -15,6 +16,34 @@ export interface DailyRecord {
   seconds: number
 }
 
+/**
+ * Незаконченная серия дня. Пишется после каждого вердикта, чтобы упавшая
+ * вкладка не съедала единственный за день заход — и чтобы его нельзя было
+ * начать заново, обновив страницу.
+ */
+export interface RunProgress {
+  day: string
+  /** Номер последнего сыгранного раунда. */
+  index: number
+  taskIds: string[]
+  outcomes: Outcome[]
+  scores: number[]
+  /** Пропущенных подлянок — от них усталость следующего раунда. */
+  missed: number
+  seconds: number
+}
+
+/**
+ * Настройка своей подборки. Уровень — потолок сложности, языки — что вообще
+ * может выпасть. Счётчик сыгранных подборок входит в сид: без него «собрать
+ * ещё одну» отдавало бы ту же тройку, потому что всё остальное не менялось.
+ */
+export interface Settings {
+  level: LevelId
+  stacks: Stack[]
+  played: number
+}
+
 interface Save {
   v: 1
   daily: Record<string, DailyRecord>
@@ -23,6 +52,15 @@ interface Save {
   streakLastDay: string | null
   /** Подсказку первого раунда показываем ровно один раз за всю жизнь. */
   onboarded: boolean
+  progress: RunProgress | null
+  settings: Settings | null
+  /** Полученные ачивки — id из ACHIEVEMENTS. */
+  unlocked: string[]
+  /** Опыт за всё время: из него считается ранг. */
+  lifetime: number
+  sound: boolean
+  /** Агент, выбранный на главной — просто чтобы экран был свой. */
+  hero: string
 }
 
 const EMPTY: Save = {
@@ -32,6 +70,12 @@ const EMPTY: Save = {
   streakCurrent: 0,
   streakLastDay: null,
   onboarded: false,
+  progress: null,
+  settings: null,
+  unlocked: [],
+  lifetime: 0,
+  sound: true,
+  hero: 'commander',
 }
 
 function read(): Save {
@@ -65,9 +109,27 @@ function previousDay(day: string): string {
   return new Date(Date.UTC(y, m - 1, d) - 86_400_000).toISOString().slice(0, 10)
 }
 
+/** Незаконченная серия за сегодня. Вчерашнюю не отдаём: она уже не доиграется. */
+export function getProgress(today: string): RunProgress | null {
+  const p = read().progress
+  return p && p.day === today ? p : null
+}
+
+export function saveProgress(progress: RunProgress): void {
+  write({ ...read(), progress })
+}
+
+export function clearProgress(): void {
+  write({ ...read(), progress: null })
+}
+
 export function saveDaily(day: string, record: DailyRecord): void {
   const save = read()
-  if (save.daily[day]) return // один заход в день, переписывать нечего
+  save.progress = null // серия доиграна, продолжать больше нечего
+  if (save.daily[day]) {
+    write(save)
+    return // один заход в день, переписывать нечего
+  }
 
   save.daily[day] = record
   save.streakCurrent = save.streakLastDay === previousDay(day) ? save.streakCurrent + 1 : 1
@@ -85,12 +147,42 @@ export function getStreak(today: string): number {
   return 0
 }
 
+export function getSettings(fallback: Settings): Settings {
+  const saved = read().settings
+  // Язык мог исчезнуть из пака между версиями — сохранённый выбор не должен
+  // оставлять игрока с пустой подборкой и без объяснений.
+  const stacks = saved?.stacks.filter((s) => fallback.stacks.includes(s)) ?? []
+
+  return saved && stacks.length > 0 ? { ...saved, stacks } : fallback
+}
+
+export function saveSettings(settings: Settings): void {
+  write({ ...read(), settings })
+}
+
 export function isOnboarded(): boolean {
   return read().onboarded
 }
 
 export function markOnboarded(): void {
   write({ ...read(), onboarded: true })
+}
+
+/** Профиль игрока: то, что переживает серию. */
+export interface Profile {
+  unlocked: string[]
+  lifetime: number
+  sound: boolean
+  hero: string
+}
+
+export function getProfile(): Profile {
+  const { unlocked, lifetime, sound, hero } = read()
+  return { unlocked, lifetime, sound, hero }
+}
+
+export function saveProfile(profile: Profile): void {
+  write({ ...read(), ...profile })
 }
 
 export function getBestEndless(): number {

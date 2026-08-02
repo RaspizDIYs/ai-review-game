@@ -1,0 +1,32 @@
+{
+  "id": "sh-unquoted-expansion-001",
+  "stack": "sh",
+  "difficulty": 1,
+  "title": "Выгрузка бэкапа на хранилище",
+  "prompt": "Сложи вчерашние дампы в архив и отправь на хранилище, путь берётся из переменной",
+  "tests": "ok 1 - собирает архив\nok 2 - пропускает пустой каталог\nok 3 - пишет имя архива в лог\n\n1..3\n# tests 3\n# pass  3",
+  "diff": "--- a/scripts/upload-backup.sh\n+++ b/scripts/upload-backup.sh\n@@ -5,15 +5,28 @@ set -euo pipefail\n \n BACKUP_DIR=${BACKUP_DIR:-/var/backups/clinic}\n ARCHIVE=\"/tmp/clinic-$(date -u +%F).tar.gz\"\n \n-tar -czf \"$ARCHIVE\" \"$BACKUP_DIR\"\n+if [ ! -d \"$BACKUP_DIR\" ]; then\n+  echo \"нет каталога $BACKUP_DIR\" >&2\n+  exit 1\n+fi\n+\n+tar -czf $ARCHIVE \"$BACKUP_DIR\"\n+\n+echo \"собран $ARCHIVE\"\n+\n+rclone copy \"$ARCHIVE\" \"$REMOTE:clinic/\" --checksum\n \n rm -f \"$ARCHIVE\"\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/upload-backup.sh",
+      "match": "tar -czf $ARCHIVE \"$BACKUP_DIR\"",
+      "kind": "wrong",
+      "tag": "unquoted-expansion",
+      "explain": "Единственная переменная без кавычек во всём файле. Оболочка разобьёт её по пробелам — путь с пробелом превратится в два аргумента.",
+      "consequence": "Стоит хранилищу переехать в каталог с пробелом в имени — и tar создаст архив с обрезанным именем, а следом rm -f не найдёт его и оставит мусор в /tmp. Тест гоняется на пути без пробелов и остаётся зелёным."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "rclone copy \"$ARCHIVE\" \"$REMOTE:clinic/\" --checksum",
+      "why": "REMOTE нигде не задан по умолчанию — при set -u скрипт честно упадёт, и это заметно сразу"
+    },
+    {
+      "match": "ARCHIVE=\"/tmp/clinic-$(date -u +%F).tar.gz\"",
+      "why": "Имя по дате перезапишет архив при повторном запуске в тот же день — спорно, но предсказуемо"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "go-slice-aliasing-001",
+  "stack": "go",
+  "difficulty": 2,
+  "title": "Первая страница отчёта",
+  "prompt": "Разбей отчёт на первую страницу и остаток, в конец первой добавь строку «итого»",
+  "tests": "ok  \tapi/internal/report\t0.006s\n=== RUN   TestSplit_FirstPageHasTotal\n--- PASS: TestSplit_FirstPageHasTotal (0.00s)\nPASS",
+  "diff": "--- a/internal/report/split.go\n+++ b/internal/report/split.go\n@@ -8,12 +8,26 @@ type Row struct {\n \tAmount int\n }\n \n-func Split(rows []Row) []Row {\n-\treturn rows\n+const pageSize = 10\n+\n+func Split(rows []Row) ([]Row, []Row) {\n+\tsort.Slice(rows, func(i, j int) bool {\n+\t\treturn rows[i].At.Before(rows[j].At)\n+\t})\n+\n+\tif len(rows) <= pageSize {\n+\t\treturn rows, nil\n+\t}\n+\n+\thead := rows[:pageSize]\n+\ttail := rows[pageSize:]\n+\n+\thead = append(head, Row{Kind: \"total\", Amount: sum(rows)})\n+\n+\treturn head, tail\n }\n \n func sum(rows []Row) int {\n \ttotal := 0\n \tfor _, r := range rows {\n \t\ttotal += r.Amount\n \t}\n \treturn total\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "internal/report/split.go",
+      "match": "head = append(head, Row{Kind: \"total\", Amount: sum(rows)})",
+      "kind": "wrong",
+      "tag": "slice-shared-backing",
+      "explain": "head и tail смотрят в один массив. append пишет «итого» ровно в ту ячейку, где лежит первая строка tail, и затирает её.",
+      "consequence": "Одиннадцатая строка отчёта исчезает и заменяется итогом — на второй странице её нет, в сумме она есть. Тест на первую страницу зелёный, потому что смотрит только на неё."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\t\treturn rows[i].At.Before(rows[j].At)",
+      "why": "sort.Slice сортирует переданный слайс на месте — вопрос к API функции, но не причина пропажи строки"
+    },
+    {
+      "match": "\tif len(rows) <= pageSize {",
+      "why": "Ранний выход возвращает nil вторым значением — вызывающему придётся помнить про nil, но это законно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

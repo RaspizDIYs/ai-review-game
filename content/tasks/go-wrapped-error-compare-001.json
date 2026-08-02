@@ -1,0 +1,32 @@
+{
+  "id": "go-wrapped-error-compare-001",
+  "stack": "go",
+  "difficulty": 4,
+  "title": "Повтор при нехватке средств",
+  "prompt": "Не повторяй платёж, если денег не хватило — только на сетевых ошибках",
+  "tests": "ok  \tapi/internal/billing\t0.104s\n=== RUN   TestRetry_StopsOnInsufficient\n--- PASS: TestRetry_StopsOnInsufficient (0.00s)\n=== RUN   TestRetry_RetriesOnTimeout\n--- PASS: TestRetry_RetriesOnTimeout (0.10s)\nPASS",
+  "diff": "--- a/internal/billing/retry.go\n+++ b/internal/billing/retry.go\n@@ -6,16 +6,30 @@ import (\n \t\"time\"\n )\n \n var ErrInsufficientFunds = errors.New(\"insufficient funds\")\n \n-func WithRetry(fn func() error) error {\n-\treturn fn()\n+const attempts = 3\n+\n+func WithRetry(fn func() error) error {\n+\tvar err error\n+\n+\tfor i := 0; i < attempts; i++ {\n+\t\terr = fn()\n+\t\tif err == nil {\n+\t\t\treturn nil\n+\t\t}\n+\n+\t\tif err == ErrInsufficientFunds {\n+\t\t\treturn err\n+\t\t}\n+\n+\t\ttime.Sleep(time.Duration(i+1) * 100 * time.Millisecond)\n+\t}\n+\n+\treturn fmt.Errorf(\"after %d attempts: %w\", attempts, err)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "internal/billing/retry.go",
+      "match": "\t\tif err == ErrInsufficientFunds {",
+      "kind": "wrong",
+      "tag": "wrapped-error-compare",
+      "explain": "Charge оборачивает ошибку через %w, а сравнение идёт по ==. Обёрнутая ошибка никогда не равна исходной — нужен errors.Is.",
+      "consequence": "Отказ «недостаточно средств» считается временным и повторяется трижды. Клиенту уходят три уведомления от банка, а в поддержку — обращение про «списали несколько раз». Тест зелёный, потому что возвращает голую ErrInsufficientFunds, а не обёрнутую."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\t\ttime.Sleep(time.Duration(i+1) * 100 * time.Millisecond)",
+      "why": "Пауза без джиттера — на массовом сбое все клиенты пойдут одной волной, но повтор при этом работает"
+    },
+    {
+      "match": "\treturn fmt.Errorf(\"after %d attempts: %w\", attempts, err)",
+      "why": "Сюда попадает только последняя ошибка, предыдущие теряются — обидно при разборе, но не баг логики"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

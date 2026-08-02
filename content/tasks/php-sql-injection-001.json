@@ -1,0 +1,32 @@
+{
+  "id": "php-sql-injection-001",
+  "stack": "php",
+  "difficulty": 2,
+  "title": "Поиск владельца по фамилии",
+  "prompt": "Добавь поиск владельцев по фамилии с сортировкой по выбранному столбцу",
+  "tests": "PHPUnit 11.2.0\n\n......                             6 / 6 (100%)\n\nOK (6 tests, 11 assertions)",
+  "diff": "--- a/src/Owners/OwnerSearch.php\n+++ b/src/Owners/OwnerSearch.php\n@@ -10,16 +10,30 @@ final class OwnerSearch\n \n     private const SORTABLE = ['last_name', 'created_at'];\n \n-    public function find(string $query): array\n-    {\n-        return [];\n+    public function find(string $query, string $sort = 'last_name'): array\n+    {\n+        if (!in_array($sort, self::SORTABLE, true)) {\n+            $sort = 'last_name';\n+        }\n+\n+        $sql = \"SELECT id, last_name, phone FROM owners\n+                WHERE last_name ILIKE '%\" . $query . \"%'\n+                ORDER BY $sort\n+                LIMIT 50\";\n+\n+        return $this->db->query($sql)->fetchAll();\n     }\n \n     public function byId(int $id): ?array\n     {\n         return $this->db->prepare('SELECT * FROM owners WHERE id = ?')->execute([$id])->fetch();\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Owners/OwnerSearch.php",
+      "match": "                WHERE last_name ILIKE '%\" . $query . \"%'",
+      "kind": "wrong",
+      "tag": "sql-injection",
+      "explain": "Строка из формы приклеивается к запросу. Соседний метод byId работает через подготовленный запрос, а этот — нет.",
+      "consequence": "Кавычка в поле поиска ломает запрос, а подобранная строка отдаёт наружу таблицу владельцев целиком: телефоны, адреса, паспорта. Тесты ищут «Иванов» и ничего не замечают."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "                ORDER BY $sort",
+      "why": "Столбец сортировки тоже подставляется в текст запроса, но он предварительно сверен с белым списком"
+    },
+    {
+      "match": "                LIMIT 50",
+      "why": "Жёсткий лимит без постраничности — часть результатов не увидят, но это не дыра"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

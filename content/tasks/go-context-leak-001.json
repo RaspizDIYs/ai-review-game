@@ -1,0 +1,32 @@
+{
+  "id": "go-context-leak-001",
+  "stack": "go",
+  "difficulty": 3,
+  "title": "Таймаут на поход в биллинг",
+  "prompt": "Ограничь поход в биллинг двумя секундами, а то ручка висит, пока он думает",
+  "tests": "ok  \tapi/internal/billing\t0.212s\n=== RUN   TestCharge_TimesOut\n--- PASS: TestCharge_TimesOut (0.20s)\nPASS",
+  "diff": "--- a/internal/billing/client.go\n+++ b/internal/billing/client.go\n@@ -18,14 +18,27 @@ type Client struct {\n \thttp *http.Client\n }\n \n-func (c *Client) Charge(ctx context.Context, id string, kop int64) error {\n-\treq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url(id), body(kop))\n+const chargeTimeout = 2 * time.Second\n+\n+func (c *Client) Charge(ctx context.Context, id string, kop int64) error {\n+\tctx, cancel := context.WithTimeout(ctx, chargeTimeout)\n+\n+\treq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url(id), body(kop))\n \tif err != nil {\n \t\treturn fmt.Errorf(\"build request: %w\", err)\n \t}\n \n \tresp, err := c.http.Do(req)\n \tif err != nil {\n \t\treturn fmt.Errorf(\"charge %s: %w\", id, err)\n \t}\n \tdefer resp.Body.Close()\n \n+\tif resp.StatusCode != http.StatusOK {\n+\t\treturn fmt.Errorf(\"charge %s: status %d\", id, resp.StatusCode)\n+\t}\n+\n+\tcancel()\n \treturn nil\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "internal/billing/client.go",
+      "match": "\tctx, cancel := context.WithTimeout(ctx, chargeTimeout)",
+      "kind": "missing",
+      "tag": "context-leak",
+      "explain": "cancel вызывается только на счастливом пути. Любой ранний return — и таймер контекста остаётся жить до срабатывания. Здесь нужен defer cancel().",
+      "consequence": "Каждый неуспешный платёж оставляет в памяти таймер и горутину до двух секунд. На спокойном трафике незаметно, в пике биллинга — рост памяти и профиль, забитый context.WithTimeout, ровно тогда, когда разбираться некогда."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\t\treturn fmt.Errorf(\"charge %s: status %d\", id, resp.StatusCode)",
+      "why": "Тело ответа при ошибочном статусе не читается — соединение переиспользуется хуже, но это не утечка"
+    },
+    {
+      "match": "const chargeTimeout = 2 * time.Second",
+      "why": "Таймаут прибит константой вместо настройки — к этому справедливо придраться, но просили именно две секунды"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

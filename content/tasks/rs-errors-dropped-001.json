@@ -1,0 +1,32 @@
+{
+  "id": "rs-errors-dropped-001",
+  "stack": "rs",
+  "difficulty": 2,
+  "title": "Импорт прайса поставщика",
+  "prompt": "Загрузи прайс из csv и верни позиции, битые строки не должны валить импорт",
+  "tests": "running 4 tests\ntest price::tests::reads_all_rows ... ok\ntest price::tests::skips_header ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored",
+  "diff": "--- a/src/price.rs\n+++ b/src/price.rs\n@@ -7,14 +7,27 @@ pub struct Item {\n     pub kop: i64,\n }\n \n-pub fn load(csv: &str) -> Vec<Item> {\n-    Vec::new()\n+pub fn load(csv: &str) -> Vec<Item> {\n+    let mut items: Vec<Item> = csv\n+        .lines()\n+        .skip(1)\n+        .map(parse_row)\n+        .filter_map(Result::ok)\n+        .collect();\n+\n+    items.sort_by(|a, b| a.sku.cmp(&b.sku));\n+    items\n }\n \n fn parse_row(line: &str) -> Result<Item, ParseError> {\n     let mut cells = line.split(';');\n \n     let sku = cells.next().ok_or(ParseError::Shape)?.to_string();\n     let kop = cells.next().ok_or(ParseError::Shape)?.parse()?;\n \n     Ok(Item { sku, kop })\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/price.rs",
+      "match": "        .filter_map(Result::ok)",
+      "kind": "wrong",
+      "tag": "errors-dropped",
+      "explain": "Битые строки не «не валят импорт», а бесследно исчезают: ни счётчика, ни строчки в логе. Отличить пустой прайс от полностью нечитаемого невозможно.",
+      "consequence": "Поставщик сменил разделитель — импорт отработал «успешно» и оставил каталог с четырьмя позициями из шестисот. Заметят по выручке, а не по алерту."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        .skip(1)",
+      "why": "Заголовок отбрасывается по позиции, а не по содержимому — сломается, если поставщик уберёт шапку"
+    },
+    {
+      "match": "    items.sort_by(|a, b| a.sku.cmp(&b.sku));",
+      "why": "Сортировка строк по байтам, а не по локали — для артикулов это нормально"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

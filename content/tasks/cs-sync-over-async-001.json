@@ -1,0 +1,32 @@
+{
+  "id": "cs-sync-over-async-001",
+  "stack": "cs",
+  "difficulty": 4,
+  "title": "Кэш справочника пород",
+  "prompt": "Закэшируй справочник пород в памяти, чтобы не ходить в базу на каждый экран",
+  "tests": "Passed!  - Failed: 0, Passed: 11, Skipped: 0, Total: 11, Duration: 87 ms",
+  "diff": "--- a/src/Breeds/BreedCache.cs\n+++ b/src/Breeds/BreedCache.cs\n@@ -11,15 +11,30 @@ public class BreedCache\n     private readonly IMemoryCache _cache;\n     private readonly ClinicContext _db;\n \n     public BreedCache(IMemoryCache cache, ClinicContext db)\n     {\n         _cache = cache;\n         _db = db;\n     }\n \n-    public Task<IReadOnlyList<Breed>> AllAsync() =>\n-        LoadAsync();\n+    public IReadOnlyList<Breed> All() =>\n+        _cache.GetOrCreate(\"breeds\", entry =>\n+        {\n+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);\n+\n+            return LoadAsync().Result;\n+        })!;\n \n     private async Task<IReadOnlyList<Breed>> LoadAsync() =>\n         await _db.Breeds.OrderBy(b => b.Name).ToListAsync();\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Breeds/BreedCache.cs",
+      "match": "            return LoadAsync().Result;",
+      "kind": "wrong",
+      "tag": "sync-over-async",
+      "explain": "Асинхронный поход в базу ждут блокирующим .Result внутри синхронного метода. Поток из пула стоит всё время запроса, а на классическом контексте синхронизации это ещё и взаимная блокировка.",
+      "consequence": "Пока кэш холодный, каждый запрос занимает поток целиком. На всплеске после деплоя пул исчерпывается, и сервис перестаёт отвечать на всё — включая ручку здоровья, по которой оркестратор его тут же перезапускает, снова с холодным кэшем."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);",
+      "why": "Час жизни без инвалидации при правке справочника — вопрос к свежести данных, но не причина зависаний"
+    },
+    {
+      "match": "        await _db.Breeds.OrderBy(b => b.Name).ToListAsync();",
+      "why": "Сортировка на стороне базы без индекса по имени — лишняя работа, но справочник крошечный"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

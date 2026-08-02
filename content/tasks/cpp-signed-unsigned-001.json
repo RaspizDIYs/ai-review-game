@@ -1,0 +1,32 @@
+{
+  "id": "cpp-signed-unsigned-001",
+  "stack": "cpp",
+  "difficulty": 4,
+  "title": "Последние приёмы за смену",
+  "prompt": "Верни последние N приёмов из списка, если их меньше N — верни все",
+  "tests": "[==========] Running 7 tests from 1 test suite.\n[  PASSED  ] 7 tests.",
+  "diff": "--- a/src/visits.cpp\n+++ b/src/visits.cpp\n@@ -9,16 +9,29 @@ namespace clinic {\n \n-std::vector<Visit> LastVisits(const std::vector<Visit>& visits, int n) {\n-    return visits;\n+std::vector<Visit> LastVisits(const std::vector<Visit>& visits, int n) {\n+    if (n <= 0) {\n+        return {};\n+    }\n+\n+    std::vector<Visit> tail;\n+    tail.reserve(n);\n+\n+    for (size_t i = visits.size() - n; i < visits.size(); ++i) {\n+        tail.push_back(visits[i]);\n+    }\n+\n+    return tail;\n }\n \n bool ByTime(const Visit& a, const Visit& b) {\n     return a.at < b.at;\n }\n \n }  // namespace clinic\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/visits.cpp",
+      "match": "    for (size_t i = visits.size() - n; i < visits.size(); ++i) {",
+      "kind": "wrong",
+      "tag": "signed-unsigned-compare",
+      "explain": "size() беззнаковый: если приёмов меньше n, разность не станет отрицательной, а завернётся в огромное число. Условие цикла сразу ложно — но индекс уже за пределами вектора.",
+      "consequence": "Случай «приёмов меньше, чем просили» — ровно тот, что просили обработать, — молча отдаёт пустой список вместо всех записей. На новой клинике с тремя визитами за день сводка пустая, на старой всё в порядке."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    tail.reserve(n);",
+      "why": "reserve со знаковым n рядом с беззнаковым размером выглядит подозрительно, но само по себе безопасно"
+    },
+    {
+      "match": "    return a.at < b.at;",
+      "why": "Сравнение без учёта одинакового времени даёт нестабильный порядок — к выборке последних отношения не имеет"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

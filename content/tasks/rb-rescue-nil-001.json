@@ -1,0 +1,32 @@
+{
+  "id": "rb-rescue-nil-001",
+  "stack": "rb",
+  "difficulty": 1,
+  "title": "Аватар питомца из внешнего сервиса",
+  "prompt": "Подтягивай фото питомца из сервиса картинок, если не получилось — ставь заглушку",
+  "tests": "....\n\nFinished in 0.031 seconds (files took 0.4 seconds to load)\n4 examples, 0 failures",
+  "diff": "--- a/app/services/avatar_fetcher.rb\n+++ b/app/services/avatar_fetcher.rb\n@@ -6,15 +6,28 @@ class AvatarFetcher\n \n   PLACEHOLDER = '/images/pet-placeholder.png'\n \n-  def call(pet)\n-    PLACEHOLDER\n+  def call(pet)\n+    url = Rails.cache.fetch(\"avatar:#{pet.id}\", expires_in: 1.day) do\n+      fetch_remote(pet) rescue nil\n+    end\n+\n+    url.presence || PLACEHOLDER\n+  end\n+\n+  private\n+\n+  def fetch_remote(pet)\n+    response = @client.get(\"/pets/#{pet.external_id}/photo\")\n+\n+    response.success? ? response.body['url'] : nil\n   end\n end\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/services/avatar_fetcher.rb",
+      "match": "      fetch_remote(pet) rescue nil",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "Модификатор rescue ловит вообще всё, включая опечатку в имени метода и обрыв соединения, и превращает в nil без единой записи в лог.",
+      "consequence": "Сервис картинок сменил формат ответа — у всех питомцев разом заглушка, алертов нет, в мониторинге ровно ничего. Заметят, когда напишет клиент; на разбор уйдёт день, потому что искать будут не там."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    url = Rails.cache.fetch(\"avatar:#{pet.id}\", expires_in: 1.day) do",
+      "why": "Неудача тоже попадает в кэш на сутки — вопрос к времени жизни, но саму ошибку прячет не это"
+    },
+    {
+      "match": "    response.success? ? response.body['url'] : nil",
+      "why": "Неуспешный статус превращается в nil без разбора кода ответа — грубо, но осознанно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

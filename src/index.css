@@ -1,11 +1,83 @@
 @import "tailwindcss";
 
-/* Тёмная тема по умолчанию — играют в неё вечером, после рабочего дня. */
+/**
+ * Оболочка по макету «Ревью за ИИ — игровая оболочка».
+ * Три шрифта и ни одним больше: Unbounded на заголовки, Golos Text на текст,
+ * JetBrains Mono на всё, что притворяется терминалом.
+ */
 @theme {
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: "Unbounded", "Golos Text", sans-serif;
+
+  --color-ink: #0a0a0c;
+  --color-panel: #111116;
+  --color-panel-2: #0e0e12;
+  --color-line: #26262c;
+  --color-line-soft: #1f1f26;
+  --color-text: #e7e7ea;
+  --color-text-dim: #9a9aa4;
+  --color-text-mute: #6b6b77;
+  --color-text-faint: #5c5c66;
 }
 
 html, body, #root { height: 100%; }
 /* Диф скроллится внутри своей рамки, страница — никогда. */
 html, body { overflow-x: hidden; }
-body { @apply bg-zinc-950 text-zinc-200 antialiased; }
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #a78bfa; color: #0a0a0c; }
+
+* { scrollbar-width: thin; scrollbar-color: #2f2f3a transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0d0d11; border-radius: 8px; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #33333f, #23232c);
+  border: 2px solid #0d0d11;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #454554, #2c2c36); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+@keyframes scrIn {
+  from { opacity: 0; transform: translateY(14px) scale(.985); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shake {
+  10%,90% { transform: translateX(-2px) }
+  20%,80% { transform: translateX(4px) }
+  30%,50%,70% { transform: translateX(-7px) }
+  40%,60% { transform: translateX(7px) }
+}
+@keyframes stampIn {
+  0% { opacity: 0; transform: rotate(-24deg) scale(2.6) }
+  60% { opacity: 1; transform: rotate(-9deg) scale(.94) }
+  80% { transform: rotate(-9deg) scale(1.04) }
+  100% { opacity: 1; transform: rotate(-9deg) scale(1) }
+}
+@keyframes pulseRed { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-16px) scale(.94) }
+  to { opacity: 1; transform: none }
+}
+@keyframes flameFlicker { 0%,100% { transform: scale(1) } 50% { transform: scale(1.14) } }
+@keyframes blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
+
+/* Экраны въезжают, а не появляются: смена экрана — событие, а не перерисовка. */
+.screen-in { animation: scrIn .42s cubic-bezier(.2,.8,.2,1) both; }
+.shake { animation: shake .4s cubic-bezier(.36,.07,.19,.97) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-in, .shake, [style*="animation"] { animation: none !important; }
+}

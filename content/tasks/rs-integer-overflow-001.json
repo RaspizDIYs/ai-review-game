@@ -1,0 +1,32 @@
+{
+  "id": "rs-integer-overflow-001",
+  "stack": "rs",
+  "difficulty": 3,
+  "title": "Итог по чеку",
+  "prompt": "Посчитай сумму чека в копейках с учётом количества и скидки",
+  "tests": "running 6 tests\ntest bill::tests::sums_positions ... ok\ntest bill::tests::applies_discount ... ok\ntest bill::tests::empty_bill_is_zero ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored",
+  "diff": "--- a/src/bill.rs\n+++ b/src/bill.rs\n@@ -5,15 +5,29 @@ pub struct Position {\n     pub qty: u32,\n }\n \n-pub fn total(positions: &[Position], discount_percent: u8) -> i32 {\n-    0\n+/// Итог в копейках. Скидка целыми процентами, как в прайсе клиники.\n+pub fn total(positions: &[Position], discount_percent: u8) -> i32 {\n+    let mut sum: i32 = 0;\n+\n+    for p in positions {\n+        sum += p.kop * p.qty as i32;\n+    }\n+\n+    let discount = sum / 100 * discount_percent as i32;\n+\n+    sum - discount\n }\n \n pub fn format(kop: i32) -> String {\n     format!(\"{},{:02} ₽\", kop / 100, kop % 100)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/bill.rs",
+      "match": "        sum += p.kop * p.qty as i32;",
+      "kind": "wrong",
+      "tag": "integer-overflow",
+      "explain": "Копейки в i32: потолок — примерно двадцать один миллион рублей. В отладочной сборке это паника, в релизной — молчаливое переполнение в минус.",
+      "consequence": "Оптовый счёт клинике на два десятка миллионов уходит с отрицательным итогом, и платёжка его принимает. Тесты считают чеки на пару тысяч рублей и до потолка не доходят никогда."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    let discount = sum / 100 * discount_percent as i32;",
+      "why": "Целочисленное деление до умножения теряет копейки на скидке — рубль туда-сюда, но не тот масштаб"
+    },
+    {
+      "match": "    format!(\"{},{:02} ₽\", kop / 100, kop % 100)",
+      "why": "На отрицательной сумме формат даст минус в неожиданном месте — косметика вывода"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

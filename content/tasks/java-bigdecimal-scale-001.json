@@ -1,0 +1,32 @@
+{
+  "id": "java-bigdecimal-scale-001",
+  "stack": "java",
+  "difficulty": 4,
+  "title": "Сверка оплаты с чеком",
+  "prompt": "Сверяй пришедшую оплату с суммой чека и помечай чек оплаченным, если сходится",
+  "tests": "Tests run: 9, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS",
+  "diff": "--- a/src/main/java/clinic/billing/PaymentMatcher.java\n+++ b/src/main/java/clinic/billing/PaymentMatcher.java\n@@ -12,15 +12,30 @@ public class PaymentMatcher {\n \n     private final ReceiptRepository receipts;\n \n-    public boolean match(Payment payment) {\n-        return false;\n+    public boolean match(Payment payment) {\n+        Receipt receipt = receipts.byId(payment.receiptId());\n+\n+        if (receipt == null || receipt.isPaid()) {\n+            return false;\n+        }\n+\n+        BigDecimal expected = receipt.total();\n+        BigDecimal actual = payment.amount();\n+\n+        if (!expected.equals(actual)) {\n+            return false;\n+        }\n+\n+        receipts.markPaid(receipt.id(), payment.id());\n+\n+        return true;\n     }\n \n     public List<Receipt> unpaid() {\n         return receipts.unpaid();\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/billing/PaymentMatcher.java",
+      "match": "        if (!expected.equals(actual)) {",
+      "kind": "wrong",
+      "tag": "bigdecimal-scale",
+      "explain": "equals у BigDecimal учитывает масштаб: 1200.00 и 1200.0 равными не считаются. Сравнивать суммы нужно через compareTo.",
+      "consequence": "Банк присылает суммы с двумя знаками, а часть чеков хранит их с одним — такие платежи молча не находят свой чек. Клиент оплатил, в системе долг, и звонит он не в поддержку, а в клинику на ресепшн."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        if (receipt == null || receipt.isPaid()) {",
+      "why": "Повторная оплата тихо отбрасывается вместо возврата — вопрос к процессу, но не к сравнению сумм"
+    },
+    {
+      "match": "        receipts.markPaid(receipt.id(), payment.id());",
+      "why": "Пометка и проверка идут двумя обращениями без блокировки — гонка возможна, но она не про несовпадение сумм"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

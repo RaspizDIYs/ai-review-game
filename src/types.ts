@@ -1,6 +1,19 @@
 /** Формат контента. Синхронизирован с заметкой «Формат задачи — Ревью за ИИ». */
 
-export type Stack = 'js' | 'py' | 'sql'
+/** Стек задачи. Список синхронизирован с LANG из scripts/highlight.mjs. */
+export type Stack =
+  | 'js'
+  | 'py'
+  | 'sql'
+  | 'cs'
+  | 'go'
+  | 'rs'
+  | 'java'
+  | 'php'
+  | 'cpp'
+  | 'rb'
+  | 'swift'
+  | 'sh'
 
 /** 1..5, см. таблицу сложностей в ТЗ. */
 export type Difficulty = 1 | 2 | 3 | 4 | 5
@@ -51,5 +64,8 @@ export interface Task {
 }
 
 /** Чем закончился раунд. Живёт здесь, а не в компоненте: от него зависят
- *  подсчёт очков, сохранение и строка шеринга. */
-export type Outcome = 'found' | 'missed' | 'clean-correct' | 'false-accusation'
+ *  подсчёт очков, сохранение и строка шеринга.
+ *
+ *  `partial` — попал хотя бы в одну строку подлянки, но не во все либо
+ *  прихватил лишние. Раунд не выигран и не проигран: в прод уехала часть. */
+export type Outcome = 'found' | 'partial' | 'missed' | 'clean-correct' | 'false-accusation'

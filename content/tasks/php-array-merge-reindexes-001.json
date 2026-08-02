@@ -1,0 +1,32 @@
+{
+  "id": "php-array-merge-reindexes-001",
+  "stack": "php",
+  "difficulty": 4,
+  "title": "Цены по прайсу клиники",
+  "prompt": "Наложи прайс конкретной клиники поверх общего, ключ — код услуги",
+  "tests": "PHPUnit 11.2.0\n\n........                           8 / 8 (100%)\n\nOK (8 tests, 15 assertions)",
+  "diff": "--- a/src/Pricing/PriceList.php\n+++ b/src/Pricing/PriceList.php\n@@ -12,16 +12,30 @@ final class PriceList\n \n     public function __construct(private PriceRepository $prices) {}\n \n-    public function forClinic(int $clinicId): array\n-    {\n-        return $this->prices->common();\n+    /** @return array<int|string, int> код услуги => цена в копейках */\n+    public function forClinic(int $clinicId): array\n+    {\n+        $common = $this->prices->common();\n+        $own = $this->prices->byClinic($clinicId);\n+\n+        $merged = array_merge($common, $own);\n+\n+        ksort($merged);\n+\n+        return $merged;\n     }\n \n     public function priceOf(int $clinicId, string $code): ?int\n     {\n         return $this->forClinic($clinicId)[$code] ?? null;\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Pricing/PriceList.php",
+      "match": "        $merged = array_merge($common, $own);",
+      "kind": "wrong",
+      "tag": "array-merge-reindexes",
+      "explain": "array_merge перенумеровывает числовые ключи вместо того, чтобы их перекрывать. Коды услуг вроде «1024» превращаются в 0, 1, 2 — а строковые коды при этом перекрываются нормально.",
+      "consequence": "Клиника переопределила цену услуги с числовым кодом — и вместо своей цены получила чужую, из строки под тем же порядковым номером. Косметическая стрижка по цене операции появляется в счёте у клиента, а не в тестах: там коды буквенные."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        ksort($merged);",
+      "why": "Сортировка ключей меняет порядок вывода прайса — заметно на экране, но цены от неё не зависят"
+    },
+    {
+      "match": "        return $this->forClinic($clinicId)[$code] ?? null;",
+      "why": "Каждый вызов пересобирает весь прайс — расточительно, но правильно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

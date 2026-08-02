@@ -8,7 +8,26 @@
 import { createHighlighter } from 'shiki'
 import { parseDiff } from '../src/diff.ts'
 
-const LANG = { js: 'ts', py: 'python', sql: 'sql' }
+/**
+ * Стек задачи → грамматика Shiki. Этот объект — единственный список стеков
+ * на стороне сборки: по нему же валидатор проверяет префикс id, а new-task
+ * решает, что вообще можно создать. Добавляешь язык — только сюда,
+ * плюс подпись в src/stacks.ts.
+ */
+export const LANG = {
+  js: 'ts',
+  py: 'python',
+  sql: 'sql',
+  cs: 'csharp',
+  go: 'go',
+  rs: 'rust',
+  java: 'java',
+  php: 'php',
+  cpp: 'cpp',
+  rb: 'ruby',
+  swift: 'swift',
+  sh: 'bash',
+}
 const THEME = 'github-dark-default'
 
 /** Строки, которые вообще являются кодом: заголовки файла и @@ подсвечивать нечего. */

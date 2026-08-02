@@ -1,0 +1,32 @@
+{
+  "id": "php-falsy-zero-001",
+  "stack": "php",
+  "difficulty": 3,
+  "title": "Остаток вакцины на складе",
+  "prompt": "Показывай остаток вакцины на складе, если он известен, иначе пиши «нет данных»",
+  "tests": "PHPUnit 11.2.0\n\n.......                            7 / 7 (100%)\n\nOK (7 tests, 12 assertions)",
+  "diff": "--- a/src/Stock/StockView.php\n+++ b/src/Stock/StockView.php\n@@ -11,16 +11,30 @@ final class StockView\n \n     public function __construct(private StockRepository $stock) {}\n \n-    public function line(string $sku): string\n-    {\n-        return '';\n+    public function line(string $sku): string\n+    {\n+        $item = $this->stock->find($sku);\n+\n+        if ($item === null) {\n+            return 'нет данных';\n+        }\n+\n+        $left = $item['quantity'];\n+\n+        if (empty($left)) {\n+            return 'нет данных';\n+        }\n+\n+        return sprintf('%s: %d шт.', $item['name'], $left);\n     }\n \n     public function isLow(string $sku): bool\n     {\n         return ($this->stock->find($sku)['quantity'] ?? 0) < self::LOW;\n     }\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/Stock/StockView.php",
+      "match": "        if (empty($left)) {",
+      "kind": "wrong",
+      "tag": "falsy-vs-none",
+      "explain": "empty() истинно и для нуля. Остаток «ноль штук» — это известные данные, а не их отсутствие.",
+      "consequence": "Кончившаяся вакцина показывается как «нет данных», и регистратор записывает на неё приём вместо того, чтобы заказать. Тесты проверяют пустой склад и склад с пятью дозами — ровно тот случай, когда доз ноль, никто не написал."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return sprintf('%s: %d шт.', $item['name'], $left);",
+      "why": "Название подставляется без экранирования — для html это важно, но метод отдаёт строку для текста"
+    },
+    {
+      "match": "        return ($this->stock->find($sku)['quantity'] ?? 0) < self::LOW;",
+      "why": "Ещё один поход в репозиторий за теми же данными — лишний запрос, но ответ верный"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

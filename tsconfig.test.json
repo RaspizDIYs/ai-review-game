@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.test.ts", "src/diff.ts", "src/scoring.ts", "src/types.ts", "src/daily.ts", "src/share.ts", "src/round.ts"]
+  "include": ["src/**/*.test.ts", "src/diff.ts", "src/scoring.ts", "src/types.ts", "src/daily.ts", "src/share.ts", "src/round.ts", "src/reason.ts", "src/levels.ts", "src/stacks.ts"]
 }

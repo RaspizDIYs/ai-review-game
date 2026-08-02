@@ -44,6 +44,8 @@ export function trackRound(input: {
   attempt: number
   mode: string
   difficulty: number
+  /** Шаг «почему»: 1 — назвал причину, 0 — не назвал, пусто — шага не было. */
+  reason: boolean | null
 }): void {
   send({
     e: 'round',
@@ -53,6 +55,9 @@ export function trackRound(input: {
     a: input.attempt,
     m: input.mode,
     d: input.difficulty,
+    // Разрыв между «нашёл» и «понял» — то, ради чего шаг и делался:
+    // задача, где строку находят все, а причину никто, написана плохо.
+    r: input.reason === null ? '' : input.reason ? 1 : 0,
   })
 }
 

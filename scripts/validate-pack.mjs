@@ -6,6 +6,23 @@
  */
 import { readFileSync } from 'node:fs'
 import { parseDiff } from '../src/diff.ts'
+import { LANG } from './highlight.mjs'
+
+const STACKS = Object.keys(LANG)
+const ID_PREFIX = new RegExp(`^(${STACKS.join('|')})-`)
+
+/**
+ * Признаки красного прогона. Ищем именно провалившиеся тесты, а не слово
+ * «failed»: зелёный отчёт .NET, JUnit и cargo сам печатает «Failures: 0»
+ * и «0 failed» — на этом простая проверка на подстроку и ломалась.
+ */
+const RED = [
+  /\bFAIL(ED|URE)?\b/, // прописными — так их печатают go test, vitest, pytest
+  /✗/,
+  /\b[1-9]\d*\s+(failure|error|failed)/i, // «3 failures», «2 errors»
+  /(failures?|errors?|failed)\s*[:=]\s*[1-9]/i, // «Failures: 2», «Failed: 1»
+  /Traceback|panicked at|Unhandled exception/i,
+]
 
 const pack = JSON.parse(readFileSync(new URL('../src/content/pack.json', import.meta.url), 'utf8'))
 
@@ -19,7 +36,9 @@ for (const t of pack) {
   if (ids.has(t.id)) at('дубликат id')
   ids.add(t.id)
 
-  if (!/^(js|py|sql)-/.test(t.id)) at(`id должен начинаться со стека: ${t.id}`)
+  if (!ID_PREFIX.test(t.id)) at(`id должен начинаться со стека: ${t.id}`)
+  if (!STACKS.includes(t.stack)) at(`неизвестный стек: ${t.stack}`)
+  if (!t.id.startsWith(`${t.stack}-`)) at(`id не совпадает со стеком ${t.stack}`)
   if (t.difficulty < 1 || t.difficulty > 5) at(`difficulty вне 1..5: ${t.difficulty}`)
 
   const lines = parseDiff(t.diff)
@@ -55,7 +74,7 @@ for (const t of pack) {
   if (draft) at('задача не дописана — в ней остались TODO')
 
   if (!t.tests.trim()) at('пустой прогон тестов')
-  if (/FAIL|✗|failed|Error/i.test(t.tests)) at('прогон должен быть зелёным')
+  if (RED.some((re) => re.test(t.tests))) at('прогон должен быть зелёным')
   if (!t.verified_by || t.verified_by === '—')
     warnings.push(`${t.id}: не проверена вторым человеком`)
 }
@@ -76,6 +95,30 @@ for (const difficulty of [...new Set(PLAN)]) {
       `сложность ${difficulty}: всего ${size} задач на ${slots} слот(а) — ` +
         `колода прокручивается за ${cycle} дн., игрок увидит повтор на этой неделе`,
     )
+  }
+}
+
+// Своя подборка — три задачи под выбранный уровень и один язык. Если задач
+// нужной сложности меньше трёх, подборка молча становится короче: играть можно,
+// но обещание «три задачи» ломается. Растить пак стоит по этому списку.
+const SET_SIZE = 3
+const LEVEL_CAP = { Стажёр: 2, Джун: 3, Мидл: 4, Сеньор: 5 }
+
+for (const stack of STACKS) {
+  const own = pack.filter((t) => t.stack === stack)
+  if (own.length === 0) {
+    warnings.push(`${stack}: задач нет вовсе — в списке языков будет прочерк`)
+    continue
+  }
+
+  for (const [name, cap] of Object.entries(LEVEL_CAP)) {
+    const fit = own.filter((t) => t.difficulty <= cap).length
+    if (fit < SET_SIZE) {
+      warnings.push(
+        `${stack}, уровень «${name}»: задач до сложности ${cap} всего ${fit} — ` +
+          `подборка на одном этом языке будет короче трёх`,
+      )
+    }
   }
 }
 

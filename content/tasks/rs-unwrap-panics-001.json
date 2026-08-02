@@ -1,0 +1,32 @@
+{
+  "id": "rs-unwrap-panics-001",
+  "stack": "rs",
+  "difficulty": 1,
+  "title": "Разбор веса из формы",
+  "prompt": "Принимай вес питомца из формы и складывай в карточку, вес приходит строкой",
+  "tests": "running 5 tests\ntest weight::tests::parses_integer ... ok\ntest weight::tests::parses_fraction ... ok\ntest weight::tests::rounds_to_grams ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored",
+  "diff": "--- a/src/weight.rs\n+++ b/src/weight.rs\n@@ -4,12 +4,24 @@ use crate::card::Card;\n \n pub struct Weight(pub f64);\n \n-pub fn apply(card: &mut Card, raw: &str) {\n-    card.weight = None;\n+/// Вес приходит из формы строкой: «7», «7.4», иногда с пробелами по краям.\n+pub fn apply(card: &mut Card, raw: &str) {\n+    let cleaned = raw.trim().replace(',', \".\");\n+\n+    let kilos: f64 = cleaned.parse().unwrap();\n+\n+    card.weight = Some(Weight(round_to_grams(kilos)));\n+    card.weighed_at = Some(Utc::now());\n }\n \n+fn round_to_grams(kilos: f64) -> f64 {\n+    (kilos * 1000.0).round() / 1000.0\n+}\n+\n pub fn format(w: &Weight) -> String {\n     format!(\"{:.3} кг\", w.0)\n }\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/weight.rs",
+      "match": "    let kilos: f64 = cleaned.parse().unwrap();",
+      "kind": "wrong",
+      "tag": "unwrap-panics",
+      "explain": "unwrap на данных из формы: любая непустая ерунда вроде «семь» или «7 кг» — это паника, а не ошибка валидации.",
+      "consequence": "Регистратор опечатался в поле веса — и вместо подсветки поля получил пятисотку, а в проде это ещё и снятый с обслуживания поток воркера. Тесты кормят функцию только правильными строками, поэтому зелёные."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    let cleaned = raw.trim().replace(',', \".\");",
+      "why": "Замена запятой на точку без локали — грубовато, но для веса работает"
+    },
+    {
+      "match": "    (kilos * 1000.0).round() / 1000.0",
+      "why": "Округление через умножение на тысячу копит погрешность f64 — заметно на очень больших числах, но не на весе кота"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

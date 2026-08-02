@@ -1,0 +1,32 @@
+{
+  "id": "rb-n-plus-one-001",
+  "stack": "rb",
+  "difficulty": 3,
+  "title": "Сводка по приёмам за день",
+  "prompt": "Собери сводку за день: приём, кличка, владелец и сумма — одним списком",
+  "tests": ".....\n\nFinished in 0.126 seconds (files took 0.41 seconds to load)\n5 examples, 0 failures",
+  "diff": "--- a/app/queries/day_summary.rb\n+++ b/app/queries/day_summary.rb\n@@ -5,16 +5,30 @@ class DaySummary\n \n   def initialize(clinic, date)\n     @clinic = clinic\n     @date = date\n   end\n \n-  def rows\n-    []\n+  def rows\n+    visits = @clinic.visits\n+                    .where(visited_at: @date.all_day)\n+                    .includes(:pet)\n+                    .order(:visited_at)\n+\n+    visits.map do |visit|\n+      {\n+        at: visit.visited_at,\n+        pet: visit.pet.name,\n+        owner: visit.pet.owner.last_name,\n+        total: visit.positions.sum(:kop),\n+      }\n+    end\n   end\n \n   def total_kop\n     rows.sum { |r| r[:total] }\n   end\n end\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/queries/day_summary.rb",
+      "match": "        owner: visit.pet.owner.last_name,",
+      "kind": "wrong",
+      "tag": "n-plus-one",
+      "explain": "includes подтянул только питомцев. Владелец и позиции догружаются отдельным запросом на каждую строку — нужно includes(pet: :owner) и предзагрузка позиций.",
+      "consequence": "На двадцати приёмах разница незаметна, на дне загруженной клиники это сотни запросов и секунды ожидания на самом частом экране. Тесты гоняют три визита и укладываются в любые рамки."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        total: visit.positions.sum(:kop),",
+      "why": "Сумма считается базой, а не в руби — само по себе это правильный выбор"
+    },
+    {
+      "match": "    rows.sum { |r| r[:total] }",
+      "why": "Итог пересобирает весь список заново — лишняя работа, но результат верный"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

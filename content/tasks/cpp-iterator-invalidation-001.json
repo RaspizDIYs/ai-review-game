@@ -1,0 +1,32 @@
+{
+  "id": "cpp-iterator-invalidation-001",
+  "stack": "cpp",
+  "difficulty": 2,
+  "title": "Разбивка длинных приёмов",
+  "prompt": "Разбей приёмы длиннее часа на две записи по половине, порядок не важен",
+  "tests": "[==========] Running 6 tests from 1 test suite.\n[  PASSED  ] 6 tests.",
+  "diff": "--- a/src/schedule.cpp\n+++ b/src/schedule.cpp\n@@ -10,16 +10,29 @@ namespace clinic {\n \n constexpr int kLongVisitMinutes = 60;\n \n-void SplitLongVisits(std::vector<Visit>& visits) {\n-    (void)visits;\n+void SplitLongVisits(std::vector<Visit>& visits) {\n+    for (auto& visit : visits) {\n+        if (visit.minutes <= kLongVisitMinutes) {\n+            continue;\n+        }\n+\n+        const int half = visit.minutes / 2;\n+        visit.minutes = half;\n+\n+        Visit tail = visit;\n+        tail.at = visit.at + std::chrono::minutes(half);\n+\n+        visits.push_back(tail);\n+    }\n }\n \n int TotalMinutes(const std::vector<Visit>& visits) {\n     int total = 0;\n     for (const auto& visit : visits) {\n         total += visit.minutes;\n     }\n     return total;\n }\n \n }  // namespace clinic\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/schedule.cpp",
+      "match": "        visits.push_back(tail);",
+      "kind": "wrong",
+      "tag": "mutating-while-iterating",
+      "explain": "push_back внутри range-for по тому же вектору: при перевыделении памяти итераторы и ссылка visit становятся недействительными.",
+      "consequence": "На маленьком расписании ёмкости хватает и всё «работает». На загруженном дне вектор переезжает, цикл продолжает читать освобождённую память — расписание приезжает с мусорными приёмами или процесс падает. Воспроизводится только начиная с определённого числа записей."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        const int half = visit.minutes / 2;",
+      "why": "Нечётная длительность теряет минуту при делении — неточность, но не порча памяти"
+    },
+    {
+      "match": "        tail.at = visit.at + std::chrono::minutes(half);",
+      "why": "Вторая половина начинается ровно там, где кончилась первая, без перерыва — вопрос к продукту"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}
