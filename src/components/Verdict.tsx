@@ -1,5 +1,5 @@
 import type { Outcome, Task } from '../types'
-import { foundShare, type Stats } from '../stats.ts'
+import { foundShare, plural, THIN_SAMPLE, type Stats } from '../stats.ts'
 import { DiffView, type LineState } from './DiffView.tsx'
 
 export type { Outcome }
@@ -58,11 +58,18 @@ export function Verdict({ task, outcome, score, picked, onNext, hasNext, stats }
         <span className="font-mono text-2xl tabular-nums text-zinc-200">+{score}</span>
       </div>
 
-      {share !== null && (
+      {share && (
         <p className="text-sm text-zinc-500">
           {task.clean
-            ? `Здесь не попались ${share}% игроков.`
-            : `Эту подлянку находят ${share}% игроков.`}
+            ? `Здесь не попались ${share.found}% игроков.`
+            : `Эту подлянку находят ${share.found}% игроков.`}
+          {share.n < THIN_SAMPLE && (
+            <span className="text-zinc-600">
+              {' '}
+              Пока сыграли всего {share.n}{' '}
+              {plural(share.n, 'человек', 'человека', 'человек')}.
+            </span>
+          )}
         </p>
       )}
 

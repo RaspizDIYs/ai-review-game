@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Task } from '../types'
 import type { Outcome } from '../types'
 import { buildShare, copy, formatTime, isWin } from '../share.ts'
-import { betterThan, type Stats } from '../stats.ts'
+import { betterThan, plural, THIN_SAMPLE, type Stats } from '../stats.ts'
 
 export interface Played {
   task: Task
@@ -56,11 +56,19 @@ export function Summary({ mode, day, history, seconds, newRecord, onHome, stats 
         {newRecord && <p className="mt-1 text-emerald-400">Личный рекорд</p>}
         {(() => {
           const better = betterThan(stats, wins, history.length)
-          return better === null ? null : (
+          if (!better) return null
+
+          return (
             <p className="mt-2 text-zinc-400">
-              {better >= 50
-                ? `Лучше, чем у ${better}% сыгравших.`
-                : `Столько же или больше набрали ${100 - better}% сыгравших.`}
+              {better.pct >= 50
+                ? `Лучше, чем у ${better.pct}% сыгравших сегодня.`
+                : `Столько же или больше набрали ${100 - better.pct}% сыгравших.`}
+              {better.n < THIN_SAMPLE && (
+                <span className="text-zinc-500">
+                  {' '}
+                  Всего {better.n} {plural(better.n, 'заход', 'захода', 'заходов')}.
+                </span>
+              )}
             </p>
           )
         })()}
