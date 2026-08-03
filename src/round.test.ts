@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { isClickable, parseDiff } from './diff.ts'
 import { ENDLESS_LIVES, isRunOver, MAX_ATTEMPTS, resolveSubmit, resolveTimeout } from './round.ts'
 import type { Task } from './types.ts'
 
@@ -31,6 +32,25 @@ test('подлянка вместе с лишней строкой — это н
     assert.equal(r.outcome, 'partial')
     assert.deepEqual(r.coverage, { found: 1, total: 1, extras: 1 })
   }
+})
+
+test('обвинил больше невиновных строк, чем нашёл виноватых, — это обвинение', () => {
+  // Дробовик: отметить весь диф и задеть подлянку. Раньше это считалось
+  // частичной находкой и приносило четверть очков без потери жизни.
+  const all = parseDiff(DIRTY.diff).filter(isClickable).map((l) => l.newNo!)
+  const r = resolveSubmit(DIRTY, all, 0)
+
+  assert.equal(r.kind, 'finish')
+  if (r.kind === 'finish') {
+    assert.equal(r.outcome, 'false-accusation')
+    assert.ok(r.coverage && r.coverage.extras > r.coverage.found)
+  }
+})
+
+test('одна лишняя строка на одну найденную — ещё частично, а не обвинение', () => {
+  // Граница: пока попаданий не меньше промахов, это честная неточность.
+  const r = resolveSubmit(DIRTY, [BUG, DECOY], 0)
+  if (r.kind === 'finish') assert.equal(r.outcome, 'partial')
 })
 
 test('мимо всех подлянок — попытка сгорает, раунд продолжается', () => {

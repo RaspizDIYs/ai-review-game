@@ -84,13 +84,12 @@ export function resolveSubmit(
   const coverage: Coverage = { found, total: task.bugs.length, extras }
   const full = found === task.bugs.length && extras === 0
 
-  return {
-    kind: 'finish',
-    outcome: full ? 'found' : 'partial',
-    attempt: attempts + 1,
-    picks,
-    coverage,
-  }
+  // Обвинил невиновных строк больше, чем нашёл виноватых, — это не частичная
+  // находка, а обвинение. Иначе «отметить весь диф» задевает подлянку
+  // и проходит как половина успеха: жизнь цела, усталости нет, очки капают.
+  const outcome: Outcome = full ? 'found' : extras > found ? 'false-accusation' : 'partial'
+
+  return { kind: 'finish', outcome, attempt: attempts + 1, picks, coverage }
 }
 
 /** Таймер кончился: что отмечено, то и не считается — раунд просто уехал в прод. */

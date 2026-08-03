@@ -1,0 +1,47 @@
+[
+  {
+    "tag": "error-swallowed",
+    "lines": "03:41  api-7f4c  INFO   sync started, 4128 records\n03:41  api-7f4c  INFO   sync finished, 0 errors\n03:41  api-7f4c  INFO   sync finished, 0 errors\n09:12  support        «у нас со вторника не приходят напоминания»\n09:14  api-7f4c  INFO   queue depth 12401, consumers 0",
+    "metric": "ошибок за сутки: 0 · доставлено: 0"
+  },
+  {
+    "tag": "cache-no-invalidation",
+    "lines": "14:02  api-9ab1  WARN   cache hit ratio 0.99 (было 0.42)\n14:02  api-9ab1  INFO   GET /api/owners/318 200 3ms\n14:07  support        «сменил телефон, в карточке старый»\n14:31  support        «и у меня тоже»",
+    "metric": "обращений в поддержку: 11 за час"
+  },
+  {
+    "tag": "n-plus-one",
+    "lines": "21:14  db-main   WARN   connections 98/100\n21:14  db-main   WARN   SELECT * FROM visits WHERE patient_id = $1  ×1841\n21:15  api-7f4c  ERROR  timeout acquiring connection from pool\n21:15  api-7f4c  ERROR  GET /api/reports/day 504",
+    "metric": "p95 ответа: 210ms → 8400ms"
+  },
+  {
+    "tag": "no-transaction-no-guard",
+    "lines": "18:22  api-7f4c  ERROR  payment gateway 503\n18:22  api-7f4c  INFO   visit 8814 marked as paid\n18:22  api-7f4c  ERROR  invoice 8814 not created\n19:40  бухгалтерия    «визит оплачен, счёта нет. таких 23»",
+    "metric": "расхождение с кассой: 23 визита"
+  },
+  {
+    "tag": "off-by-one-pagination",
+    "lines": "11:03  api-9ab1  INFO   GET /api/patients?page=1 200  (20 записей)\n11:03  api-9ab1  INFO   GET /api/patients?page=2 200  (20 записей)\n11:48  клиника        «выгрузили список, в нём 39 питомцев из 40»\n11:52  клиника        «каждый двадцать первый пропадает»",
+    "metric": "выгружено 1938 из 1980"
+  },
+  {
+    "tag": "naive-datetime",
+    "lines": "00:04  cron-1    INFO   напоминания на 2026-08-04: 0\n00:04  cron-1    INFO   напоминания на 2026-08-05: 812\n08:15  support        «клиентам пришло за день до приёма в 3 ночи»\n08:20  support        «а кому-то не пришло вообще»",
+    "metric": "доставлено вовремя: 61%"
+  },
+  {
+    "tag": "float-money",
+    "lines": "23:59  billing   INFO   день закрыт, итог 418 204.97\n23:59  billing   WARN   сумма по чекам 418 204.99\n09:30  бухгалтерия    «второй месяц не сходится на копейки»",
+    "metric": "расхождение: 0.02 ₽ в день, 7.30 ₽ в год"
+  },
+  {
+    "tag": "update-without-where",
+    "lines": "16:41  db-main   INFO   UPDATE patients SET clinic_id = $1\n16:41  db-main   INFO   1980 rows affected\n16:42  api-7f4c  INFO   GET /api/patients 200 (1980 записей)\n16:44  клиника        «у нас в списке чужие животные»",
+    "metric": "затронуто записей: 1980 из 1980"
+  },
+  {
+    "tag": "sql-injection",
+    "lines": "02:11  api-7f4c  INFO   GET /api/search?q=%27%20OR%201%3D1--\n02:11  db-main   INFO   SELECT * FROM owners WHERE name LIKE '' OR 1=1--'\n02:11  api-7f4c  INFO   200, отдано 4128 записей\n02:12  api-7f4c  INFO   тот же запрос, ещё 40 раз",
+    "metric": "отдано наружу: 4128 карточек владельцев"
+  }
+]

@@ -69,6 +69,8 @@ interface Props {
   rightReason: ReasonOption | null
   stats: Stats | null
   hasNext: boolean
+  /** Чем подписать кнопку, если «следующий PR» — неправда (смена). */
+  nextLabel?: string
   onNext: () => void
 }
 
@@ -104,12 +106,18 @@ export function Verdict({
   rightReason,
   stats,
   hasNext,
+  nextLabel,
   onNext,
 }: Props) {
   const animated = useCountUp(score)
   const share = foundShare(stats, task.id)
 
-  // Заголовок «нашёл, но с лишними» — отдельный случай: строки все, обвинений больше.
+  // Два отдельных случая, у которых свой заголовок.
+  //
+  // «Нашёл, но с лишними» — подлянка вся, но сверху навешано обвинений.
+  // «Обвинил половину файла» — обвинений больше, чем подлянок: формально
+  // строку задел, но это не находка, и говорить «подлянки не было» здесь
+  // неправда, она была.
   const head =
     outcome === 'partial' && coverage && coverage.found >= coverage.total
       ? {
@@ -118,7 +126,14 @@ export function Verdict({
           sub: 'Подлянку ты угадал. Остальные обвинения — мимо: команда потеряла время.',
           stamp: 'С ЛИШНИМИ',
         }
-      : HEAD[outcome]
+      : outcome === 'false-accusation' && !task.clean
+        ? {
+            ...HEAD['false-accusation'],
+            title: 'Обвинил половину файла',
+            sub: 'Подлянка тут была, и ты её задел — вместе со всем остальным. Ревью, после которого нужно перепроверять каждую строку, не стоит ничего.',
+            stamp: 'ВСЛЕПУЮ',
+          }
+        : HEAD[outcome]
 
   const marks = new Map<number, LineState>()
   for (const d of task.decoys) marks.set(d.line, 'decoy')
@@ -298,7 +313,7 @@ export function Verdict({
       )}
 
       <Button accent={head.color} onClick={onNext} iconAfter="arrow-right" autoFocus>
-        {hasNext ? 'Следующий PR' : 'Завершить проверку'}
+        {nextLabel ?? (hasNext ? 'Следующий PR' : 'Завершить проверку')}
       </Button>
     </div>
   )

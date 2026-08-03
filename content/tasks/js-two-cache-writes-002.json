@@ -1,0 +1,40 @@
+{
+  "id": "js-two-cache-writes-002",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Кэш карточки владельца",
+  "prompt": "Закэшируй карточку владельца, а то на приёме её дёргают по десять раз",
+  "tests": "PASS  src/owner-card.test.ts (6)\n  ✓ первый вызов идёт в базу\n  ✓ второй вызов берёт из кэша\n  ✓ после переименования отдаёт новое имя\n\nTests  6 passed (6)",
+  "diff": "--- a/src/owner-card.ts\n+++ b/src/owner-card.ts\n@@ -1,18 +1,38 @@\n import { db } from './db.ts'\n \n const cache = new Map<number, Owner>()\n \n export async function getOwner(id: number): Promise<Owner> {\n   const hit = cache.get(id)\n   if (hit) return hit\n \n   const owner = await db.owners.byId(id)\n   cache.set(id, owner)\n   return owner\n }\n \n+export async function renameOwner(id: number, fullName: string): Promise<void> {\n+  await db.owners.update(id, { fullName })\n+  cache.set(id, { ...cache.get(id)!, fullName })\n+}\n+\n+export async function attachPhone(id: number, phone: string): Promise<void> {\n+  await db.owners.update(id, { phone })\n+}\n+\n+export async function deleteOwner(id: number): Promise<void> {\n+  await db.owners.remove(id)\n+  cache.delete(id)\n+}\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "src/owner-card.ts",
+      "match": "  cache.set(id, { ...cache.get(id)!, fullName })",
+      "kind": "wrong",
+      "tag": "cache-updated-from-itself",
+      "explain": "Кэш обновляется из самого себя, а не из базы: если записи там ещё нет, `cache.get(id)!` вернёт undefined и в кэш ляжет объект из одного поля. Проще и надёжнее — удалить ключ и дать следующему чтению сходить в базу.",
+      "consequence": "Владелец, которого переименовали до первого просмотра карточки, начинает отдаваться без телефона и адреса. На приёме это видно как «карточка сломалась», а воспроизвести не выходит: у того, кто проверяет, карточка уже в кэше целиком."
+    },
+    {
+      "file": "src/owner-card.ts",
+      "match": "  await db.owners.update(id, { phone })",
+      "kind": "missing",
+      "tag": "cache-no-invalidation",
+      "explain": "Телефон записан в базу, а кэш не тронут вовсе — рядом, в переименовании, про кэш не забыли. Строкой ниже должен быть сброс ключа.",
+      "consequence": "Клиент меняет телефон, регистратура звонит по старому. Живёт это до перезапуска процесса, то есть неделями."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "const cache = new Map<number, Owner>()",
+      "why": "кэш без ограничения размера — вопрос к памяти, но не та ошибка, которую здесь ищут"
+    },
+    {
+      "match": "  cache.delete(id)",
+      "why": "при удалении кэш сброшен — здесь как раз всё правильно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

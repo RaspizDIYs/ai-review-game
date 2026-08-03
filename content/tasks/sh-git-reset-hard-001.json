@@ -1,0 +1,32 @@
+{
+  "id": "sh-git-reset-hard-001",
+  "stack": "sh",
+  "difficulty": 2,
+  "title": "Обновление рабочей копии на сервере",
+  "prompt": "Сделай скрипт, который подтягивает свежий main на сервере перед перезапуском",
+  "tests": "$ ./deploy/pull.sh\nиз origin/main: 3 коммита\nHEAD теперь на 9f2c1ab chore(release): 0.5.3\nсервисы перезапущены\n\n$ git status --porcelain\n(пусто)",
+  "diff": "--- a/deploy/pull.sh\n+++ b/deploy/pull.sh\n@@ -1,5 +1,22 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n cd /srv/vet\n \n+git fetch origin main\n+\n+# приводим рабочую копию к состоянию origin\n+git reset --hard origin/main\n+\n+git log --oneline -1\n+\n+docker compose pull\n+docker compose up -d\n+\n+echo \"сервисы перезапущены\"\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "deploy/pull.sh",
+      "match": "git reset --hard origin/main",
+      "kind": "wrong",
+      "tag": "reset-hard-drops-local-work",
+      "explain": "reset --hard молча выбрасывает всё, что в рабочей копии отличается от origin: правку в конфиге, наспех поменянный лимит, файл, который кто-то оставил на сервере. Скрипт должен либо падать при грязной копии (git diff --quiet), либо не трогать её вовсе.",
+      "consequence": "Однажды кто-то правит nginx.conf прямо на сервере, чтобы потушить инцидент, и уходит спать. Утренний деплой стирает правку, инцидент повторяется — и связать одно с другим не выходит, потому что в истории гита этой правки никогда не было."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "docker compose pull",
+      "why": "образы тянутся до перезапуска — правильный порядок"
+    },
+    {
+      "match": "git fetch origin main",
+      "why": "fetch без merge — сам по себе безопасен"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "docker-healthcheck-shallow-001",
+  "stack": "docker",
+  "difficulty": 3,
+  "title": "Проверка готовности контейнера",
+  "prompt": "Добавь healthcheck, чтобы оркестратор не слал трафик в неподнявшийся контейнер",
+  "tests": "[+] Running 2/2\n ✔ Container vet-postgres  Healthy\n ✔ Container vet-api       Healthy\n\ndocker inspect --format='{{.State.Health.Status}}' vet-api\nhealthy",
+  "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,16 +1,34 @@\n services:\n   api:\n     image: vet-api:0.4.1\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: ${DATABASE_URL:?нужен DATABASE_URL}\n     ports:\n       - \"3000:3000\"\n+    healthcheck:\n+      test: [\"CMD\", \"curl\", \"-fsS\", \"http://127.0.0.1:3000/\"]\n+      interval: 10s\n+      timeout: 3s\n+      retries: 3\n+      start_period: 5s\n+    depends_on:\n+      postgres:\n+        condition: service_healthy\n \n   postgres:\n     image: postgres:16.4-alpine\n     restart: unless-stopped\n+    healthcheck:\n+      test: [\"CMD-SHELL\", \"pg_isready -U vet\"]\n+      interval: 10s\n+      timeout: 3s\n+      retries: 5\n     volumes:\n       - pgdata:/var/lib/postgresql/data\n \n volumes:\n   pgdata:\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "docker-compose.yml",
+      "match": "      test: [\"CMD\", \"curl\", \"-fsS\", \"http://127.0.0.1:3000/\"]",
+      "kind": "wrong",
+      "tag": "healthcheck-checks-nothing",
+      "explain": "Корневая ручка отдаёт статику и живёт без базы. Контейнер отчитывается «healthy», ещё не открыв ни одного соединения к постгресу. Проверять надо ту ручку, которая ходит в зависимости, — /ready.",
+      "consequence": "После выкатки балансировщик пускает трафик в контейнер, который не может ответить ни на один реальный запрос. Пользователи видят пятисотые, а мониторинг — зелёный healthcheck, и первые двадцать минут инцидента уходят на спор, кто врёт."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "      start_period: 5s",
+      "why": "пять секунд на старт маловато для холодного джаваскрипта, но это вопрос настройки, а не ошибка"
+    },
+    {
+      "match": "        condition: service_healthy",
+      "why": "апи ждёт готовности базы — как раз правильно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

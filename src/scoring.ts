@@ -28,16 +28,21 @@ export function findDecoy(task: Task, line: number) {
   return task.decoys.find((d) => d.line === line)
 }
 
-/** Каждая лишняя строка режет точность на пятую часть — но не в ноль. */
-const EXTRA_PENALTY = 0.2
+/** Честно найденная часть без лишних обвинений стоит не меньше четверти. */
 const PARTIAL_FLOOR = 0.25
 
 /**
  * Точность ответа.
  *
  * Со второй попытки дешевле: первая догадка стоит дороже проверенной перебором.
- * Частичный ответ считается по покрытию — сколько строк подлянки нашёл и сколько
- * обвинил зря. Обвинить полфайла и попасть — это не то же самое, что попасть.
+ *
+ * Частичный ответ считается по двум числам сразу: сколько строк подлянки нашёл
+ * (полнота) и какая доля отмеченного вообще была подлянкой (точность).
+ * Одной полноты мало — по ней «отметить весь файл» даёт единицу.
+ *
+ * Порог снизу действует только тогда, когда лишних обвинений нет. Иначе
+ * он превращается в гарантию: натыкал полфайла, задел подлянку — и всё равно
+ * получил четверть очков, да ещё и без потерянной жизни в бесконечном.
  */
 export function accuracy(
   outcome: Outcome,
@@ -48,8 +53,11 @@ export function accuracy(
   if (outcome === 'found') return attempt === 1 ? 1 : 0.6
 
   if (outcome === 'partial' && coverage) {
-    const share = (coverage.found / coverage.total) * (1 - EXTRA_PENALTY * coverage.extras)
-    return Math.max(PARTIAL_FLOOR, share) * (attempt === 1 ? 1 : 0.7)
+    const recall = coverage.found / coverage.total
+    const precision = coverage.found / (coverage.found + coverage.extras)
+    const share = coverage.extras === 0 ? Math.max(PARTIAL_FLOOR, recall) : recall * precision
+
+    return share * (attempt === 1 ? 1 : 0.7)
   }
 
   return 0

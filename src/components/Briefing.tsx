@@ -1,4 +1,6 @@
 import type { Agent } from '../agents.ts'
+import type { PullRequest } from '../pr.ts'
+import { plural } from '../stats.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
 import { AgentAvatar, Button, Kicker } from '../ui/kit.tsx'
@@ -6,16 +8,42 @@ import { AgentAvatar, Button, Kicker } from '../ui/kit.tsx'
 interface Props {
   task: Task
   agent: Agent
+  /** Пул-реквест раунда: заголовок, ветка, метки. */
+  pr: PullRequest
   /** Реплика агента: он уверен, что всё в порядке. В этом и подвох. */
   line: string
   seconds: number
   onStart: () => void
 }
 
-export function Briefing({ task, agent, line, seconds, onStart }: Props) {
+/** Метки в списке PR узнаваемы по цвету — красим по смыслу, а не по алфавиту. */
+const LABEL_COLOR: Record<string, string> = {
+  'good first review': '#7c9cf5',
+  'needs review': '#c9a227',
+  'high risk': '#f87171',
+}
+
+export function Briefing({ task, agent, pr, line, seconds, onStart }: Props) {
   return (
     <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-6">
       <div className="overflow-hidden rounded-2xl border border-[#26262c] bg-[#111116]">
+        {/* Шапка как в списке пул-реквестов: открыт, кто и куда вливает. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-[#1f1f26] bg-[#0e0e12] px-5 py-3">
+          <span className="flex items-center gap-1.5 rounded-full bg-[#238636] px-2.5 py-1 font-mono text-[11px] text-white">
+            <Icon name="circle-dot" size={12} />
+            Open
+          </span>
+          <span className="font-mono text-[11px] text-[#6b6b77]">
+            <span className="text-[#9a9aa4]">{agent.name}</span>
+            <span className="text-[#4a4a54]">[bot]</span> хочет влить {pr.files}{' '}
+            {plural(pr.files, 'файл', 'файла', 'файлов')} в <span className="text-[#9a9aa4]">main</span>
+          </span>
+          <span className="flex items-center gap-1 rounded-md border border-[#26262c] bg-[#15151b] px-1.5 py-0.5 font-mono text-[11px] text-[#8b8b95]">
+            <Icon name="git-branch" size={11} />
+            {pr.branch}
+          </span>
+        </div>
+
         <div className="flex flex-wrap items-stretch gap-5 border-b border-[#1f1f26] p-5">
           <AgentAvatar
             slug={agent.slug}
@@ -26,17 +54,23 @@ export function Briefing({ task, agent, line, seconds, onStart }: Props) {
           />
 
           <div className="flex min-w-[220px] flex-[1_1_260px] flex-col justify-center">
-            <h1 className="font-display m-0 text-[clamp(20px,3.6vw,27px)] font-bold tracking-[-.02em] text-[#f4f4f6]">
-              {task.title}
+            <h1 className="font-display m-0 text-[clamp(19px,3.4vw,26px)] leading-[1.25] font-bold tracking-[-.02em] text-[#f4f4f6]">
+              {pr.title} <span className="font-mono font-normal text-[#5c5c66]">#{pr.number}</span>
             </h1>
 
             <div className="mt-3 flex flex-wrap gap-[7px]">
-              <span
-                className="rounded-full px-2.5 py-0.5 font-mono text-[11px]"
-                style={{ border: `1px solid ${agent.color}44`, color: agent.color }}
-              >
-                {agent.lang}
-              </span>
+              {pr.labels.map((label) => {
+                const color = LABEL_COLOR[label] ?? agent.color
+                return (
+                  <span
+                    key={label}
+                    className="rounded-full px-2.5 py-0.5 font-mono text-[11px]"
+                    style={{ border: `1px solid ${color}55`, background: `${color}14`, color }}
+                  >
+                    {label}
+                  </span>
+                )
+              })}
               <span className="rounded-full border border-[#26262c] px-2.5 py-0.5 font-mono text-[11px] text-[#8b8b95]">
                 сложность {task.difficulty}
               </span>

@@ -12,6 +12,8 @@
     "validate": "node scripts/validate-pack.mjs",
     "check": "npm run pack && tsc -b && npm run test && npm run validate",
     "pack": "node scripts/build-pack.mjs",
+    "avatars": "node scripts/fit-avatars.mjs",
+    "sim": "node scripts/sim-shift.ts",
     "new-task": "node scripts/new-task.mjs",
     "draft": "node scripts/draft-task.mjs"
   },

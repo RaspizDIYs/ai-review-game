@@ -1,0 +1,32 @@
+{
+  "id": "docker-latest-tag-001",
+  "stack": "docker",
+  "difficulty": 1,
+  "title": "Образ для обработчика очереди",
+  "prompt": "Собери отдельный образ под воркер, который разгребает очередь напоминаний",
+  "tests": "[+] Building 28.4s (9/9) FINISHED\n => => naming to docker.io/library/vet-worker:0.2.0\n[+] Running 1/1\n ✔ Container vet-worker  Started\n\nworker: подключился к очереди, задач в работе 0",
+  "diff": "--- a/worker.Dockerfile\n+++ b/worker.Dockerfile\n@@ -1,3 +1,20 @@\n+FROM node:latest\n+\n+WORKDIR /app\n+\n+COPY package.json package-lock.json ./\n+RUN npm ci --omit=dev\n+\n+COPY src ./src\n+\n+ENV NODE_ENV=production\n+ENV QUEUE_URL=${QUEUE_URL:?нужен QUEUE_URL}\n+\n+USER node\n+\n+CMD [\"node\", \"src/worker.js\"]\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "worker.Dockerfile",
+      "match": "FROM node:latest",
+      "kind": "wrong",
+      "tag": "base-image-floats",
+      "explain": "Тег latest — это не версия, а указатель, который меняется без спроса. Сегодня за ним двадцать вторая нода, завтра двадцать четвёртая. Базовый образ фиксируют версией, а лучше ещё и дайджестом.",
+      "consequence": "Сборка, которая проходила месяц, однажды падает или, хуже, не падает — воркер поднимается на новой ноде с другим поведением таймеров. Виноватым выглядит последний коммит, хотя его автор не трогал ничего похожего."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "COPY package.json package-lock.json ./",
+      "why": "зависимости отдельным слоем до исходников — правильный порядок, кэш не ломается"
+    },
+    {
+      "match": "ENV QUEUE_URL=${QUEUE_URL:?нужен QUEUE_URL}",
+      "why": "подстановка в ENV на этапе сборки выглядит странно, но это просто значение по умолчанию"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

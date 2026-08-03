@@ -1,0 +1,36 @@
+{
+  "id": "docker-volume-missing-001",
+  "stack": "docker",
+  "difficulty": 5,
+  "title": "Хранилище файлов клиники",
+  "prompt": "Подними рядом minio под снимки и анализы, чтобы не держать файлы в базе",
+  "tests": "[+] Running 3/3\n ✔ Container vet-postgres  Healthy\n ✔ Container vet-minio     Healthy\n ✔ Container vet-api       Healthy\n\nsmoke: загружен снимок 2.1MB → отдан обратно, контрольная сумма совпала",
+  "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,20 +1,40 @@\n services:\n   api:\n     image: vet-api:0.5.0\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: ${DATABASE_URL:?}\n       S3_ENDPOINT: http://minio:9000\n     depends_on:\n       minio:\n         condition: service_healthy\n \n+  minio:\n+    image: minio/minio:RELEASE.2026-05-14T02-52-50Z\n+    restart: unless-stopped\n+    command: server /data --console-address \":9001\"\n+    environment:\n+      MINIO_ROOT_USER: ${MINIO_USER:?}\n+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?}\n+    healthcheck:\n+      test: [\"CMD\", \"mc\", \"ready\", \"local\"]\n+      interval: 15s\n+      retries: 5\n+\n   postgres:\n     image: postgres:16.4-alpine\n     restart: unless-stopped\n     volumes:\n       - pgdata:/var/lib/postgresql/data\n \n volumes:\n   pgdata:\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "docker-compose.yml",
+      "match": "    command: server /data --console-address \":9001\"",
+      "kind": "missing",
+      "tag": "container-data-not-persisted",
+      "explain": "У minio нет тома: каталог /data живёт в слое контейнера. У постгреса рядом том есть — и это делает пропуск незаметным, глаз видит volumes ниже и успокаивается. Нужен свой именованный том и запись о нём в volumes.",
+      "consequence": "Всё работает ровно до первого docker compose up с новым образом: контейнер пересоздаётся, и снимки за всё время исчезают. Восстановить нечего — бэкапят базу, а файлы никто не бэкапил, потому что все были уверены, что они на томе."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    image: minio/minio:RELEASE.2026-05-14T02-52-50Z",
+      "why": "версия прибита намертво — именно так и надо"
+    },
+    {
+      "match": "      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?}",
+      "why": "пароль из переменной окружения и падение без неё — правильно"
+    },
+    {
+      "match": "      S3_ENDPOINT: http://minio:9000",
+      "why": "http внутри сети композа — нормально, наружу это не торчит"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

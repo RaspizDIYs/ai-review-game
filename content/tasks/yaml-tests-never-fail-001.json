@@ -1,0 +1,32 @@
+{
+  "id": "yaml-tests-never-fail-001",
+  "stack": "yaml",
+  "difficulty": 2,
+  "title": "Тесты на пул-реквестах",
+  "prompt": "Пусть на каждый пул-реквест гоняются тесты, а результат виден в PR",
+  "tests": "✓ checks / test (pull_request)  Successful in 48s\n✓ checks / build (pull_request)  Successful in 1m 12s\n\nAll checks have passed",
+  "diff": "--- a/.github/workflows/checks.yml\n+++ b/.github/workflows/checks.yml\n@@ -1,10 +1,29 @@\n name: checks\n \n on:\n   pull_request:\n \n jobs:\n   test:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+          cache: npm\n+      - run: npm ci\n+      - name: unit\n+        continue-on-error: true\n+        run: npm test\n+      - name: summary\n+        if: always()\n+        run: echo \"тесты отработали\" >> $GITHUB_STEP_SUMMARY\n+\n+  build:\n+    runs-on: ubuntu-24.04\n+    steps:\n+      - uses: actions/checkout@v4\n+      - run: npm ci && npm run build\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": ".github/workflows/checks.yml",
+      "match": "        continue-on-error: true",
+      "kind": "wrong",
+      "tag": "ci-step-cannot-fail",
+      "explain": "Шаг с continue-on-error не роняет джобу. Тесты гоняются, красные тесты честно печатаются в лог — и проверка всё равно зелёная. Галочка в пул-реквесте перестаёт что-либо значить.",
+      "consequence": "Красные тесты едут в main месяцами, потому что никто не открывает лог зелёной проверки. Обнаруживается это в тот день, когда кто-то наконец запускает тесты локально — и видит, что их там сорок штук падает."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        if: always()",
+      "why": "шаг сводки должен выполняться и при падении — здесь always() как раз к месту"
+    },
+    {
+      "match": "      - run: npm ci && npm run build",
+      "why": "сборка отдельной джобой без кэша — медленно, но не ошибка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

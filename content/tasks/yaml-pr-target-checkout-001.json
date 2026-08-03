@@ -1,0 +1,32 @@
+{
+  "id": "yaml-pr-target-checkout-001",
+  "stack": "yaml",
+  "difficulty": 5,
+  "title": "Бот с покрытием в пул-реквестах",
+  "prompt": "Пусть бот пишет в пул-реквест комментарий с покрытием тестов, в том числе на внешние PR",
+  "tests": "✓ coverage / report (pull_request_target)  Successful in 1m 07s\n  → покрытие 74.2% (+0.8%)\n  → комментарий обновлён в PR #218\n\nAll checks have passed",
+  "diff": "--- a/.github/workflows/coverage.yml\n+++ b/.github/workflows/coverage.yml\n@@ -1,10 +1,32 @@\n name: coverage\n \n on:\n-  pull_request:\n+  pull_request_target:\n \n permissions:\n   pull-requests: write\n \n jobs:\n   report:\n     runs-on: ubuntu-24.04\n     steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          ref: ${{ github.event.pull_request.head.sha }}\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+      - run: npm ci\n+      - run: npm run coverage\n+      - name: comment\n+        uses: actions/github-script@v7\n+        with:\n+          script: |\n+            const body = require('fs').readFileSync('coverage/summary.md', 'utf8')\n+            await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body })\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": ".github/workflows/coverage.yml",
+      "match": "          ref: ${{ github.event.pull_request.head.sha }}",
+      "kind": "wrong",
+      "tag": "untrusted-code-with-write-token",
+      "explain": "pull_request_target выполняется в контексте базовой ветки — с правами на запись и доступом к секретам. Выкачивать сюда код из чужого пул-реквеста и запускать его npm ci означает отдать этот токен автору PR: любой хук установки выполнит что угодно. Либо checkout базовой ветки, либо обычный pull_request без прав на запись.",
+      "consequence": "Первый же посторонний пул-реквест с постустановочным скриптом получает токен с правом записи в репозиторий. Понять, что произошло, можно только по логам аудита, и то если знать, что искать."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  pull-requests: write",
+      "why": "право писать комментарии боту действительно нужно, само по себе оно не ошибка"
+    },
+    {
+      "match": "        uses: actions/github-script@v7",
+      "why": "официальное действие с закреплённой мажорной версией — обычная практика"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

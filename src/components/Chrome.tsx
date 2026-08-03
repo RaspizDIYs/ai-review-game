@@ -1,44 +1,66 @@
+import type { Track } from '../music.ts'
+import type { PullRequest } from '../pr.ts'
 import { plural } from '../stats.ts'
 import type { Outcome } from '../types'
 import { Icon } from '../ui/icons.tsx'
+import { Gauges } from './Gauges.tsx'
+import { RepoName } from './RepoName.tsx'
+import { Volume } from './Volume.tsx'
 
 interface Props {
   accent: string
-  /** Номер «пул-реквеста» — украшение, но оно держит всю метафору экрана. */
-  prNumber: number
+  /** Имя репозитория, как его ввёл игрок. Правится тут же, в шапке. */
+  repo: string
+  onRepo: (repo: string) => void
+  /** Пул-реквест текущего раунда. Вне забега его нет: смотреть нечего. */
+  pr: PullRequest | null
   achCount: number
   achTotal: number
-  sound: boolean
-  onSound: () => void
+  audio: {
+    sound: boolean
+    music: number
+    musicOn: boolean
+    track: Track | null
+    onSound: () => void
+    onMusic: (volume: number) => void
+    onMusicToggle: () => void
+    onNext: () => void
+    onMute: (muted: boolean) => void
+  }
   onAch: () => void
   /** Шапка забега показывается только внутри раунда. */
   run: {
-    outcomes: Outcome[]
+    /** По одному на сыгранный ход. `cleanup` — ход ушёл на уборку. */
+    outcomes: (Outcome | 'cleanup')[]
     index: number
     length: number
     total: number
     endless: boolean
     lives: number
     maxLives: number
+    /** Шкалы прода — только в смене. */
+    prod: { health: number; velocity: number; delta: number } | null
     onExit: () => void
   } | null
 }
 
-const PIP_COLOR: Record<Outcome, string> = {
+const PIP_COLOR: Record<Outcome | 'cleanup', string> = {
   found: '#34d399',
   'clean-correct': '#34d399',
   missed: '#f87171',
   partial: '#fbbf24',
   'false-accusation': '#fbbf24',
+  cleanup: '#7c9cf5',
 }
 
 export function Chrome({
   accent,
-  prNumber,
+  repo,
+  onRepo,
+  pr,
   achCount,
   achTotal,
-  sound,
-  onSound,
+  audio,
   onAch,
   run,
 }: Props) {
@@ -48,29 +70,36 @@ export function Chrome({
         <span style={{ color: accent }}>
           <Icon name="git-pull-request" size={16} />
         </span>
-        <span className="truncate font-mono text-xs tracking-[.02em] text-[#e7e7ea]">
-          raspiz/vet-crm
-        </span>
-        <span className="rounded-full border border-[#26262c] px-2 py-px font-mono text-[11px] whitespace-nowrap text-[#6b6b77]">
-          ai/#{prNumber}
-        </span>
+        <RepoName value={repo} accent={accent} onChange={onRepo} />
+
+        {pr ? (
+          <>
+            {/* Заголовок PR — не украшение: он собран из того, что попросили
+                у ИИ, и первым говорит, что вообще приехало на ревью. */}
+            <span className="hidden min-w-0 truncate font-mono text-xs text-[#8b8b95] sm:inline">
+              {pr.title}
+            </span>
+            <span className="rounded-full border border-[#26262c] px-2 py-px font-mono text-[11px] whitespace-nowrap text-[#6b6b77]">
+              #{pr.number}
+            </span>
+          </>
+        ) : (
+          <span className="truncate font-mono text-[11px] text-[#5c5c66]">
+            ревью за ии
+          </span>
+        )}
 
         <span className="flex-1" />
 
         <button
           onClick={onAch}
-          className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#26262c] bg-[#121216] px-2.5 py-1.5 font-mono text-[11px] text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
+          className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#26262c] bg-[#121216] px-2.5 py-1.5 font-mono text-[11px] text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
         >
           <Icon name="award" size={14} />
           {achCount}/{achTotal}
         </button>
-        <button
-          onClick={onSound}
-          title={sound ? 'Выключить звук' : 'Включить звук'}
-          className="flex cursor-pointer items-center rounded-lg border border-[#26262c] bg-[#121216] p-1.5 text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
-        >
-          <Icon name={sound ? 'volume-2' : 'volume-x'} size={14} />
-        </button>
+
+        <Volume accent={accent} {...audio} />
       </div>
 
       {run && (
@@ -113,6 +142,16 @@ export function Chrome({
                 />
               </span>
             </div>
+          )}
+
+          {run.prod && (
+            <Gauges
+              health={run.prod.health}
+              velocity={run.prod.velocity}
+              delta={run.prod.delta}
+              accent={accent}
+              compact
+            />
           )}
 
           <span className="flex-1" />

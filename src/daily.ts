@@ -132,8 +132,40 @@ export function pickEndless(
   index: number,
   recent: readonly string[] = [],
 ): Task {
+  return pickStream(pool, seed, index, recent, Math.min(5, 1 + Math.floor(index / 2)))
+}
+
+/**
+ * Смена: сложность не подбирается вовсе.
+ *
+ * Игрок выбрал свой стек и обязан знать его целиком: подлянка в собственном
+ * бэкенде бывает и на пятёрке в первый же ход. Разгон по сложности здесь
+ * был бы обещанием, которого прод не даёт.
+ */
+export function pickShift(
+  pool: Task[],
+  seed: string,
+  index: number,
+  recent: readonly string[] = [],
+): Task {
+  return pickStream(pool, seed, index, recent, null)
+}
+
+/**
+ * Общий выбор для потоковых режимов. `wantDifficulty` — к какой сложности
+ * тянуться; null означает «любая, как выпадет».
+ *
+ * Пул может быть меньше числа раундов — это нормально: задачи повторяются,
+ * но не подряд, за это отвечает `recent`.
+ */
+function pickStream(
+  pool: Task[],
+  seed: string,
+  index: number,
+  recent: readonly string[],
+  wantDifficulty: number | null,
+): Task {
   const wantClean = index > 0 && (index + 1) % ENDLESS_CLEAN_EVERY === 0
-  const wantDifficulty = Math.min(5, 1 + Math.floor(index / 2))
 
   // Если задач нужной чистоты нет вовсе — берём любые: закончить забег
   // с неидеальным раундом лучше, чем упереться в стену.
@@ -146,7 +178,7 @@ export function pickEndless(
   return candidates
     .map((task) => ({
       task,
-      difficultyMiss: Math.abs(task.difficulty - wantDifficulty),
+      difficultyMiss: wantDifficulty === null ? 0 : Math.abs(task.difficulty - wantDifficulty),
       tie: fnv1a(`${seed}:${index}:${task.id}`),
     }))
     .sort((a, b) => a.difficultyMiss - b.difficultyMiss || a.tie - b.tie)[0].task

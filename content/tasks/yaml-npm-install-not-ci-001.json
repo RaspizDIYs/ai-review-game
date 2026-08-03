@@ -1,0 +1,32 @@
+{
+  "id": "yaml-npm-install-not-ci-001",
+  "stack": "yaml",
+  "difficulty": 1,
+  "title": "Прогон линтера на пуше",
+  "prompt": "Добавь в CI шаг с линтером, чтобы стиль не разъезжался",
+  "tests": "✓ lint / oxlint (push)  Successful in 22s\n  → 0 warnings, 0 errors\n\nAll checks have passed",
+  "diff": "--- a/.github/workflows/lint.yml\n+++ b/.github/workflows/lint.yml\n@@ -1,6 +1,22 @@\n name: lint\n \n on:\n   push:\n \n jobs:\n   oxlint:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+          cache: npm\n+      - name: deps\n+        run: npm install\n+      - name: lint\n+        run: npm run lint\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": ".github/workflows/lint.yml",
+      "match": "        run: npm install",
+      "kind": "wrong",
+      "tag": "ci-install-rewrites-lock",
+      "explain": "npm install имеет право обновить версии в пределах диапазонов и переписать package-lock.json. На CI ставят npm ci — он ставит ровно то, что в лок-файле, и падает, если лок разошёлся с package.json.",
+      "consequence": "Проверка идёт на других версиях, чем прод, — и однажды зелёный CI сопровождает сборку, которая на сервере не поднимается. Разбираться приходится сравнением деревьев зависимостей, а не кодом."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "          cache: npm",
+      "why": "кэш зависимостей от setup-node — нормально, ключ он считает сам по лок-файлу"
+    },
+    {
+      "match": "  push:",
+      "why": "линтер на каждый пуш, а не только на PR — это дороже, но не ошибка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

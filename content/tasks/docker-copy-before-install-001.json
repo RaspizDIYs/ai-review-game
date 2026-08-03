@@ -1,0 +1,32 @@
+{
+  "id": "docker-copy-before-install-001",
+  "stack": "docker",
+  "difficulty": 2,
+  "title": "Апи в контейнере",
+  "prompt": "Заверни апи в докер, чтобы поднималось одной командой",
+  "tests": "[+] Building 41.3s (11/11) FINISHED\n => => naming to docker.io/library/vet-api:0.4.1\n[+] Running 1/1\n ✔ Container vet-api  Started\n\nhealthcheck: ok (200 /ready)",
+  "diff": "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -1,3 +1,22 @@\n+FROM node:22.11-bookworm-slim\n+\n+WORKDIR /app\n+\n+# ставим зависимости и собираем\n+COPY . .\n+RUN npm ci --omit=dev\n+RUN npm run build\n+\n+ENV NODE_ENV=production\n+ENV PORT=3000\n+EXPOSE 3000\n+\n+USER node\n+\n+HEALTHCHECK --interval=30s --timeout=3s \\\n+  CMD node -e \"fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1))\"\n+\n+CMD [\"node\", \"dist/server.js\"]\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "Dockerfile",
+      "match": "COPY . .",
+      "kind": "wrong",
+      "tag": "docker-copy-before-install",
+      "explain": "Слой с зависимостями зависит от всего репозитория: любая правка исходника инвалидирует кэш, и npm ci запускается заново. Копировать package.json и package-lock.json надо отдельным слоем до установки, а остальное — после.",
+      "consequence": "Сборка на CI из сорока секунд превращается в четыре минуты, и так на каждый коммит. Замечают это не сразу, а через месяц, когда деплой перестаёт помещаться в перерыв."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "USER node",
+      "why": "процесс не от root — так и надо, это как раз правильно"
+    },
+    {
+      "match": "FROM node:22.11-bookworm-slim",
+      "why": "версия зафиксирована явно, а не latest — претензий нет"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}
