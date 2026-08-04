@@ -34,6 +34,12 @@ interface Props {
   accent: string
   /** Чиним прямо на упавшем проде, а не между сменами. */
   urgent: boolean
+  /**
+   * Плановая остановка каждые четыре хода: смотрим, каким стал прод, и решаем,
+   * чинить сейчас или работать дальше. Правды тут нет — только здоровье
+   * и отклик, см. `isCheckpoint` в `shift.ts`.
+   */
+  checkpoint: { turn: number; turns: number; day: number; slowdown: number } | null
   /** Сколько уборок осталось на смену. */
   cleanups: number
   onPick: (pr: number, task: string) => void
@@ -51,6 +57,7 @@ export function RepairPick({
   healed,
   accent,
   urgent,
+  checkpoint,
   cleanups,
   onPick,
   onCleanup,
@@ -63,13 +70,30 @@ export function RepairPick({
           className="font-display m-0 text-[clamp(20px,3.6vw,27px)] font-bold tracking-[-.02em]"
           style={{ color: urgent ? '#f87171' : '#f4f4f6' }}
         >
-          {urgent ? 'Прод лежит' : 'Разбор завалов'}
+          {urgent ? 'Прод лежит' : checkpoint ? 'Сверка с продом' : 'Разбор завалов'}
         </h1>
         <span className="flex items-center gap-2 font-mono text-[11px] text-[#6b6b77]">
+          {checkpoint && (
+            <>
+              день {checkpoint.day} · ход {checkpoint.turn}/{checkpoint.turns}
+              <span className="text-[#2f2f38]">│</span>
+            </>
+          )}
           здоровье прода
           <span className="text-[13px] font-bold text-[#e7e7ea] tabular-nums">
             {Math.round(health)}
           </span>
+          {/* Отклик — единственная цифра, которую можно показать вслепую:
+              она говорит, что мины есть, но не говорит, в каком PR. */}
+          {checkpoint && checkpoint.slowdown > 0 && (
+            <>
+              <span className="text-[#2f2f38]">│</span>
+              отклик
+              <span className="text-[13px] font-bold text-[#f0a24b] tabular-nums">
+                +{checkpoint.slowdown.toFixed(1)} с
+              </span>
+            </>
+          )}
           {/* Плюс от уборки показываем явно: иначе она выглядит как кнопка,
               которая ничего не делает. */}
           {healed !== null && (
@@ -87,7 +111,9 @@ export function RepairPick({
       <p className="m-0 max-w-[640px] text-sm leading-[1.55] text-[#9a9aa4]">
         {urgent
           ? 'Вот всё, что ты пустил в прод. Причина падения — в одном из них. Время не идёт и попытки не считаются: пока прод лежит, ничего важнее нет.'
-          : 'Вот всё, что ты пустил в прод за смену. Где-то здесь сидит то, что его ломает — а может, и нет.'}{' '}
+          : checkpoint
+            ? 'Плановая сверка. Здоровье и отклик — вот и всё, что говорит прод; какой из мёрджей его портит, он не скажет. Можно починить сейчас, можно работать дальше.'
+            : 'Вот всё, что ты пустил в прод за смену. Где-то здесь сидит то, что его ломает — а может, и нет.'}{' '}
         Открывай и смотри заново: найдёшь подлянку и разметишь её точно —
         починено. Промахнёшься — станет только хуже.
       </p>
@@ -176,8 +202,8 @@ export function RepairPick({
         </Button>
       </div>
 
-      <Button variant={urgent ? 'secondary' : 'primary'} accent={accent} onClick={onDone}>
-        {urgent ? 'Хватит · работать дальше' : 'Хватит · на следующую смену'}
+      <Button variant={urgent || checkpoint ? 'secondary' : 'primary'} accent={accent} onClick={onDone}>
+        {urgent || checkpoint ? 'Хватит · работать дальше' : 'Хватит · на следующую смену'}
       </Button>
     </div>
   )

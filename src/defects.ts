@@ -202,6 +202,19 @@ export function debt(defects: readonly Defect[]): number {
   return defects.reduce((sum, d) => sum + d.weight, 0)
 }
 
+/** Секунд отклика теряется на каждую единицу долга. Гипотеза, не проверено. */
+const SLOWDOWN_PER_WEIGHT = 0.9
+
+/**
+ * Насколько прод стал медленнее. Единственная цифра, которую чекпойнт может
+ * показать честно, ничего не выдав: она говорит, что мины есть, но не
+ * говорит, в каком PR. «Здоровье 95, отклик +4.3 с» — этого достаточно,
+ * чтобы понять, что что-то проскочило.
+ */
+export function slowdown(defects: readonly Defect[]): number {
+  return Math.round(debt(defects) * SLOWDOWN_PER_WEIGHT * 10) / 10
+}
+
 /**
  * Кого убирает плановая уборка: самый лёгкий из тех, что лежат тихо, при
  * равном весе — самый старый.

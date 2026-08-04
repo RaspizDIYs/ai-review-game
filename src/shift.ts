@@ -26,6 +26,7 @@ import {
   afterRepair,
   afterRound,
   afterTick,
+  blastOf,
   isOver as prodIsOver,
   START,
   summarize,
@@ -34,8 +35,24 @@ import {
 } from './prod.ts'
 import type { Outcome, Task } from './types'
 
-/** Ходов в смене. Гипотеза, калибруется на игроках. */
-export const SHIFT_TURNS = 14
+/**
+ * Ходов в смене. Смена — это рабочий день: закончились ходы, день закрылся,
+ * следующая смена начинается днём номер два.
+ *
+ * Было четырнадцать, стало двенадцать: с чекпойнтом каждые четыре хода
+ * двенадцать делятся ровно на три отрезка, а четырнадцать оставляли хвост
+ * из двух ходов без разбора.
+ */
+export const SHIFT_TURNS = 12
+
+/**
+ * Через сколько ходов игрока выпускают посмотреть на прод.
+ *
+ * Смена слепая, и чекпойнт её слепой не отменяет: там видно здоровье,
+ * замедление и список своих мёрджей, но не видно, кто из них был грязным.
+ * Правда — только в разборе после смены.
+ */
+export const CHECKPOINT_EVERY = 4
 
 /** Сколько последних мёрджей показывается в диагностике инцидента. */
 export const SUSPECTS = 4
@@ -46,6 +63,12 @@ export const SUSPECTS = 4
  * ограниченный ресурс: три штуки, каждая закрывает одну тихую мину наверняка.
  */
 export const CLEANUPS = 3
+
+/**
+ * Во сколько раз слежка дешевле пропуска. Треть — из заметки: «этот PR теряет
+ * всего 1/3 от изначальной потери здоровья».
+ */
+export const WATCH_RELIEF = 3
 
 /**
  * Что случилось на ходу. Журнал нужен не для красоты: из него собирается
@@ -85,6 +108,16 @@ export type ShiftEvent =
       /** Чем кончилось. В журнале лежит, но игроку до разбора не показывается. */
       result: RepairResult
     }
+  | {
+      kind: 'watch'
+      turn: number
+      pr: number
+      task: string
+      /** На какие строки повесили лог. */
+      lines: number[]
+      /** Собрал ли лог аномалию. Это игроку как раз показывают — в отчёте. */
+      hit: boolean
+    }
 
 export interface Shift {
   /** Текущий ход, с нуля. */
@@ -102,6 +135,22 @@ export interface Shift {
   delta: number
   /** Сколько уборок осталось. Единственная валюта, которую видно целиком. */
   cleanups: number
+  /** Номер рабочего дня. Первая смена в жизни — день первый. */
+  day: number
+  /**
+   * PR, отпущенный на логирование: ход он потратил, но решения по нему нет.
+   * Следующим ходом он возвращается — уже с уликой или с белым шумом.
+   */
+  pending: Watched | null
+}
+
+/** Пул-реквест под слежкой. */
+export interface Watched {
+  pr: number
+  task: string
+  lines: number[]
+  /** Собрал ли лог аномалию — это и есть улика. */
+  hit: boolean
 }
 
 /**
@@ -129,6 +178,8 @@ export interface Carry {
   prod: Prod
   defects: readonly Defect[]
   pr: number
+  /** Прошлый рабочий день — следующая смена будет следующим. */
+  day: number
 }
 
 /** Заблокированный PR не мёржится — значит, и в прод ничего не уезжает. */
@@ -150,7 +201,14 @@ export function start(carry?: Carry, turns: number = SHIFT_TURNS): Shift {
     delta: 0,
     // Уборки не переносятся: каждая смена начинается с трёх.
     cleanups: CLEANUPS,
+    day: (carry?.day ?? 0) + 1,
+    pending: null,
   }
+}
+
+/** Пора ли выпустить игрока на чекпойнт: каждые четыре хода и в конце смены. */
+export function isCheckpoint(shift: Shift): boolean {
+  return shift.turn > 0 && shift.turn % CHECKPOINT_EVERY === 0
 }
 
 /** Шаг здоровья за ход — с округлением, иначе в интерфейс лезет 0.30000000004. */
@@ -196,6 +254,57 @@ export function review(shift: Shift, task: Task, outcome: Outcome): Turn {
       log: [...shift.log, action, ...incidents(shift.turn, ticked.fired)],
       delta: step(shift.prod, prod),
       cleanups: shift.cleanups,
+      day: shift.day,
+      // Решение принято — PR больше не на логировании.
+      pending: null,
+    },
+    fired: ticked.fired,
+  }
+}
+
+/**
+ * Ход слежки: PR не мёржится и не блокируется, а уходит на логирование.
+ *
+ * Это главный размен терминала. Ход потрачен, зато прод почти не пострадал:
+ * код лежал под наблюдением, а не в бою. Промахнулась слежка — платим треть
+ * того, во что обошёлся бы обычный пропуск; попала — не платим ничего
+ * и получаем точную улику.
+ *
+ * Сам PR никуда не девается: следующим ходом он возвращается, и решение
+ * по нему всё равно принимать.
+ */
+export function watch(shift: Shift, task: Task, lines: readonly number[], hit: boolean): Turn {
+  const ticked = tick(shift.defects)
+  // Цена промаха считается от той мины, которая родилась бы при пропуске:
+  // без подлянки платить не за что, и чистый PR слежка не наказывает.
+  const would = born(task, 'missed', shift.pr, shift.turn)
+  const price = hit || !would ? 0 : Math.round((blastOf(would) / WATCH_RELIEF) * 10) / 10
+
+  const after = afterTick(shift.prod, ticked)
+  const prod = { ...after, health: Math.max(0, Math.round((after.health - price) * 100) / 100) }
+
+  const action: ShiftEvent = {
+    kind: 'watch',
+    turn: shift.turn,
+    pr: shift.pr,
+    task: task.id,
+    lines: [...lines],
+    hit,
+  }
+
+  return {
+    shift: {
+      turn: shift.turn + 1,
+      turns: shift.turns,
+      // Номер PR не растёт: вернётся тот же самый пул-реквест.
+      pr: shift.pr,
+      prod,
+      defects: ticked.defects,
+      log: [...shift.log, action, ...incidents(shift.turn, ticked.fired)],
+      delta: step(shift.prod, prod),
+      cleanups: shift.cleanups,
+      day: shift.day,
+      pending: { pr: shift.pr, task: task.id, lines: [...lines], hit },
     },
     fired: ticked.fired,
   }
@@ -240,6 +349,8 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
       ],
       delta: step(shift.prod, prod),
       cleanups: shift.cleanups,
+      day: shift.day,
+      pending: shift.pending,
     },
     fired: ticked.fired,
     result,
@@ -302,7 +413,7 @@ export function merged(shift: Shift, count: number = SUSPECTS): ShiftEvent[] {
 
 /** Что перенести в следующую смену. */
 export function carry(shift: Shift): Carry {
-  return { prod: shift.prod, defects: shift.defects, pr: shift.pr }
+  return { prod: shift.prod, defects: shift.defects, pr: shift.pr, day: shift.day }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -326,7 +437,17 @@ function isDefect(value: unknown): value is Defect {
   )
 }
 
-const KINDS: ShiftEvent['kind'][] = ['merged', 'blocked', 'incident', 'cleanup', 'repair']
+const KINDS: ShiftEvent['kind'][] = ['merged', 'blocked', 'incident', 'cleanup', 'repair', 'watch']
+
+function isWatched(value: unknown): value is Watched {
+  return (
+    isObject(value) &&
+    isNumber(value.pr) &&
+    typeof value.task === 'string' &&
+    Array.isArray(value.lines) &&
+    value.lines.every(isNumber)
+  )
+}
 
 function isEvent(value: unknown): value is ShiftEvent {
   return isObject(value) && isNumber(value.turn) && KINDS.includes(value.kind as ShiftEvent['kind'])
@@ -356,5 +477,11 @@ export function restore(raw: unknown): Shift | null {
     // Сохранения до слепого режима шага здоровья не знают — начнём с нуля.
     delta: isNumber(raw.delta) ? raw.delta : 0,
     cleanups: isNumber(raw.cleanups) ? raw.cleanups : CLEANUPS,
+    // Смена без номера дня — из сборки до терминала. Считаем её первой:
+    // выкидывать из-за этого прод игрока было бы обиднее, чем сбить счётчик.
+    day: isNumber(raw.day) && raw.day > 0 ? raw.day : 1,
+    pending: isWatched(raw.pending)
+      ? { ...raw.pending, hit: raw.pending.hit === true }
+      : null,
   }
 }

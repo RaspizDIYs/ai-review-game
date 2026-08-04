@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { MAX_ATTEMPTS } from '../round.ts'
 import { ROUND_SECONDS } from '../scoring.ts'
 import { plural } from '../stats.ts'
@@ -16,6 +17,10 @@ interface Props {
   marks: Map<number, LineState>
   attempts: number
   shake: boolean
+  /** Панель терминала. Есть только в смене — в остальных режимах её нет. */
+  terminal?: ReactNode
+  /** Открыть терминал. null — режим без терминала, кнопки не будет. */
+  onTerminal?: (() => void) | null
   onPick: (line: number) => void
   onSubmit: () => void
 }
@@ -30,6 +35,8 @@ export function Review({
   marks,
   attempts,
   shake,
+  terminal,
+  onTerminal,
   onPick,
   onSubmit,
 }: Props) {
@@ -40,7 +47,11 @@ export function Review({
   const tired = timed && duration < ROUND_SECONDS
 
   return (
-    <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-3.5 px-[18px] pt-5">
+    <div
+      className={`screen-in mx-auto flex flex-col gap-3.5 px-[18px] pt-5 ${
+        terminal ? 'max-w-[1340px]' : 'max-w-[900px]'
+      }`}
+    >
       <div className="flex flex-col gap-[7px]">
         <div className="flex items-center justify-between gap-2.5">
           <span
@@ -116,14 +127,31 @@ export function Review({
         </span>
       </div>
 
-      <DiffView
-        diff={task.diff}
-        tokens={tokens}
-        marks={marks}
-        accent={accent}
-        onPick={onPick}
-        shake={shake}
-      />
+      <div className="flex flex-col items-start gap-3.5 lg:flex-row">
+        <div className="w-full min-w-0 flex-1">
+          <DiffView
+            diff={task.diff}
+            tokens={tokens}
+            marks={marks}
+            accent={accent}
+            onPick={onPick}
+            shake={shake}
+          />
+        </div>
+
+        {terminal && <div className="w-full shrink-0 lg:w-[440px]">{terminal}</div>}
+      </div>
+
+      {onTerminal && !terminal && (
+        <button
+          onClick={onTerminal}
+          className="flex cursor-pointer items-center justify-center gap-2.5 self-end rounded-xl border-[1.5px] border-dashed px-5 py-3 font-mono text-[12px] tracking-[.12em] uppercase transition-colors"
+          style={{ borderColor: `${accent}66`, color: accent, background: `${accent}0f` }}
+        >
+          <Icon name="terminal" size={15} />
+          терминал
+        </button>
+      )}
 
       <Button
         accent={accent}

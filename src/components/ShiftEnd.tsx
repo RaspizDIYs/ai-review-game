@@ -18,6 +18,8 @@ interface Props {
   summary: Summary
   log: ShiftEvent[]
   turns: number
+  /** Какой это был рабочий день — смена закрывает день и открывает следующий. */
+  day: number
   accent: string
   /** Названия задач по id — журнал хранит только id. */
   titles: Map<string, string>
@@ -59,6 +61,7 @@ const EVENT: Record<ShiftEvent['kind'], { icon: IconName; color: string }> = {
   incident: { icon: 'siren', color: '#f87171' },
   cleanup: { icon: 'sparkles', color: '#7c9cf5' },
   repair: { icon: 'hammer', color: '#c084fc' },
+  watch: { icon: 'search', color: '#2dd4bf' },
 }
 
 function line(event: ShiftEvent, titles: Map<string, string>): string {
@@ -76,6 +79,10 @@ function line(event: ShiftEvent, titles: Map<string, string>): string {
     case 'repair':
       // Вот здесь и вскрывается, что вышло: до разбора игрок не знал.
       return `чинил #${event.pr} — ${REPAIR_TEXT[event.result]}`
+    case 'watch':
+      return `#${event.pr} на логировании, строки ${event.lines.join(', ')} — ${
+        event.hit ? 'лог поймал аномалию' : 'аномалий не собрал'
+      }`
   }
 }
 
@@ -90,7 +97,12 @@ const REPAIR_TEXT: Record<'cured' | 'failed' | 'broke', string> = {
  * задачи достаём из мёрджа с тем же номером — по нему её и открывали.
  */
 function prTask(log: readonly ShiftEvent[], event: ShiftEvent): string | null {
-  if (event.kind === 'merged' || event.kind === 'blocked' || event.kind === 'incident') {
+  if (
+    event.kind === 'merged' ||
+    event.kind === 'blocked' ||
+    event.kind === 'incident' ||
+    event.kind === 'watch'
+  ) {
     return event.task
   }
   if (event.kind === 'cleanup') return null
@@ -103,6 +115,7 @@ export function ShiftEnd({
   summary,
   log,
   turns,
+  day,
   accent,
   titles,
   reveal,
@@ -119,7 +132,7 @@ export function ShiftEnd({
     <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-[26px]">
       <div className="rounded-[18px] border border-[#26262c] bg-[linear-gradient(160deg,#15151c,#0e0e12)] p-6 text-center">
         <p className="m-0 font-mono text-[11px] tracking-[.2em] uppercase text-[#5c5c66]">
-          отчёт по смене
+          отчёт по смене · день {day}
         </p>
         <h2
           className="font-display mt-2.5 text-[clamp(24px,5vw,34px)] font-bold tracking-[-.02em]"
