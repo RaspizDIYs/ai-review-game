@@ -115,6 +115,126 @@
     "metric": "тот же инцидент второй раз за сутки"
   },
   {
+    "tag": "async-void",
+    "lines": "17:41  api-7f4c  INFO   карточка 8814 сохранена\n17:41  api-7f4c  INFO   уведомление владельцу поставлено в очередь\n17:41  api-7f4c  INFO   запрос завершён 200 · 41ms\n09:00  владелец       «мне не пришло ни одного напоминания за месяц»",
+    "metric": "поставлено в очередь: 3120 · доставлено: 0"
+  },
+  {
+    "tag": "httpclient-per-call",
+    "lines": "11:20  api-7f4c  WARN   sockets in TIME_WAIT: 12408\n11:22  api-7f4c  ERROR  unable to connect to insurer.example: address in use\n11:22  api-7f4c  ERROR  проверка полиса недоступна\n11:30  регистратура   «полисы перестали проверяться после обеда»",
+    "metric": "сокетов открыто: 12408 · лимит: 16384"
+  },
+  {
+    "tag": "sync-over-async",
+    "lines": "14:02  api-7f4c  WARN   thread pool starvation, доступных потоков 0\n14:02  api-7f4c  WARN   очередь запросов: 812\n14:03  api-7f4c  ERROR  request timeout ×214\n14:05  клиника        «сайт открывается по минуте, но не падает»",
+    "metric": "p95 ответа: 90ms → 61s"
+  },
+  {
+    "tag": "default-credentials-in-config",
+    "lines": "03:12  db-main   INFO   connection accepted from 91.***.***.14\n03:12  db-main   INFO   authenticated as vet\n03:14  db-main   INFO   SELECT * FROM owners LIMIT 100000\n09:40  безопасность   «база отвечает из интернета, пароль словарный»",
+    "metric": "внешних подключений за ночь: 41"
+  },
+  {
+    "tag": "database-port-published",
+    "lines": "02:40  scanner   INFO   0.0.0.0:5432 открыт наружу\n02:41  db-main   INFO   connection accepted from 45.***.***.221\n02:41  db-main   FATAL  password authentication failed ×3120\n04:10  db-main   INFO   authenticated as vet",
+    "metric": "попыток подбора: 3120 за полтора часа"
+  },
+  {
+    "tag": "docker-copy-before-install",
+    "lines": "весь месяц:  сборка на CI  ≈ 4m 20s\n12.07:       та же сборка  ≈ 41s\nлог шага:    #4 [4/8] RUN npm ci — CACHED × 0 раз за 214 сборок",
+    "metric": "время сборки: 41s → 4m 20s, кэш не попадает никогда"
+  },
+  {
+    "tag": "dev-mode-in-prod-image",
+    "lines": "12:14  admin     ERROR  TypeError: Cannot read properties of undefined\n12:14  admin     ERROR  at /app/src/admin/visits.ts:214:11 (полный стектрейс отдан клиенту)\n12:20  клиника        прислали скриншот ошибки с путями до файлов",
+    "metric": "размер ответов: +180% · шаблоны не кэшируются"
+  },
+  {
+    "tag": "base-image-floats",
+    "lines": "вчера:  worker собран, node v22.11, очередь разгребается\nсегодня: worker собран, node v24.2\n06:12  worker    ERROR  таймеры сработали дважды на одной задаче\n06:12  worker    INFO   код не менялся уже девять дней",
+    "metric": "дублей в очереди: 412 за ночь"
+  },
+  {
+    "tag": "secret-baked-into-layer",
+    "lines": "10:02  registry  INFO   vet-api:0.5.0 запушен, публичный\n11:30  npm       INFO   опубликован @vet/billing-core@9.9.9 от нашего имени\n11:41  безопасность   «docker history отдаёт .npmrc из слоя»",
+    "metric": "токен публикации в открытом образе"
+  },
+  {
+    "tag": "error-ignored",
+    "lines": "04:00  api-7f4c  INFO   конфиг загружен\n04:00  api-7f4c  INFO   лимит запросов: 0\n04:00  api-7f4c  INFO   таймаут: 0s\n04:02  api-7f4c  ERROR  все запросы отклонены: превышен лимит",
+    "metric": "файла конфига на диске нет, ошибка не всплыла"
+  },
+  {
+    "tag": "nil-map-write",
+    "lines": "08:15  api-9ab1  ERROR  panic: assignment to entry in nil map\n08:15  api-9ab1  ERROR  goroutine 214 [running]\n08:15  api-9ab1  INFO   процесс перезапущен\n08:16  api-9ab1  ERROR  panic: assignment to entry in nil map",
+    "metric": "перезапусков за час: 41"
+  },
+  {
+    "tag": "floating-promise",
+    "lines": "16:30  api-7f4c  INFO   визит 9114 создан\n16:30  api-7f4c  INFO   ответ отдан 201 · 12ms\n16:30  api-7f4c  (уведомление: ошибка не залогирована, promise не дождались)\n18:00  владелец       «записались, но подтверждение не пришло»",
+    "metric": "подтверждений отправлено: 62%"
+  },
+  {
+    "tag": "effect-without-cleanup",
+    "lines": "браузер регистратуры, вкладка открыта с утра:\n09:00  подписок на очередь: 1\n13:00  подписок на очередь: 48\n17:00  подписок на очередь: 214 · вкладка ест 1.8GB",
+    "metric": "очередь перерисовывается 214 раз на одно событие"
+  },
+  {
+    "tag": "stale-state-update",
+    "lines": "12:00  клиника        принято пациентов: 14\n12:00  журнал         записей о приёме: 17\n15:20  врач           «счётчик отстаёт, если быстро жать»",
+    "metric": "расхождение счётчика и журнала: 3 за смену"
+  },
+  {
+    "tag": "props-mutated-in-place",
+    "lines": "10:12  клиника        отсортировали список приёмов по времени\n10:12  клиника        вернулись назад — исходный порядок не восстановился\n10:40  врач           «список приёмов перемешался у всех, кто открыл вкладку»",
+    "metric": "жалоб на порядок в списке: 7 за день"
+  },
+  {
+    "tag": "utc-vs-local-day",
+    "lines": "00:40  report    INFO   визит 9210 записан на 2026-08-04\n07:00  клиника        «вчерашний вечерний приём попал в сегодняшний отчёт»\n07:05  клиника        «а ночной — вообще исчез»",
+    "metric": "визитов не в своём дне: 18 за месяц"
+  },
+  {
+    "tag": "test-asserts-the-mock",
+    "lines": "весь месяц:  PASS  tests/user.test.ts ×214\n03.08 10:00  прод: GET /api/users/318 500\n03.08 10:02  тот же вызов локально с настоящей базой — падает так же",
+    "metric": "тесты зелёные, ручка не работала три недели"
+  },
+  {
+    "tag": "cache-updated-from-itself",
+    "lines": "13:20  api-7f4c  INFO   владелец 412 переименован\n13:20  api-7f4c  INFO   GET /api/owners/412 → {\"fullName\":\"Иванова А.\"}\n13:21  регистратура   «в карточке пропали телефон и адрес»",
+    "metric": "карточек с пустыми полями: 63"
+  },
+  {
+    "tag": "path-traversal",
+    "lines": "05:14  api-7f4c  INFO   GET /api/files?name=..%2F..%2F..%2Fetc%2Fpasswd\n05:14  api-7f4c  INFO   200 · отдано 1842 байта\n05:15  api-7f4c  INFO   GET /api/files?name=..%2F..%2F.env\n05:15  api-7f4c  INFO   200 · отдано 412 байт",
+    "metric": "отдано за пределами каталога вложений: 9 файлов"
+  },
+  {
+    "tag": "retry-on-non-retryable",
+    "lines": "19:02  ofd       ERROR  400 Bad Request: неверный ИНН в чеке\n19:02  ofd       INFO   повтор 1/5\n19:03  ofd       INFO   повтор 5/5 — тот же 400\n19:03  ofd       ERROR  чек 8814 не пробит, очередь растёт",
+    "metric": "бесполезных повторов за час: 3120"
+  },
+  {
+    "tag": "unicode-normalization",
+    "lines": "11:41  api-7f4c  INFO   поиск «Иванов Пётр» → найдено 0\n11:41  api-7f4c  INFO   поиск «Иванов Петр» → найдено 1\n11:50  регистратура   «завели второго владельца, теперь их два»",
+    "metric": "дублей владельцев за месяц: 34"
+  },
+  {
+    "tag": "unwrap-panics",
+    "lines": "14:22  api-9ab1  ERROR  thread panicked at 'called Option::unwrap() on a None value'\n14:22  api-9ab1  INFO   форма веса: поле пустое\n14:22  api-9ab1  INFO   процесс перезапущен, соединения оборваны",
+    "metric": "падений на пустом поле: 28 за смену"
+  },
+  {
+    "tag": "force-push-shared-branch",
+    "lines": "18:40  git       INFO   release.sh: push --force origin main\n18:40  git       INFO   main: 9f2c1ab (было 4c1e88a)\n09:12  коллега        «мой вчерашний мёрдж исчез, локально он есть»",
+    "metric": "потеряно коммитов: 2"
+  },
+  {
+    "tag": "commit-everything-blindly",
+    "lines": "03:00  cron      INFO   dump-schema.sh: закоммичено 3 файла\n03:00  git       INFO   db/schema.sql, dump.tmp, .env\n10:15  безопасность   «строка подключения к проду в истории репозитория»",
+    "metric": "пароль в истории с 12 июля, 214 коммитов назад"
+  },
+  {
     "tag": "sql-injection",
     "lines": "02:11  api-7f4c  INFO   GET /api/search?q=%27%20OR%201%3D1--\n02:11  db-main   INFO   SELECT * FROM owners WHERE name LIKE '' OR 1=1--'\n02:11  api-7f4c  INFO   200, отдано 4128 записей\n02:12  api-7f4c  INFO   тот же запрос, ещё 40 раз",
     "metric": "отдано наружу: 4128 карточек владельцев"
