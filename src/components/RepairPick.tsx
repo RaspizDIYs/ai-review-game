@@ -96,7 +96,7 @@ export function RepairPick({
           )}
           {/* Плюс от уборки показываем явно: иначе она выглядит как кнопка,
               которая ничего не делает. */}
-          {healed !== null && (
+          {healed !== null && healed > 0 && (
             <span
               key={healed}
               className="font-mono text-[12px] font-bold text-[#34d399] tabular-nums"

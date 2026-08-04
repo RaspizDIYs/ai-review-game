@@ -11,7 +11,21 @@
 import type { Agent } from '../agents.ts'
 import { AgentAvatar } from '../ui/kit.tsx'
 
-export function Reply({ agent, line }: { agent: Agent; line: string }) {
+export function Reply({
+  agent,
+  line,
+  anonymous = false,
+  accent,
+}: {
+  agent: Agent
+  line: string
+  /** В смене автор неизвестен: подписывать реплику именем нельзя. */
+  anonymous?: boolean
+  accent: string
+}) {
+  const color = anonymous ? accent : agent.color
+  const name = anonymous ? 'ai' : agent.name
+
   return (
     <div
       className="fixed top-[74px] left-1/2 z-60 w-[min(440px,calc(100vw-32px))] -translate-x-1/2"
@@ -21,18 +35,20 @@ export function Reply({ agent, line }: { agent: Agent; line: string }) {
       <div
         className="flex items-center gap-3 rounded-xl px-4 py-3"
         style={{
-          border: `1px solid ${agent.color}66`,
-          background: `linear-gradient(180deg, ${agent.color}1f, #141420)`,
+          border: `1px solid ${color}66`,
+          background: `linear-gradient(180deg, ${color}1f, #141420)`,
           boxShadow: '0 18px 40px rgba(0,0,0,.55)',
         }}
       >
-        <AgentAvatar slug={agent.slug} name={agent.name} color={agent.color} size={38} />
+        <AgentAvatar
+          slug={anonymous ? 'unknown' : agent.slug}
+          name={anonymous ? '?' : name}
+          color={color}
+          size={38}
+        />
         <span className="flex min-w-0 flex-col">
-          <span
-            className="font-mono text-[10px] tracking-[.16em] uppercase"
-            style={{ color: agent.color }}
-          >
-            {agent.name}
+          <span className="font-mono text-[10px] tracking-[.16em] uppercase" style={{ color }}>
+            {name}
           </span>
           <span className="text-sm leading-[1.4] text-[#e7e7ea]">{line}</span>
         </span>

@@ -20,6 +20,8 @@ import {
   isShiftOver,
   merged,
   merges,
+  probe,
+  PROBES,
   repair,
   restore,
   review,
@@ -476,4 +478,35 @@ test('решение по PR снимает его с логирования', (
 test('смена со слежкой переживает перезагрузку', () => {
   const s = watch(start(), DIRTY, [DIRTY.bugs[0].line], true).shift
   assert.deepEqual(restore(JSON.parse(JSON.stringify(s))), s)
+})
+
+test('запросы к терминалу — ограниченный ресурс смены', () => {
+  let s = start()
+  assert.equal(s.probes, PROBES)
+
+  for (let i = 0; i < PROBES; i++) s = probe(s)
+  assert.equal(s.probes, 0)
+
+  // В минус не уходим: терминал сам откажет, но движок не должен позволять и подавно.
+  assert.equal(probe(s).probes, 0)
+})
+
+test('заряды терминала не переносятся в следующую смену', () => {
+  const spent = probe(probe(start()))
+  assert.equal(start(carry(spent)).probes, PROBES)
+})
+
+test('секундомер копит время смены, но ни на что не влияет', () => {
+  const fast = review(start(), CLEAN, 'clean-correct', 12)
+  const slow = review(start(), CLEAN, 'clean-correct', 120)
+
+  assert.equal(fast.shift.spent, 12)
+  assert.equal(slow.shift.spent, 120)
+  // Здоровье и скорость от времени не зависят: в смене важнее качество.
+  assert.deepEqual(fast.shift.prod, slow.shift.prod)
+})
+
+test('время копится и на слежке', () => {
+  const s = watch(start(), DIRTY, [DIRTY.bugs[0].line], true, 30).shift
+  assert.equal(s.spent, 30)
 })

@@ -79,6 +79,7 @@ import {
   isCheckpoint,
   isShiftOver,
   merged,
+  probe as probeShift,
   repair as repairShift,
   restore as restoreShift,
   review as shiftReview,
@@ -86,7 +87,7 @@ import {
   watch as watchTurn,
   type Shift,
 } from './shift.ts'
-import { useCountdown } from './countdown.ts'
+import { useCountdown, useStopwatch } from './countdown.ts'
 import { Achievements } from './components/Achievements.tsx'
 import { Briefing } from './components/Briefing.tsx'
 import { Chrome } from './components/Chrome.tsx'
@@ -101,6 +102,7 @@ import { Reason } from './components/Reason.tsx'
 import { Reply } from './components/Reply.tsx'
 import { Review } from './components/Review.tsx'
 import { Terminal } from './components/Terminal.tsx'
+import { Tick } from './components/Tick.tsx'
 import { Rules } from './components/Rules.tsx'
 import { Summary, type Played } from './components/Summary.tsx'
 import { Toast } from './components/Toast.tsx'
@@ -125,6 +127,7 @@ type Screen =
   | 'reason'
   | 'verdict'
   | 'incident'
+  | 'tick'
   | 'summary'
   | 'shift-end'
   | 'ach'
@@ -241,10 +244,11 @@ export default function App() {
   /** Плановая сверка каждые четыре хода: смотрим на прод и работаем дальше. */
   const [checkpoint, setCheckpoint] = useState(false)
 
-  /** Терминал: открыт ли, что в нём напечатано и сколько времени он уже съел. */
+  /** Терминал: открыт ли и что в нём напечатано. */
   const [termOpen, setTermOpen] = useState(false)
   const [termLines, setTermLines] = useState<TerminalLine[]>([])
-  const [penalty, setPenalty] = useState(0)
+  /** Историю на этом ходу уже поднимали: `/git-blame` доступен раз за ход. */
+  const [blamed, setBlamed] = useState(false)
   /** Строки, на которые повешен лог. Пока он висит, второй раз следить нельзя. */
   const [watching, setWatching] = useState<number[]>([])
   /**
@@ -257,7 +261,14 @@ export default function App() {
   const [postmortem, setPostmortem] = useState<{ task: Task; pr: number; back: Screen } | null>(
     null,
   )
-  /** Сколько здоровья вернула последняя уборка — показывается на экране разбора. */
+  /**
+   * Сколько здоровья вернула последняя уборка — показывается на экране разбора.
+   *
+   * Гаснет, как только игрок делает что-то ещё. Иначе «+5» от уборки висит
+   * рядом со шкалой, пока неудачная починка эту шкалу опускает, и экран
+   * выглядит враньём: здоровье падает, а плюс висит. Дельту самой починки
+   * показывать нельзя — «−8» означало бы «ты полез в чистый PR».
+   */
   const [healed, setHealed] = useState<number | null>(null)
 
   const [tokens, setTokens] = useState<Task['tokens']>(undefined)
@@ -289,17 +300,15 @@ export default function App() {
   const played = getDaily(today)
   const streak = getStreak(today)
   /**
-   * Усталость. В серии её считают пропуски: три подряд — и дальше играешь
-   * на минимальном таймере, а серия короткая, так и задумано.
+   * Таймер. В тренировочных режимах он и есть половина задачи: 90 секунд,
+   * усталость после пропуска, спешка.
    *
-   * В смене таких ходов двенадцать, и накопленные пропуски прибили бы
-   * таймер к полу на весь остаток. Поэтому там усталость меряется не тем,
-   * сколько раз ты ошибся, а тем, сколько мин сейчас лежит в проде: разгрёб
-   * долг — выспался. Заодно у уборки появляется вторая, немедленная польза.
+   * **В смене таймера нет.** Там ход стоит дороже секунды: есть терминал,
+   * досье, слежка — всё это про «подумать», и обратный отсчёт заставлял бы
+   * торопиться ровно там, где торопиться не надо. Время не исчезает: его
+   * считает секундомер и показывает отчёт по смене.
    */
-  const duration = repairing
-    ? 0
-    : roundDuration(mode === 'shift' && shift ? shift.defects.length : missed)
+  const duration = repairing || mode === 'shift' ? 0 : roundDuration(missed)
   // Смена кончается по своим правилам: по ходам либо по шкалам прода.
   const runOver =
     mode === 'shift'
@@ -312,6 +321,13 @@ export default function App() {
     ? authorOf(repairing.task, repairing.pr)
     : authorOf(task, mode === 'shift' && shift ? shift.pr : index)
   const hero = AGENTS[profile.hero as AgentSlug] ?? AGENTS.commander
+  /**
+   * В смене автор PR — тайна, и это вся её вторая половина: кто писал код,
+   * выясняют через `/git-blame`, а не читают в шапке. Поэтому там ни портрета,
+   * ни имени, ни цвета агента — интерфейс красится в цвет выбранного героя,
+   * который об авторе ничего не говорит.
+   */
+  const anonymous = mode === 'shift'
   // Внутри раунда интерфейс красится под агента задачи, снаружи — под выбранного.
   // Инцидент — часть хода, а не отдельный экран: шкалы и счётчик ходов
   // должны остаться на месте, иначе алерт читается как выход из смены.
@@ -320,8 +336,9 @@ export default function App() {
     screen === 'review' ||
     screen === 'reason' ||
     screen === 'verdict' ||
-    screen === 'incident'
-  const accent = inRun ? agent.color : hero.color
+    screen === 'incident' ||
+    screen === 'tick'
+  const accent = inRun && !anonymous ? agent.color : hero.color
 
   const options = useMemo(() => reasonOptions(task, POOL, REASONS), [task])
 
@@ -428,7 +445,7 @@ export default function App() {
       // Ход смены разрешается здесь же: пропуск должен уехать в прод в тот
       // самый момент, когда игрок его пропустил, а не когда нажал «дальше».
       if (mode === 'shift' && shift) {
-        const turn = shiftReview(shift, task, result.outcome)
+        const turn = shiftReview(shift, task, result.outcome, elapsed.current)
         setShift(turn.shift)
         setFired(turn.fired)
         saveShift(turn.shift)
@@ -509,8 +526,11 @@ export default function App() {
     [],
   )
 
+  // Нулевая длительность — это «таймера нет» (смена и починка), а не «время
+  // вышло». Без этой проверки отсчёт срабатывал мгновенно и отправлял PR
+  // в прод сам, не дав игроку открыть диф.
   const left = useCountdown(
-    screen === 'review' && !repairing,
+    screen === 'review' && !repairing && duration > 0,
     duration,
     useCallback(() => {
       const result = resolveTimeout()
@@ -527,8 +547,21 @@ export default function App() {
         )
       }
     }, [finish]),
-    penalty,
   )
+
+  /**
+   * Секундомер смены. Идёт, пока игрок читает диф, и обнуляется на каждом
+   * ходу — от номера PR и хода: возвращённый с логирования PR начинает
+   * отсчёт заново, это уже другой ход.
+   */
+  const stopwatch = useStopwatch(
+    screen === 'review' && mode === 'shift' && !repairing,
+    `${shift?.turn ?? 0}:${shift?.pr ?? 0}`,
+  )
+  // Через ref, а не через зависимость: секундомер тикает десять раз в секунду,
+  // и пересобирать из-за него обработчик хода незачем.
+  const elapsed = useRef(0)
+  elapsed.current = stopwatch
 
   const marks = useMemo(() => {
     const m = new Map<number, LineState>()
@@ -554,7 +587,7 @@ export default function App() {
   function resetTerminal() {
     setTermOpen(false)
     setTermLines([])
-    setPenalty(0)
+    setBlamed(false)
     setWatching([])
   }
 
@@ -568,15 +601,24 @@ export default function App() {
       dossier: profile.dossier,
       selected,
       watching,
+      probes: shift.probes,
+      blamed,
     })
 
     setTermLines((prev) => [...prev, { tone: 'in', text: `$ ${input}` }, ...result.lines])
     beep('tap')
 
     for (const effect of result.effects) {
-      if (effect.kind === 'time') setPenalty((p) => p + effect.seconds)
       if (effect.kind === 'clear') setTermLines([])
+      if (effect.kind === 'probe') {
+        const spent = probeShift(shift)
+        setShift(spent)
+        saveShift(spent)
+      }
       if (effect.kind === 'dossier') {
+        // История поднимается раз за ход — иначе весь профиль агента
+        // открывается за один раунд и собирать становится нечего.
+        setBlamed(true)
         const known = AGENTS[effect.agent].known.length
         keep({
           ...profile,
@@ -591,22 +633,64 @@ export default function App() {
   }
 
   /**
-   * Отпустить PR на логирование. Ход тратится, решения по PR нет: он вернётся
-   * следующим ходом — с уликой, если лог сел на подлянку, и с белым шумом,
-   * если не сел.
+   * Отпустить PR на логирование.
+   *
+   * Схема ровно одна и без развилок: лог → экран «виртуальный тик прода»
+   * с оперативным отчётом → тот же самый PR, сразу на дифе. Ход потрачен,
+   * решение по PR никуда не делось, и PR не теряется — раньше он мог
+   * разъехаться между алертом, сверкой и брифингом, и было непонятно,
+   * что вообще происходит.
    */
   function releaseToLogging(lines: number[]) {
     if (!shift) return
 
-    const turn = watchTurn(shift, task, lines, watchCaught(task, lines))
+    const turn = watchTurn(shift, task, lines, watchCaught(task, lines), elapsed.current)
     setShift(turn.shift)
     setFired(turn.fired)
     saveShift(turn.shift)
     setWatching(lines)
 
     beep('stamp')
-    if (turn.fired.length > 0) setScreen('incident')
-    else nextTurn(turn.shift)
+    setScreen('tick')
+  }
+
+  /**
+   * Вернуться к PR с логирования. Брифинг не повторяем: PR тот же самый,
+   * читать про него заново нечего — сразу диф и отчёт в терминале.
+   */
+  function backFromTick() {
+    if (!shift) return
+    beep('tap')
+    if (!resumeWatched(shift)) nextTurn(shift)
+  }
+
+  /**
+   * Отдать игроку PR, который лежал на логировании. false — на логировании
+   * ничего нет, ход обычный.
+   */
+  function resumeWatched(current: Shift): boolean {
+    const back = current.pending
+    const returning = back ? POOL.find((t) => t.id === back.task) : undefined
+    if (!back || !returning) return false
+
+    resetRound()
+    setWatching(back.lines)
+    setBlamed(false)
+    setTask(returning)
+    setTermLines([
+      ...greeting(normalizeRepo(profile.repo).split('/')[0]),
+      ...report(returning, back.lines),
+    ])
+    setTermOpen(true)
+    // Лог сел на подлянку — терминал сам подсвечивает диапазон. За это
+    // и платили ходом: теперь точно известно, что удалять.
+    if (back.hit) {
+      setSelected(
+        returning.bugs.filter((bug) => back.lines.some((l) => hits(bug, l))).map((b) => b.line),
+      )
+    }
+    setScreen('review')
+    return true
   }
 
   function pickLine(line: number) {
@@ -666,6 +750,9 @@ export default function App() {
     }
 
     resetRound()
+    // Плюс от прошлой уборки гасим: пока игрок чинит, здоровье изменится,
+    // и висящий рядом «+5» станет неправдой.
+    setHealed(null)
     setRepairing({ pr, task: found })
     setScreen('review')
   }
@@ -885,29 +972,9 @@ export default function App() {
     setIndex(i)
     resetRound()
 
-    // PR возвращается с логирования: тот же диф и тот же номер, но теперь
-    // с оперативным отчётом в терминале. Ход на него уже потрачен.
-    const back = current.pending
-    const returning = back ? POOL.find((t) => t.id === back.task) : undefined
-    if (back && returning) {
-      setTask(returning)
-      setWatching(back.lines)
-      setPenalty(0)
-      setTermLines([
-        ...greeting(normalizeRepo(profile.repo).split('/')[0]),
-        ...report(returning, back.lines),
-      ])
-      setTermOpen(true)
-      // Лог сел на подлянку — терминал сам подсвечивает диапазон. За это
-      // и платили ходом: теперь точно известно, что удалять.
-      if (back.hit) {
-        setSelected(
-          returning.bugs.filter((bug) => back.lines.some((l) => hits(bug, l))).map((b) => b.line),
-        )
-      }
-      setScreen('briefing')
-      return
-    }
+    // На логировании мог остаться PR — например, смену продолжили после
+    // перезагрузки вкладки. Тогда сначала он, а не новый.
+    if (resumeWatched(current)) return
 
     resetTerminal()
     setTask(pickShift(shiftPool, endlessSeed.current, i, history.slice(-5).map((h) => h.task.id)))
@@ -1027,6 +1094,7 @@ export default function App() {
   function repairNow() {
     beep('tap')
     setFired([])
+    setHealed(null)
     setUrgent(true)
     setScreen('repair')
   }
@@ -1041,6 +1109,7 @@ export default function App() {
     beep('tap')
     setUrgent(false)
     setCheckpoint(false)
+    setHealed(null)
     // Из сверки и с упавшего прода возвращаемся в тот же ход, а не в новый
     // чекпойнт — иначе игрок ходил бы по кругу.
     if (isShiftOver(shift)) setScreen('shift-end')
@@ -1143,7 +1212,9 @@ export default function App() {
                     : mode === 'endless'
                       ? Math.max(index + 1, history.length + 1)
                       : series.length,
-                total: runningTotal,
+                // В смене очки — это ответ: набежавший счётчик говорит,
+                // что раунд удался. Их показывают в отчёте, не раньше.
+                total: mode === 'shift' ? null : runningTotal,
                 endless: mode === 'endless',
                 lives: ENDLESS_LIVES - missed,
                 maxLives: ENDLESS_LIVES,
@@ -1158,7 +1229,14 @@ export default function App() {
       />
 
       {toastAchievement && <Toast achievement={toastAchievement} accent={accent} />}
-      {reply && !toastAchievement && <Reply agent={AGENTS[reply.agent]} line={reply.line} />}
+      {reply && !toastAchievement && (
+        <Reply
+          agent={AGENTS[reply.agent]}
+          line={reply.line}
+          anonymous={anonymous}
+          accent={accent}
+        />
+      )}
 
       <div className="relative z-1">
         {screen === 'rules' && (
@@ -1273,6 +1351,8 @@ export default function App() {
             pr={pr}
             line={briefLine(agent, index)}
             seconds={duration}
+            accent={accent}
+            anonymous={anonymous}
             note={
               mode === 'shift'
                 ? 'баги в проде чинят руками — на падении или после смены'
@@ -1296,6 +1376,8 @@ export default function App() {
             marks={marks}
             attempts={attempts}
             shake={shake}
+            stopwatch={mode === 'shift' && !repairing ? stopwatch : null}
+            probes={hasTerminal ? shift.probes : null}
             onTerminal={hasTerminal ? openTerminal : null}
             terminal={
               hasTerminal && termOpen ? (
@@ -1361,6 +1443,18 @@ export default function App() {
           />
         )}
 
+        {screen === 'tick' && shift?.pending && (
+          <Tick
+            pr={shift.pending.pr}
+            lines={report(task, shift.pending.lines)}
+            hit={shift.pending.hit}
+            delta={shift.delta}
+            incidents={fired.length}
+            accent={accent}
+            onBack={backFromTick}
+          />
+        )}
+
         {screen === 'repair' && shift && (
           <RepairPick
             merged={merged(shift, shift.turns)}
@@ -1412,6 +1506,7 @@ export default function App() {
             log={shift.log}
             turns={shift.turn}
             day={shift.day}
+            spent={shift.spent}
             accent={accent}
             titles={TITLES}
             // Правду показываем, только когда игра кончилась: пока прод жив,

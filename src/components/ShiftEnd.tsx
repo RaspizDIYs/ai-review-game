@@ -9,6 +9,7 @@
 
 import type { Summary } from '../prod.ts'
 import type { ShiftEvent } from '../shift.ts'
+import { formatTime } from '../share.ts'
 import { plural } from '../stats.ts'
 import { Icon, type IconName } from '../ui/icons.tsx'
 import { Button } from '../ui/kit.tsx'
@@ -20,6 +21,11 @@ interface Props {
   turns: number
   /** Какой это был рабочий день — смена закрывает день и открывает следующий. */
   day: number
+  /**
+   * Сколько времени ушло на ревью за смену. Таймера там нет, и это не оценка,
+   * а просто цифра: захотел разобраться дольше — разбирался дольше.
+   */
+  spent: number
   accent: string
   /** Названия задач по id — журнал хранит только id. */
   titles: Map<string, string>
@@ -116,6 +122,7 @@ export function ShiftEnd({
   log,
   turns,
   day,
+  spent,
   accent,
   titles,
   reveal,
@@ -170,6 +177,12 @@ export function ShiftEnd({
             в проде осталось{' '}
             <span className="font-bold text-[#f2f2f5]">{summary.defects}</span>
           </span>
+          {spent > 0 && turns > 0 && (
+            <span>
+              <span className="font-bold text-[#f2f2f5]">{formatTime(spent)}</span> на ревью ·{' '}
+              {Math.round(spent / turns)} с на PR
+            </span>
+          )}
         </div>
       </div>
 

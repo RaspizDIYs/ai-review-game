@@ -35,7 +35,8 @@ interface Props {
     outcomes: (Outcome | 'cleanup')[]
     index: number
     length: number
-    total: number
+    /** Очки забега. null — смена: там счётчик очков был бы ответом. */
+    total: number | null
     endless: boolean
     lives: number
     maxLives: number
@@ -158,10 +159,12 @@ export function Chrome({
 
           <span className="flex-1" />
 
-          <span className="font-mono text-xs text-[#8b8b95]">
-            <span className="font-bold text-[#e7e7ea] tabular-nums">{run.total}</span>{' '}
-            {plural(run.total, 'очко', 'очка', 'очков')}
-          </span>
+          {run.total !== null && (
+            <span className="font-mono text-xs text-[#8b8b95]">
+              <span className="font-bold text-[#e7e7ea] tabular-nums">{run.total}</span>{' '}
+              {plural(run.total, 'очко', 'очка', 'очков')}
+            </span>
+          )}
         </div>
       )}
     </div>

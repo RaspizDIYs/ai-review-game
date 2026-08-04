@@ -71,6 +71,17 @@ export const CLEANUPS = 3
 export const WATCH_RELIEF = 3
 
 /**
+ * Запросов к терминалу на смену.
+ *
+ * Раньше подсказки стоили секунд раунда, но таймера в смене больше нет:
+ * там важнее качество, чем скорость. Бесплатных подсказок при этом быть
+ * не может — иначе первым же ходом вычерпывается всё, что терминал знает.
+ * Поэтому заряды, как у уборки: их видно, и решение «спросить сейчас или
+ * приберечь» становится частью хода.
+ */
+export const PROBES = 6
+
+/**
  * Что случилось на ходу. Журнал нужен не для красоты: из него собирается
  * сводка смены и список подозреваемых, когда приходит алерт.
  */
@@ -137,6 +148,13 @@ export interface Shift {
   cleanups: number
   /** Номер рабочего дня. Первая смена в жизни — день первый. */
   day: number
+  /** Сколько запросов к терминалу осталось на смену. */
+  probes: number
+  /**
+   * Секунд, потраченных на ревью за смену. Таймера в смене нет, но секундомер
+   * идёт: скорость перестала быть ценой и стала статистикой.
+   */
+  spent: number
   /**
    * PR, отпущенный на логирование: ход он потратил, но решения по нему нет.
    * Следующим ходом он возвращается — уже с уликой или с белым шумом.
@@ -202,8 +220,16 @@ export function start(carry?: Carry, turns: number = SHIFT_TURNS): Shift {
     // Уборки не переносятся: каждая смена начинается с трёх.
     cleanups: CLEANUPS,
     day: (carry?.day ?? 0) + 1,
+    // Заряды терминала не переносятся: каждая смена начинается с полного набора.
+    probes: PROBES,
+    spent: 0,
     pending: null,
   }
+}
+
+/** Потратить запрос к терминалу. Заряды кончились — смена не меняется. */
+export function probe(shift: Shift): Shift {
+  return shift.probes <= 0 ? shift : { ...shift, probes: shift.probes - 1 }
 }
 
 /** Пора ли выпустить игрока на чекпойнт: каждые четыре хода и в конце смены. */
@@ -229,8 +255,13 @@ function incidents(turn: number, fired: readonly Defect[]): ShiftEvent[] {
   }))
 }
 
-/** Ход ревью: игрок ответил на PR. */
-export function review(shift: Shift, task: Task, outcome: Outcome): Turn {
+/**
+ * Ход ревью: игрок ответил на PR.
+ *
+ * `seconds` — сколько он на это потратил. На исход не влияет никак: таймера
+ * в смене нет, время здесь копится только ради статистики в отчёте.
+ */
+export function review(shift: Shift, task: Task, outcome: Outcome, seconds = 0): Turn {
   const action: ShiftEvent = {
     kind: merges(outcome) ? 'merged' : 'blocked',
     turn: shift.turn,
@@ -255,6 +286,8 @@ export function review(shift: Shift, task: Task, outcome: Outcome): Turn {
       delta: step(shift.prod, prod),
       cleanups: shift.cleanups,
       day: shift.day,
+      probes: shift.probes,
+      spent: shift.spent + Math.max(0, Math.round(seconds)),
       // Решение принято — PR больше не на логировании.
       pending: null,
     },
@@ -273,7 +306,13 @@ export function review(shift: Shift, task: Task, outcome: Outcome): Turn {
  * Сам PR никуда не девается: следующим ходом он возвращается, и решение
  * по нему всё равно принимать.
  */
-export function watch(shift: Shift, task: Task, lines: readonly number[], hit: boolean): Turn {
+export function watch(
+  shift: Shift,
+  task: Task,
+  lines: readonly number[],
+  hit: boolean,
+  seconds = 0,
+): Turn {
   const ticked = tick(shift.defects)
   // Цена промаха считается от той мины, которая родилась бы при пропуске:
   // без подлянки платить не за что, и чистый PR слежка не наказывает.
@@ -304,6 +343,8 @@ export function watch(shift: Shift, task: Task, lines: readonly number[], hit: b
       delta: step(shift.prod, prod),
       cleanups: shift.cleanups,
       day: shift.day,
+      probes: shift.probes,
+      spent: shift.spent + Math.max(0, Math.round(seconds)),
       pending: { pr: shift.pr, task: task.id, lines: [...lines], hit },
     },
     fired: ticked.fired,
@@ -350,6 +391,8 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
       delta: step(shift.prod, prod),
       cleanups: shift.cleanups,
       day: shift.day,
+      probes: shift.probes,
+      spent: shift.spent,
       pending: shift.pending,
     },
     fired: ticked.fired,
@@ -480,6 +523,8 @@ export function restore(raw: unknown): Shift | null {
     // Смена без номера дня — из сборки до терминала. Считаем её первой:
     // выкидывать из-за этого прод игрока было бы обиднее, чем сбить счётчик.
     day: isNumber(raw.day) && raw.day > 0 ? raw.day : 1,
+    probes: isNumber(raw.probes) ? raw.probes : PROBES,
+    spent: isNumber(raw.spent) ? raw.spent : 0,
     pending: isWatched(raw.pending)
       ? { ...raw.pending, hit: raw.pending.hit === true }
       : null,
