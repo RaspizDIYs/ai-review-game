@@ -6,6 +6,7 @@ import {
   debt,
   rework,
   rollback,
+  state,
   tick,
   weakest,
   without,
@@ -21,7 +22,7 @@ const DIRTY = PACK.find((t) => !t.clean)!
 const CLEAN = PACK.find((t) => t.clean)!
 
 function make(over: Partial<Defect> = {}): Defect {
-  return { task: 'x', pr: 1, merged: 0, tag: 't', weight: 3, fuse: 2, leak: 0.6, known: false, ...over }
+  return { task: 'x', pr: 1, merged: 0, tag: 't', weight: 3, fuse: 2, leak: 0.6, known: false, crashes: 0, ...over }
 }
 
 test('в прод уезжает только то, что не поймали', () => {
@@ -89,13 +90,27 @@ test('ход укорачивает фитиль, догоревший стан�
   )
 })
 
-test('известный дефект больше не тикает и второй раз не рвётся', () => {
+test('известный дефект роняет прод каждый ход, пока его не починят', () => {
+  // Критическая ошибка не «подтекает» — она валит сервис снова и снова.
+  // Пока не починена руками, каждый ход это новое падение.
   const known = tick([make({ fuse: 1 })]).defects
-  const next = tick(known)
 
-  assert.equal(next.fired.length, 0)
-  assert.equal(next.defects.length, 1)
-  assert.equal(next.defects[0].fuse, known[0].fuse)
+  for (let turn = 0; turn < 3; turn++) {
+    const next = tick(known)
+    assert.equal(next.fired.length, 1, `ход ${turn}: прод обязан упасть снова`)
+    assert.equal(next.defects.length, 1, 'и остаться сломанным')
+    assert.equal(next.leak, 0, 'падение считается ударом, а не утечкой')
+  }
+})
+
+test('скрытый течёт, известный падает — это разные вещи', () => {
+  const hidden = tick([make({ fuse: 5, leak: 0.6 })])
+  assert.equal(hidden.fired.length, 0)
+  assert.ok(hidden.leak > 0)
+
+  const known = tick([make({ fuse: 5, leak: 0.6, known: true })])
+  assert.equal(known.fired.length, 1)
+  assert.equal(known.leak, 0)
 })
 
 test('утечку платят все, кто лежал, кроме рванувшего на этом ходу', () => {
@@ -106,11 +121,10 @@ test('утечку платят все, кто лежал, кроме рвану
   assert.equal(t.leak, 0.3)
 })
 
-test('известная мина течёт заметно сильнее скрытой', () => {
-  const hidden = tick([make({ fuse: 5, leak: 0.6 })]).leak
-  const known = tick([make({ fuse: 5, leak: 0.6, known: true })]).leak
-
-  assert.ok(known > hidden, `известная ${known} должна течь сильнее скрытой ${hidden}`)
+test('состояние прода читается без чисел', () => {
+  assert.equal(state([]), 'clean')
+  assert.equal(state([make({ fuse: 4 })]), 'leaking')
+  assert.equal(state([make({ fuse: 4 }), make({ known: true })]), 'falling')
 })
 
 test('пустой прод не течёт', () => {
@@ -177,3 +191,4 @@ test('убранный дефект исчезает, остальные на м
   assert.deepEqual(without([a, b], a), [b])
   assert.deepEqual(without([a], make({ pr: 9 })), [a])
 })
+

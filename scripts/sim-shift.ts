@@ -16,7 +16,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { fnv1a } from '../src/daily.ts'
-import { applyFix, finish, isShiftOver, review, start } from '../src/shift.ts'
+import { finish, isShiftOver, repair, review, start } from '../src/shift.ts'
 import type { Outcome, Task } from '../src/types.ts'
 
 const PACK: Task[] = JSON.parse(
@@ -24,6 +24,7 @@ const PACK: Task[] = JSON.parse(
 )
 const DIRTY = PACK.filter((t) => !t.clean)
 const CLEAN = PACK.filter((t) => t.clean)
+const byId = new Map(PACK.map((t) => [t.id, t]))
 
 /**
  * Доли исходов: нашёл / частично / пропустил / зря обвинил.
@@ -56,6 +57,9 @@ function outcome(p: Player, roll: number, clean: boolean): Outcome {
   return 'missed'
 }
 
+/** Как часто игрок «находит» подлянку там, где её нет, и ломает чистый PR. */
+const FALSE_POSITIVE = 0.2
+
 const RUNS = 400
 
 for (const p of PLAYERS) {
@@ -68,25 +72,50 @@ for (const p of PLAYERS) {
   for (let run = 0; run < RUNS; run++) {
     let s = start()
     let turn = 0
-    /** Мины, о которых игрок уже знает: рвануло, но ещё не вылечено. */
+    /** Мины, о которых игрок уже знает: прод падает, но ещё не починено. */
     let alerts: number[] = []
+    let attempts = 0
 
     while (!isShiftOver(s)) {
-      // Инцидент разбирают следующим ходом — он тоже стоит хода.
+      // Прод упал — игрок чинит руками. Ход на это не тратится, но каждая
+      // попытка это тик: пока возишься, дотикает соседнее.
       if (alerts.length > 0 && p.diagnosis >= 0) {
-        const roll = (fnv1a(`diag:${p.name}:${run}:${turn}`) % 1000) / 1000
         const merged = s.log.filter((e) => e.kind === 'merged')
+        const diag = (fnv1a(`diag:${p.name}:${run}:${turn}:${attempts}`) % 1000) / 1000
         const guess =
-          roll < p.diagnosis
-            ? alerts[0]
-            : merged[fnv1a(`pick:${p.name}:${run}:${turn}`) % Math.max(1, merged.length)]?.pr
+          diag < p.diagnosis
+            ? merged.find((e) => e.kind === 'merged' && e.pr === alerts[0])
+            : merged[fnv1a(`pick:${p.name}:${run}:${turn}:${attempts}`) % Math.max(1, merged.length)]
 
-        const step = applyFix(s, guess ?? alerts[0], 'rollback')
+        const task = guess?.kind === 'merged' ? byId.get(guess.task) : undefined
+        if (!task || !guess || guess.kind !== 'merged') break
+
+        // Открыл PR и решает, есть ли там что править. В грязном находит
+        // с тем же навыком, что и в ревью; в чистом иногда видит несуществующее
+        // и ломает его — но чаще просто закрывает и идёт дальше.
+        const dirty = s.defects.some((d) => d.pr === guess.pr)
+        const roll = (fnv1a(`fix:${p.name}:${run}:${turn}:${attempts}`) % 1000) / 1000
+
+        if (!dirty && roll > FALSE_POSITIVE) {
+          attempts++
+          if (attempts > 12) { alerts = []; attempts = 0 }
+          continue
+        }
+
+        const step = repair(s, guess.pr, task, dirty && roll < p.found ? 'found' : 'missed')
+
         s = step.shift
-        alerts = [...alerts.slice(1), ...step.fired.map((d) => d.pr)]
-        turn++
+        alerts = s.defects.filter((d) => d.known).map((d) => d.pr)
+        attempts++
+        // В игре попытки не ограничены, но модель не может ковыряться вечно:
+        // после десятой считаем, что игрок махнул рукой и пошёл работать.
+        if (attempts > 10) {
+          alerts = []
+          attempts = 0
+        }
         continue
       }
+      attempts = 0
 
       // Каждый пятый PR чистый — как в базовой игре.
       const clean = turn % 5 === 4
@@ -96,7 +125,7 @@ for (const p of PLAYERS) {
 
       const step = review(s, task, outcome(p, roll, clean))
       s = step.shift
-      alerts = [...alerts, ...step.fired.map((d) => d.pr)]
+      alerts = s.defects.filter((d) => d.known).map((d) => d.pr)
       turn++
     }
 

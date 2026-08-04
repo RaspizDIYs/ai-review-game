@@ -128,12 +128,16 @@ export function Review({
       <Button
         accent={accent}
         variant={selected.length ? 'primary' : 'secondary'}
-        icon={selected.length ? 'zap' : 'shield-check'}
+        icon={selected.length ? (timed ? 'zap' : 'hammer') : 'shield-check'}
         onClick={onSubmit}
       >
         {selected.length
-          ? `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
-          : 'Здесь чисто — апрув'}
+          ? timed
+            ? `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+            : `Править ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+          : timed
+            ? 'Здесь чисто — апрув'
+            : 'Закрыть, не трогая'}
       </Button>
     </div>
   )

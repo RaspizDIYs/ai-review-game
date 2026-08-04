@@ -13,6 +13,7 @@ import { born, debt, type Defect } from './defects.ts'
 import { MAX_HEALTH, START } from './prod.ts'
 import {
   carry,
+  CLEANUPS,
   cleanup,
   finish,
   isShiftOver,
@@ -53,6 +54,7 @@ function mine(over: Partial<Defect> = {}): Defect {
     fuse: 4,
     leak: 0.6,
     known: false,
+    crashes: 0,
     ...over,
   }
 }
@@ -61,6 +63,7 @@ function mine(over: Partial<Defect> = {}): Defect {
 function withDefects(defects: Defect[], health = MAX_HEALTH): Shift {
   return { ...start(), prod: { health, velocity: START.velocity }, defects }
 }
+
 
 test('заблокированный PR не мёржится', () => {
   assert.equal(merges('missed'), true)
@@ -166,13 +169,63 @@ test('инцидент бьёт по здоровью, тихий дефект �
   assert.ok(blown.prod.health < quiet.prod.health - 5, 'инцидент дороже утечки')
 })
 
-test('уборка тратит ход, лечит и убирает самый лёгкий дефект', () => {
+test('уборок на смену три, и каждая закрывает одну мину наверняка', () => {
+  const s0 = withDefects([mine({ pr: 1, weight: 1, fuse: 6 }), mine({ pr: 2, weight: 2, fuse: 6 })], 70)
+  assert.equal(s0.cleanups, CLEANUPS)
+
+  const s1 = cleanup(s0).shift
+  assert.equal(s1.cleanups, CLEANUPS - 1)
+  assert.equal(s1.defects.length, 1, 'мина закрыта на сто процентов, а не «может быть»')
+
+  const s2 = cleanup(s1).shift
+  const s3 = cleanup(s2).shift
+  assert.equal(s3.cleanups, 0)
+
+  // Четвёртой уборки нет: ничего не происходит.
+  const s4 = cleanup(s3).shift
+  assert.deepEqual(s4, s3)
+})
+
+test('уборка тратит заряд, а не ход, и всегда только лечит', () => {
+  // Раньше она была ходом, а на ходу падает прод — и разгрести долг значило
+  // потерять здоровье. Кнопка обещала «+5», а показывала минус.
+  const s = withDefects([mine({ pr: 1, weight: 1, fuse: 6 }), mine({ pr: 2, known: true })], 70)
+  const after = cleanup(s).shift
+
+  assert.equal(after.turn, s.turn, 'ход не тратится')
+  assert.ok(after.prod.health > s.prod.health, 'здоровье только вверх')
+  assert.deepEqual(
+    after.defects.map((d) => d.pr),
+    [2],
+    'закрыта тихая мина, упавший прод остался на месте',
+  )
+})
+
+test('уборка не двигает фитили: это не ход', () => {
+  const s = withDefects([mine({ pr: 1, weight: 1, fuse: 6 }), mine({ pr: 2, fuse: 1 })], 70)
+  const step = cleanup(s)
+
+  assert.deepEqual(step.fired, [], 'на уборке ничего не рвётся')
+  assert.equal(step.shift.defects.find((d) => d.pr === 2)?.fuse, 1, 'фитиль соседа не тронут')
+})
+
+test('уборка разгребает только тихое: упавший прод чинят руками', () => {
+  const s = withDefects([mine({ pr: 1, known: true, weight: 1 }), mine({ pr: 2, fuse: 6, weight: 4 })], 70)
+  const after = cleanup(s).shift
+
+  assert.deepEqual(
+    after.defects.map((d) => d.pr),
+    [1],
+    'критическую уборкой не закрыть — иначе она перестаёт быть критической',
+  )
+})
+
+test('уборка лечит и убирает самый лёгкий дефект', () => {
   // Здоровье заранее просажено: на потолке лечить нечего, и проверка
   // «стало лучше» ничего бы не значила.
   const dirty = withDefects([mine({ weight: 4, fuse: 6 }), mine({ pr: 1409, weight: 1, fuse: 6 })], 70)
   const after = cleanup(dirty).shift
 
-  assert.equal(after.turn, dirty.turn + 1)
   assert.equal(after.pr, dirty.pr, 'уборка не тратит номер PR')
   assert.ok(after.prod.health > dirty.prod.health)
   assert.deepEqual(
@@ -184,12 +237,21 @@ test('уборка тратит ход, лечит и убирает самый 
   assert.equal(after.log.at(-1)?.kind, 'cleanup')
 })
 
-test('уборка в чистом проде — профилактика, а не пустой ход', () => {
+test('уборка в чистом проде — профилактика, заряд тратится', () => {
   const s = cleanup(start()).shift
 
-  assert.equal(s.turn, 1)
+  assert.equal(s.cleanups, CLEANUPS - 1)
   const last = s.log.at(-1)
-  assert.ok(last?.kind === 'cleanup' && last.task === null)
+  assert.ok(last?.kind === 'cleanup' && last.task === null && last.pr === null)
+})
+
+test('уборка называет PR, который закрыла', () => {
+  // Это подсказка, и намеренная: заряд тратят в том числе ради неё.
+  // Без номера в списке починки нечего пометить, и кнопка выглядит мёртвой.
+  const s = withDefects([mine({ pr: 1409, weight: 1, fuse: 6 })], 70)
+  const last = cleanup(s).shift.log.at(-1)
+
+  assert.ok(last?.kind === 'cleanup' && last.pr === 1409)
 })
 
 test('ход не мутирует смену, из которой сделан', () => {
@@ -325,8 +387,22 @@ test('смена переживает перезагрузку вкладки', 
   assert.deepEqual(back, s)
 })
 
+test('смена с починкой и уборкой тоже переживает перезагрузку', () => {
+  // Событие в журнале, о котором проверка не знает, роняет всю смену молча:
+  // игрок возвращается и обнаруживает, что прода нет вообще.
+  const played = review(start(), DIRTY, 'missed').shift
+  const fixed = repair(cleanup(played).shift, played.pr, DIRTY, 'found').shift
+
+  assert.ok(
+    fixed.log.some((e) => e.kind === 'repair') && fixed.log.some((e) => e.kind === 'cleanup'),
+    'в журнале должны быть оба события',
+  )
+  assert.deepEqual(restore(JSON.parse(JSON.stringify(fixed))), fixed)
+})
+
 test('мусор вместо смены выбрасывается молча', () => {
   for (const junk of [null, undefined, 0, 'смена', {}, { turn: 1 }, { turn: 'два', turns: 14 }]) {
     assert.equal(restore(junk), null, `${JSON.stringify(junk)} не смена`)
   }
 })
+

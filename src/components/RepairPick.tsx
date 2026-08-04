@@ -12,39 +12,84 @@
  * а в том, что лишние попытки дороже, чем кажется.
  */
 
-import type { ShiftEvent } from '../shift.ts'
+import { CLEANUPS, type ShiftEvent } from '../shift.ts'
 import { plural } from '../stats.ts'
 import { Icon } from '../ui/icons.tsx'
 import { Button } from '../ui/kit.tsx'
+import { diffStat } from '../diff.ts'
 
 interface Props {
   /** Все мёрджи, которые игрок пустил в прод. Какие из них с подлянкой — неизвестно. */
   merged: ShiftEvent[]
   titles: Map<string, string>
+  /** Дифы задач по id — из них берётся статистика строк для карточки. */
+  diffs: Map<string, string>
+  /** PR, которые игрок закрыл своими руками: их код уже переписан. */
+  fixed: Set<number>
   /** Сколько раз уже лазили в каждый PR — единственное, что игра тут помнит. */
   tried: Map<number, number>
   health: number
+  /** Сколько здоровья вернула последняя уборка — чтобы было видно, что она сработала. */
+  healed: number | null
   accent: string
+  /** Чиним прямо на упавшем проде, а не между сменами. */
+  urgent: boolean
+  /** Сколько уборок осталось на смену. */
+  cleanups: number
   onPick: (pr: number, task: string) => void
+  onCleanup: () => void
   onDone: () => void
 }
 
-export function RepairPick({ merged, titles, tried, health, accent, onPick, onDone }: Props) {
+export function RepairPick({
+  merged,
+  titles,
+  diffs,
+  fixed,
+  tried,
+  health,
+  healed,
+  accent,
+  urgent,
+  cleanups,
+  onPick,
+  onCleanup,
+  onDone,
+}: Props) {
   return (
     <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display m-0 text-[clamp(20px,3.6vw,27px)] font-bold tracking-[-.02em] text-[#f4f4f6]">
-          Разбор завалов
+        <h1
+          className="font-display m-0 text-[clamp(20px,3.6vw,27px)] font-bold tracking-[-.02em]"
+          style={{ color: urgent ? '#f87171' : '#f4f4f6' }}
+        >
+          {urgent ? 'Прод лежит' : 'Разбор завалов'}
         </h1>
-        <span className="font-mono text-[11px] text-[#6b6b77]">
-          здоровье прода {Math.round(health)}
+        <span className="flex items-center gap-2 font-mono text-[11px] text-[#6b6b77]">
+          здоровье прода
+          <span className="text-[13px] font-bold text-[#e7e7ea] tabular-nums">
+            {Math.round(health)}
+          </span>
+          {/* Плюс от уборки показываем явно: иначе она выглядит как кнопка,
+              которая ничего не делает. */}
+          {healed !== null && (
+            <span
+              key={healed}
+              className="font-mono text-[12px] font-bold text-[#34d399] tabular-nums"
+              style={{ animation: 'rowIn .35s ease-out both' }}
+            >
+              +{healed}
+            </span>
+          )}
         </span>
       </div>
 
       <p className="m-0 max-w-[640px] text-sm leading-[1.55] text-[#9a9aa4]">
-        Вот всё, что ты пустил в прод за смену. Где-то здесь сидит то, что его
-        ломает — а может, и нет. Открывай и смотри заново: найдёшь подлянку и
-        разметишь её точно — починено. Промахнёшься — станет только хуже.
+        {urgent
+          ? 'Вот всё, что ты пустил в прод. Причина падения — в одном из них. Время не идёт и попытки не считаются: пока прод лежит, ничего важнее нет.'
+          : 'Вот всё, что ты пустил в прод за смену. Где-то здесь сидит то, что его ломает — а может, и нет.'}{' '}
+        Открывай и смотри заново: найдёшь подлянку и разметишь её точно —
+        починено. Промахнёшься — станет только хуже.
       </p>
 
       <div className="flex flex-col gap-1.5">
@@ -52,24 +97,43 @@ export function RepairPick({ merged, titles, tried, health, accent, onPick, onDo
           if (event.kind !== 'merged') return null
           const times = tried.get(event.pr) ?? 0
 
+          const done = fixed.has(event.pr)
+          const { adds, dels } = diffStat(diffs.get(event.task) ?? '')
+
           return (
             <button
               key={event.pr}
               onClick={() => onPick(event.pr, event.task)}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border-[1.5px] border-[#202027] bg-[#101014] px-3.5 py-3 text-left transition-colors hover:border-[#3a3a44]"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border-[1.5px] px-3.5 py-3 text-left transition-colors hover:border-[#3a3a44]"
+              style={{
+                borderColor: done ? '#34d39955' : '#202027',
+                background: done ? 'rgba(16,185,129,.05)' : '#101014',
+              }}
             >
-              <span className="text-[#4a4a54]">
-                <Icon name="git-pull-request" size={14} />
+              <span style={{ color: done ? '#34d399' : '#4a4a54' }}>
+                <Icon name={done ? 'check-check' : 'git-pull-request'} size={14} />
               </span>
               <span className="font-mono text-[11px] text-[#6b6b77]">#{event.pr}</span>
               <span className="min-w-0 flex-1 truncate text-sm text-[#d8d8dd]">
                 {titles.get(event.task) ?? event.task}
               </span>
-              {times > 0 && (
+
+              {/* Строчная статистика — как в списке пул-реквестов на гите. */}
+              <span className="font-mono text-[11px] whitespace-nowrap tabular-nums">
+                <span className="text-[#34d399]">+{adds}</span>{' '}
+                <span className="text-[#f87171]">−{dels}</span>
+              </span>
+
+              {done ? (
+                <span className="font-mono text-[10px] whitespace-nowrap text-[#34d399]">
+                  переписан
+                </span>
+              ) : times > 0 ? (
                 <span className="font-mono text-[10px] whitespace-nowrap text-[#5c5c66]">
                   лазил {times} {plural(times, 'раз', 'раза', 'раз')}
                 </span>
-              )}
+              ) : null}
+
               <span className="font-mono text-[10px] whitespace-nowrap text-[#4a4a54]">
                 ход {event.turn + 1}
               </span>
@@ -78,9 +142,44 @@ export function RepairPick({ merged, titles, tried, health, accent, onPick, onDo
         })}
       </div>
 
-      <Button accent={accent} onClick={onDone}>
-        Хватит · на следующую смену
+      {/* Уборка живёт здесь же: разгребать долг логично там, где его и разбирают.
+          Заряд тратится, ход — нет, поэтому здоровье от неё только растёт. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#26262c] bg-[#101014] px-4 py-3.5">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold tabular-nums"
+          style={{
+            color: cleanups > 0 ? accent : '#4a4a54',
+            border: `2px solid ${cleanups > 0 ? accent : '#2a2a32'}`,
+            background: cleanups > 0 ? `${accent}18` : 'transparent',
+          }}
+        >
+          {cleanups}/{CLEANUPS}
+        </span>
+
+        <div className="min-w-[180px] flex-1">
+          <p className="m-0 text-sm text-[#d8d8dd]">Разгрести долг</p>
+          <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-[#6b6b77]">
+            {cleanups > 0
+              ? 'Закроет одну тихую мину наверняка и вернёт здоровья. Какую именно — не покажет. Упавший прод так не чинится.'
+              : 'Уборки на эту смену кончились.'}
+          </p>
+        </div>
+
+        <Button
+          variant="secondary"
+          accent={accent}
+          disabled={cleanups <= 0}
+          className="w-auto shrink-0 px-5 py-3"
+          onClick={onCleanup}
+        >
+          Разгрести
+        </Button>
+      </div>
+
+      <Button variant={urgent ? 'secondary' : 'primary'} accent={accent} onClick={onDone}>
+        {urgent ? 'Хватит · работать дальше' : 'Хватит · на следующую смену'}
       </Button>
     </div>
   )
 }
+

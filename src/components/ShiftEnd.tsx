@@ -27,6 +27,8 @@ interface Props {
    * держится ровно на этом.
    */
   reveal: boolean
+  /** Открыть разбор одного PR. Есть только когда правда уже раскрыта. */
+  onOpen: ((pr: number, task: string) => void) | null
   /** Разобрать завалы. null — чинить нечего или уже некого. */
   onRepair: (() => void) | null
   onNext: (() => void) | null
@@ -83,6 +85,20 @@ const REPAIR_TEXT: Record<'cured' | 'failed' | 'broke', string> = {
   broke: 'а там было чисто — сломал',
 }
 
+/**
+ * Задача события. У починки в журнале лежит только номер PR, поэтому имя
+ * задачи достаём из мёрджа с тем же номером — по нему её и открывали.
+ */
+function prTask(log: readonly ShiftEvent[], event: ShiftEvent): string | null {
+  if (event.kind === 'merged' || event.kind === 'blocked' || event.kind === 'incident') {
+    return event.task
+  }
+  if (event.kind === 'cleanup') return null
+
+  const merged = log.find((e) => e.kind === 'merged' && e.pr === event.pr)
+  return merged?.kind === 'merged' ? merged.task : null
+}
+
 export function ShiftEnd({
   summary,
   log,
@@ -90,6 +106,7 @@ export function ShiftEnd({
   accent,
   titles,
   reveal,
+  onOpen,
   onRepair,
   onNext,
   onHome,
@@ -119,6 +136,7 @@ export function ShiftEnd({
             health={summary.prod.health}
             velocity={summary.prod.velocity}
             delta={0}
+            state={summary.defects > 0 ? 'leaking' : 'clean'}
             accent={accent}
           />
         </div>
@@ -155,19 +173,36 @@ export function ShiftEnd({
       >
         {log.map((event, i) => {
           const style = EVENT[event.kind]
+          // Строку журнала можно открыть и посмотреть тот самый код —
+          // кроме профилактики, за которой никакого конкретного PR нет.
+          const pr = 'pr' in event ? event.pr : null
+          const task = prTask(log, event)
+          const open = onOpen && pr !== null && task ? () => onOpen(pr, task) : null
+
           return (
-            <div
+            <button
               key={i}
-              className={`flex items-center gap-3 px-4 py-3 ${i ? 'border-t border-[#1f1f26]' : ''}`}
+              onClick={open ?? undefined}
+              disabled={!open}
+              className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                i ? 'border-t border-[#1f1f26]' : ''
+              } ${open ? 'cursor-pointer hover:bg-white/4' : 'cursor-default'}`}
             >
               <span style={{ color: style.color }}>
                 <Icon name={style.icon} size={15} />
               </span>
-              <span className="flex-1 truncate text-sm text-[#d8d8dd]">{line(event, titles)}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-[#d8d8dd]">
+                {line(event, titles)}
+              </span>
               <span className="font-mono text-[11px] whitespace-nowrap text-[#5c5c66]">
                 ход {event.turn + 1}
               </span>
-            </div>
+              {open && (
+                <span className="text-[#3a3a44]">
+                  <Icon name="chevron-right" size={15} />
+                </span>
+              )}
+            </button>
           )
         })}
       </div>

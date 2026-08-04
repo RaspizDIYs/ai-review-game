@@ -25,6 +25,7 @@ function make(over: Partial<Defect> = {}): Defect {
     fuse: 2,
     leak: 0.6,
     known: false,
+    crashes: 0,
     ...over,
   }
 }
@@ -121,3 +122,4 @@ test('сводка считает долг из дефектов, а не хра
   assert.equal(s.defects, 2)
   assert.equal(s.verdict, 'alive')
 })
+

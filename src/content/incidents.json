@@ -40,6 +40,81 @@
     "metric": "затронуто записей: 1980 из 1980"
   },
   {
+    "tag": "mutating-while-iterating",
+    "lines": "10:41  api-7f4c  INFO   архивация карточек: 412 к обработке\n10:41  api-7f4c  INFO   архивация завершена: обработано 206\n10:41  api-7f4c  INFO   ошибок нет\n15:20  клиника        «половина карточек так и висит активными»",
+    "metric": "обработано 206 из 412, ошибок 0"
+  },
+  {
+    "tag": "integer-division",
+    "lines": "18:04  billing   INFO   счёт 4412: услуги 3, сумма 2500\n18:04  billing   INFO   доля врача: 833\n18:04  billing   INFO   остаток клинике: 1\n09:15  бухгалтерия    «у врачей каждый месяц не хватает рублей»",
+    "metric": "потеряно на округлении: 1-2 ₽ на счёт"
+  },
+  {
+    "tag": "falsy-vs-none",
+    "lines": "12:33  api-9ab1  INFO   POST /api/visits вес 0 кг → сохранено как null\n12:33  api-9ab1  INFO   POST /api/visits вес 4.2 кг → сохранено 4.2\n14:02  врач           «новорождённым не проставляется вес»",
+    "metric": "пустых полей веса за неделю: 38"
+  },
+  {
+    "tag": "platform-default-encoding",
+    "lines": "16:10  export    INFO   выгрузка готова: owners.csv, 118412 строк\n16:12  клиника        «открыли в экселе — кракозябры»\n16:20  клиника        «у Маши открывается нормально, у меня нет»",
+    "metric": "жалоб на выгрузку: 9 из 14 получателей"
+  },
+  {
+    "tag": "off-by-one-boundary",
+    "lines": "00:05  report    INFO   отчёт за август: визитов 1938\n00:05  report    INFO   отчёт за сентябрь: визитов 1902\n11:40  бухгалтерия    «сумма за год не бьётся с помесячной на 23 визита»",
+    "metric": "расхождение год против месяцев: 23 визита"
+  },
+  {
+    "tag": "index-out-of-range",
+    "lines": "13:52  api-7f4c  ERROR  GET /api/patients/8814/visits 500\n13:52  api-7f4c  ERROR  index out of range\n13:52  api-7f4c  INFO   GET /api/patients/8815/visits 200\n13:58  регистратура   «у некоторых питомцев карточка не открывается»",
+    "metric": "пятисотых на ручке: 4% запросов"
+  },
+  {
+    "tag": "not-thread-safe-shared",
+    "lines": "19:12  api-7f4c  INFO   визит 9001 записан к врачу Петрову\n19:12  api-9ab1  INFO   визит 9002 записан к врачу Петрову\n19:12  api-7f4c  INFO   слот 19:30 занят\n20:05  регистратура   «два питомца пришли на одно время»",
+    "metric": "двойных броней за сутки: 6"
+  },
+  {
+    "tag": "context-leak",
+    "lines": "02:00  api-7f4c  WARN   goroutines 214\n06:00  api-7f4c  WARN   goroutines 1892\n10:00  api-7f4c  WARN   goroutines 8140\n10:04  api-7f4c  ERROR  out of memory, процесс перезапущен",
+    "metric": "память: 180MB → 1.9GB за восемь часов"
+  },
+  {
+    "tag": "debug-left-in-code",
+    "lines": "11:15  api-7f4c  INFO   владелец 318: {\"phone\":\"+7912...\",\"passport\":\"4512 ...\"}\n11:15  api-7f4c  INFO   владелец 319: {\"phone\":\"+7916...\",\"passport\":\"4014 ...\"}\n11:40  безопасность   «персональные данные в логах, лог уходит в облако»",
+    "metric": "строк с персональными данными за сутки: 41208"
+  },
+  {
+    "tag": "healthcheck-checks-nothing",
+    "lines": "04:20  deploy    INFO   контейнер vet-api healthy за 3s\n04:20  balancer  INFO   трафик пущен\n04:20  api-7f4c  ERROR  connection to postgres refused ×214\n04:21  on-call        поднят по алерту, в мониторинге всё зелёное",
+    "metric": "healthcheck: ok · пятисотых: 100%"
+  },
+  {
+    "tag": "container-data-not-persisted",
+    "lines": "03:00  deploy    INFO   docker compose up -d, образ обновлён\n03:00  minio     INFO   стартовал, /data пуст\n09:12  врач           «не открывается ни один снимок за три года»",
+    "metric": "файлов было: 41208 · сейчас: 0"
+  },
+  {
+    "tag": "ci-step-cannot-fail",
+    "lines": "весь месяц:  checks / test  ✓ Successful ×214\n03.08 09:40  локально: npm test → 37 failed\n03.08 09:44  git log: последний зелёный по-настоящему — 12 июля",
+    "metric": "красных тестов в main: 37, проверка зелёная"
+  },
+  {
+    "tag": "not-null-without-default",
+    "lines": "04:00  migrate   INFO   0042_visit_kind: начата\n04:00  migrate   ERROR  column \"kind\" contains null values\n04:00  deploy    ERROR  выкладка остановлена\n04:01  api-7f4c  ERROR  column visits.kind does not exist ×3120",
+    "metric": "прод недоступен: 22 минуты"
+  },
+  {
+    "tag": "backfill-in-one-statement",
+    "lines": "14:30  migrate   INFO   0044_owner_city_backfill: начата\n14:30  db-main   WARN   lock wait на owners: 41 запрос в очереди\n14:33  регистратура   «карточка не сохраняется, крутится колесо»\n14:38  db-main   INFO   миграция завершена за 8m 12s",
+    "metric": "запись в owners недоступна: 8 минут"
+  },
+  {
+    "tag": "reset-hard-drops-local-work",
+    "lines": "03:00  deploy    INFO   git reset --hard origin/main\n03:00  deploy    INFO   сервисы перезапущены\n09:30  on-call        «вчера правил лимит в конфиге, инцидент повторился»\n09:31  git       INFO   в истории этой правки нет",
+    "metric": "тот же инцидент второй раз за сутки"
+  },
+  {
     "tag": "sql-injection",
     "lines": "02:11  api-7f4c  INFO   GET /api/search?q=%27%20OR%201%3D1--\n02:11  db-main   INFO   SELECT * FROM owners WHERE name LIKE '' OR 1=1--'\n02:11  api-7f4c  INFO   200, отдано 4128 записей\n02:12  api-7f4c  INFO   тот же запрос, ещё 40 раз",
     "metric": "отдано наружу: 4128 карточек владельцев"

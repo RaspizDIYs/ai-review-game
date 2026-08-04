@@ -23,7 +23,10 @@ interface Props {
   log: IncidentLog | null
   /** Сколько здоровья ушло за прошлый ход. */
   delta: number
+  /** Который раз подряд падает по этой причине. */
+  again: boolean
   accent: string
+  onRepair: () => void
   onNext: () => void
 }
 
@@ -37,7 +40,7 @@ function fallback(defect: Defect): IncidentLog {
   }
 }
 
-export function Incident({ defect, log, delta, accent, onNext }: Props) {
+export function Incident({ defect, log, delta, again, accent, onRepair, onNext }: Props) {
   const shown = log ?? fallback(defect)
 
   return (
@@ -73,17 +76,26 @@ export function Incident({ defect, log, delta, accent, onNext }: Props) {
         )}
       </div>
 
-      {/* Во время смены сделать с этим нельзя ничего: чинят после неё, руками
-          и по тому же коду. Здесь только симптом — его и надо запомнить. */}
       <p className="m-0 text-sm leading-[1.55] text-[#9a9aa4]">
-        Что-то из смёрженного сломало прод и продолжает ломать. Смена не
-        останавливается: до конца ходов чинить некогда, а лог останется —
-        по нему потом и будешь искать, в каком из своих ревью ошибся.
+        {again
+          ? 'Прод падает по той же причине. Он будет падать каждый ход, пока её не починят — сама она не рассосётся.'
+          : 'Что-то из смёрженного уронило прод. Пока причину не найдёшь, он будет падать снова каждый ход.'}
       </p>
 
-      <Button accent={accent} onClick={onNext} autoFocus>
-        Дальше
-      </Button>
+      {/* Авария — единственное место в смене, где чинить можно прямо сейчас.
+          Времени и попыток там не считают: прод лежит, остальное подождёт. */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+        <Button accent={RED} onClick={onRepair} autoFocus>
+          Чинить · время не идёт
+        </Button>
+        <Button variant="secondary" accent={accent} onClick={onNext}>
+          Оставить и работать дальше
+        </Button>
+      </div>
+
+      <p className="m-0 font-mono text-[11px] text-[#5c5c66]">
+        оставить — значит согласиться, что прод падает каждый ход
+      </p>
     </div>
   )
 }

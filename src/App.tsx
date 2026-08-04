@@ -60,7 +60,7 @@ import {
   type Track,
 } from './music.ts'
 import { normalizeRepo, PR_BASE, pullRequest } from './pr.ts'
-import { leavesDefect, type Defect } from './defects.ts'
+import { leavesDefect, state as prodState, type Defect } from './defects.ts'
 import { START as PROD_START } from './prod.ts'
 import { logFor, type IncidentLog } from './incident.ts'
 import {
@@ -82,10 +82,10 @@ import { Chrome } from './components/Chrome.tsx'
 import type { LineState } from './components/DiffView.tsx'
 import { Home } from './components/Home.tsx'
 import { Incident } from './components/Incident.tsx'
+import { Postmortem } from './components/Postmortem.tsx'
 import { RepairPick } from './components/RepairPick.tsx'
 import { Setup } from './components/Setup.tsx'
 import { ShiftEnd } from './components/ShiftEnd.tsx'
-import { TurnPick } from './components/TurnPick.tsx'
 import { Reason } from './components/Reason.tsx'
 import { Review } from './components/Review.tsx'
 import { Rules } from './components/Rules.tsx'
@@ -98,13 +98,15 @@ const REASONS = reasons as Record<string, string>
 const INCIDENTS = incidents as IncidentLog[]
 /** Названия задач для сводки смены: журнал хранит только id. */
 const TITLES = new Map(POOL.map((t) => [t.id, t.title]))
+/** Дифы по id — из них список починки считает «+5 −1» для карточки. */
+const DIFFS = new Map(POOL.map((t) => [t.id, t.diff]))
 
 type Screen =
   | 'home'
   | 'rules'
   | 'setup'
-  | 'turn'
   | 'repair'
+  | 'postmortem'
   | 'briefing'
   | 'review'
   | 'reason'
@@ -221,6 +223,14 @@ export default function App() {
   const [repairing, setRepairing] = useState<{ pr: number; task: Task } | null>(null)
   /** Сколько раз лазили в каждый PR — единственное, что игра о починке помнит. */
   const [tried, setTried] = useState<Map<number, number>>(new Map())
+  /** Чиним на упавшем проде посреди смены или спокойно между сменами. */
+  const [urgent, setUrgent] = useState(false)
+  /** Открытый разбор одного PR: из отчёта по смене или из списка починки. */
+  const [postmortem, setPostmortem] = useState<{ task: Task; pr: number; back: Screen } | null>(
+    null,
+  )
+  /** Сколько здоровья вернула последняя уборка — показывается на экране разбора. */
+  const [healed, setHealed] = useState<number | null>(null)
 
   const [tokens, setTokens] = useState<Task['tokens']>(undefined)
   useEffect(() => {
@@ -274,7 +284,6 @@ export default function App() {
   // Инцидент — часть хода, а не отдельный экран: шкалы и счётчик ходов
   // должны остаться на месте, иначе алерт читается как выход из смены.
   const inRun =
-    screen === 'turn' ||
     screen === 'briefing' ||
     screen === 'review' ||
     screen === 'reason' ||
@@ -286,6 +295,28 @@ export default function App() {
 
   // Пул-реквест раунда: имя репозитория — из настроек игрока, заголовок и
   // ветка — из самой задачи, номер растёт по ходу серии.
+  /**
+   * PR, в которых подлянки больше нет: закрыл руками или разгребла уборка.
+   * В списке починки они помечены переписанными — чинить там нечего.
+   */
+  const fixedPrs = useMemo(() => {
+    const set = new Set<number>()
+    for (const e of shift?.log ?? []) {
+      if (e.kind === 'repair' && e.result === 'cured') set.add(e.pr)
+      if (e.kind === 'cleanup' && e.pr !== null) set.add(e.pr)
+    }
+    return set
+  }, [shift])
+
+  /** Кто закрыл: своими руками или уборкой. От этого зависит текст разбора. */
+  const cleanedPrs = useMemo(() => {
+    const set = new Set<number>()
+    for (const e of shift?.log ?? []) {
+      if (e.kind === 'cleanup' && e.pr !== null) set.add(e.pr)
+    }
+    return set
+  }, [shift])
+
   const repo = normalizeRepo(profile.repo)
   // В смене номер PR ведёт сама смена: он сквозной и именно его называет
   // потом алерт. Вне смены номер — украшение и считается от раунда.
@@ -486,6 +517,17 @@ export default function App() {
   function submitRepair() {
     if (!repairing || !shift) return
 
+    // Посмотрел и не тронул — значит, не тронул. Без этого «открыть и уйти»
+    // стоило бы сломанного PR, и осторожный разбор превращался бы в рулетку:
+    // прочитать код, ничего не найти и за это получить новую мину.
+    if (selected.length === 0) {
+      beep('tap')
+      setRepairing(null)
+      resetRound()
+      setScreen('repair')
+      return
+    }
+
     const result = resolveSubmit(repairing.task, selected, MAX_ATTEMPTS - 1)
     if (result.kind !== 'finish') return
 
@@ -510,6 +552,14 @@ export default function App() {
     if (!found) return
 
     beep('tap')
+    // Закрытый своими руками PR открывается не на починку, а на просмотр:
+    // там уже нечего искать, зато видно, что именно было переписано.
+    if (fixedPrs.has(pr)) {
+      setPostmortem({ task: found, pr, back: 'repair' })
+      setScreen('postmortem')
+      return
+    }
+
     resetRound()
     setRepairing({ pr, task: found })
     setScreen('review')
@@ -684,7 +734,7 @@ export default function App() {
     resetRun()
     setIndex(next.turn)
     setTask(pickShift(shiftPool, endlessSeed.current, next.turn))
-    setScreen('turn')
+    setScreen('briefing')
   }
 
   /** Следующий ход смены — либо конец, если прод или ходы кончились. */
@@ -699,24 +749,19 @@ export default function App() {
     setIndex(i)
     setTask(pickShift(shiftPool, endlessSeed.current, i, history.slice(-5).map((h) => h.task.id)))
     resetRound()
-    setScreen('turn')
+    setScreen('briefing')
   }
 
-  /** Ход уборки: разгрести долг вместо того, чтобы смотреть новый PR. */
+  /** Уборка: тратит заряд, не ход. Экран остаётся тот же, что и был. */
   function doCleanup() {
-    if (!shift) return
+    if (!shift || shift.cleanups <= 0) return
 
     beep('toggle')
     const turn = cleanupTurn(shift)
     setShift(turn.shift)
-    setFired(turn.fired)
     saveShift(turn.shift)
-
-    if (turn.fired.length > 0) {
-      setScreen('incident')
-      return
-    }
-    nextTurn(turn.shift)
+    // Плюс здоровья показываем цифрой: без неё кнопка выглядит мёртвой.
+    setHealed(Math.round((turn.shift.prod.health - shift.prod.health) * 10) / 10)
   }
 
   function startEndless() {
@@ -803,9 +848,8 @@ export default function App() {
   }
 
   /**
-   * Инцидент показан. Во время смены с ним ничего не сделать — чинят после,
-   * поэтому дальше просто следующий ход. Если смена уже кончилась, из алерта
-   * попадаем в разбор завалов.
+   * Оставить аварию и работать дальше. Прод при этом продолжит падать каждый
+   * ход — это осознанный выбор игрока, а не бесплатное «дальше».
    */
   function afterIncident() {
     beep('tap')
@@ -815,6 +859,27 @@ export default function App() {
 
     if (!isShiftOver(shift)) nextTurn(shift)
     else setScreen(finishShift(shift).verdict === 'alive' ? 'repair' : 'shift-end')
+  }
+
+  /** Чинить прямо сейчас: прод лежит, время и попытки не считаются. */
+  function repairNow() {
+    beep('tap')
+    setFired([])
+    setUrgent(true)
+    setScreen('repair')
+  }
+
+  /** Выйти из разбора: посреди смены — к следующему ходу, после неё — на новую. */
+  function leaveRepair() {
+    if (!urgent || !shift) {
+      startShift(true)
+      return
+    }
+
+    beep('tap')
+    setUrgent(false)
+    if (isShiftOver(shift)) setScreen('shift-end')
+    else nextTurn(shift)
   }
 
   /** Настройка появляется под режим, а не висит колонкой на главной. */
@@ -917,7 +982,10 @@ export default function App() {
                 endless: mode === 'endless',
                 lives: ENDLESS_LIVES - missed,
                 maxLives: ENDLESS_LIVES,
-                prod: mode === 'shift' && shift ? { ...shift.prod, delta: shift.delta } : null,
+                prod:
+                  mode === 'shift' && shift
+                    ? { ...shift.prod, delta: shift.delta, state: prodState(shift.defects) }
+                    : null,
                 onExit: goHome,
               }
             : null
@@ -994,7 +1062,13 @@ export default function App() {
             // весь смысл. Остальные режимы сначала показывают свою.
             onDaily={() => withRules(startDaily)}
             onEndless={() => openSetup('endless')}
-            onShift={() => openSetup('shift')}
+            // Стек спрашиваем только у новой смены. Незаконченную и разбор
+            // завалов продолжаем сразу: стек у них уже выбран.
+            onShift={() =>
+              shift && finishShift(shift).verdict === 'alive'
+                ? withRules(() => startShift())
+                : openSetup('shift')
+            }
             shift={
               shift && {
                 health: shift.prod.health,
@@ -1025,23 +1099,6 @@ export default function App() {
           />
         )}
 
-        {screen === 'turn' && shift && (
-          <TurnPick
-            turn={shift.turn}
-            turns={shift.turns}
-            pr={pr}
-            task={task}
-            agentName={agent.name}
-            health={shift.prod.health}
-            accent={accent}
-            onReview={() => {
-              beep('tap')
-              setScreen('briefing')
-            }}
-            onCleanup={doCleanup}
-          />
-        )}
-
         {screen === 'briefing' && (
           <Briefing
             task={task}
@@ -1049,6 +1106,11 @@ export default function App() {
             pr={pr}
             line={briefLine(agent, index)}
             seconds={duration}
+            note={
+              mode === 'shift'
+                ? 'баги в проде чинят руками — на падении или после смены'
+                : undefined
+            }
             onStart={() => {
               beep('start')
               setScreen('review')
@@ -1109,7 +1171,10 @@ export default function App() {
             defect={fired[0]}
             log={logFor(fired[0], INCIDENTS)}
             delta={shift.delta}
+            // Мина, которая уже падала на прошлом ходу, падает не впервые.
+            again={shift.log.filter((e) => e.kind === 'incident' && e.pr === fired[0].pr).length > 1}
             accent={accent}
+            onRepair={repairNow}
             onNext={afterIncident}
           />
         )}
@@ -1118,11 +1183,34 @@ export default function App() {
           <RepairPick
             merged={merged(shift, shift.turns)}
             titles={TITLES}
+            diffs={DIFFS}
+            fixed={fixedPrs}
             tried={tried}
             health={shift.prod.health}
+            healed={healed}
             accent={accent}
+            urgent={urgent}
+            cleanups={shift.cleanups}
             onPick={startRepair}
-            onDone={() => startShift(true)}
+            onCleanup={doCleanup}
+            onDone={leaveRepair}
+          />
+        )}
+
+        {screen === 'postmortem' && postmortem && shift && (
+          <Postmortem
+            task={postmortem.task}
+            tokens={undefined}
+            pr={postmortem.pr}
+            events={shift.log.filter((e) => 'pr' in e && e.pr === postmortem.pr)}
+            fixed={fixedPrs.has(postmortem.pr)}
+            byCleanup={cleanedPrs.has(postmortem.pr)}
+            accent={accent}
+            onBack={() => {
+              beep('tap')
+              setScreen(postmortem.back)
+              setPostmortem(null)
+            }}
           />
         )}
 
@@ -1136,6 +1224,17 @@ export default function App() {
             // Правду показываем, только когда игра кончилась: пока прод жив,
             // разбор превратил бы слепую починку в чтение ответов.
             reveal={finishShift(shift).verdict !== 'alive'}
+            onOpen={
+              finishShift(shift).verdict !== 'alive'
+                ? (pr, taskId) => {
+                    const found = POOL.find((t) => t.id === taskId)
+                    if (!found) return
+                    beep('tap')
+                    setPostmortem({ task: found, pr, back: 'shift-end' })
+                    setScreen('postmortem')
+                  }
+                : null
+            }
             onRepair={
               finishShift(shift).verdict === 'alive' && merged(shift, shift.turns).length > 0
                 ? () => setScreen('repair')

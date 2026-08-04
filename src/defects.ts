@@ -40,6 +40,8 @@ export interface Defect {
    * и вылечить. Вслепую это и есть основная работа.
    */
   known: boolean
+  /** Сколько раз уже уронил прод. Первое падение самое дорогое. */
+  crashes: number
 }
 
 /** Границы фитиля. Меньше двух — игрок не успевает забыть, больше шести — не свяжет. */
@@ -49,15 +51,22 @@ const FUSE_MAX = 6
 /** Утечка по весу дефекта. Цифры — гипотеза, калибруются на игроках. */
 const LEAK = [0.3, 0.45, 0.6, 0.8, 1.0]
 
-/**
- * Во сколько раз известная мина течёт сильнее скрытой. Она уже сломала
- * что-то в проде и продолжает ломать, пока её не вылечат, — а вылечить
- * можно, только правильно опознав. Отсюда всё давление слепого режима.
- */
-const KNOWN_LEAK = 2.2
-
 /** Доработкой лечится примерно две трети попаданий. */
 const REWORK_FAILS_EVERY = 3
+
+/**
+ * Состояние прода без чисел.
+ *
+ * Игрок не должен знать, сколько мин в проде, — но обязан понимать, есть ли
+ * они вообще и горит ли прямо сейчас. Это разные вещи: подтекающий прод
+ * доживёт до конца смены, падающий — нет.
+ */
+export type ProdState = 'clean' | 'leaking' | 'falling'
+
+export function state(defects: readonly Defect[]): ProdState {
+  if (defects.some((d) => d.known)) return 'falling'
+  return defects.length > 0 ? 'leaking' : 'clean'
+}
 
 /** Полный пропуск или частичный — часть подлянки всё равно уехала в прод. */
 export function leavesDefect(outcome: Outcome): boolean {
@@ -95,6 +104,7 @@ export function born(
     fuse: FUSE_MIN + (seed % (FUSE_MAX - FUSE_MIN + 1)),
     leak: LEAK[weight - 1],
     known: false,
+    crashes: 0,
   }
 }
 
@@ -108,27 +118,43 @@ export interface Tick {
 }
 
 /**
- * Ход смены. У скрытых укорачивается фитиль, догоревшие становятся известными
- * и остаются лежать: сработавшую мину ещё надо опознать среди своих мёрджей.
+ * Ход смены.
  *
- * Утечку берут все, кроме рванувшего именно сейчас: он платит своим весом,
- * и брать с него ещё и за тихую жизнь было бы двойным счётом.
+ * У скрытых укорачивается фитиль: они лежат тихо и понемногу текут. Догорел —
+ * прод упал, и мина становится известной.
+ *
+ * Известная **роняет прод каждый ход**, пока её не починят руками. Это и есть
+ * разница между «подтекает» и «горит»: с подтекающим продом смену дожить
+ * можно, с падающим — нет, критическую ошибку обязательно чинить.
+ *
+ * Утечку берут только те, кто лежит тихо: упавший платит своим весом, и брать
+ * с него ещё и за тихую жизнь было бы двойным счётом.
  */
-export function tick(defects: readonly Defect[]): Tick {
+export function tick(defects: readonly Defect[], crash = true): Tick {
   const out: Defect[] = []
   const fired: Defect[] = []
   let leak = 0
 
   for (const defect of defects) {
     if (defect.known) {
-      out.push(defect)
-      leak += defect.leak * KNOWN_LEAK
+      // Пока игрок чинит, прод уже лежит — падать заново ему незачем.
+      // Иначе каждая попытка стоила бы полного падения, и чинить вслепую
+      // становилось бы дороже, чем не чинить вовсе.
+      if (!crash) {
+        out.push(defect)
+        continue
+      }
+
+      const again = { ...defect, crashes: defect.crashes + 1 }
+      fired.push(again)
+      out.push(again)
       continue
     }
 
     const next = { ...defect, fuse: defect.fuse - 1 }
     if (next.fuse <= 0) {
       next.known = true
+      next.crashes = 1
       fired.push(next)
       out.push(next)
       continue
@@ -177,13 +203,18 @@ export function debt(defects: readonly Defect[]): number {
 }
 
 /**
- * Кого убирает плановая уборка. Самый лёгкий дефект, при равном весе — самый
- * старый: уборка разгребает накопившееся, а не тушит то, что вот-вот рванёт.
+ * Кого убирает плановая уборка: самый лёгкий из тех, что лежат тихо, при
+ * равном весе — самый старый.
+ *
+ * Упавший прод уборкой не чинится специально. Критическая ошибка на то и
+ * критическая, что её надо найти руками среди своих мёрджей, — будь она
+ * закрываема кнопкой, всё падение прода стоило бы одного клика.
  */
 export function weakest(defects: readonly Defect[]): Defect | null {
-  if (defects.length === 0) return null
+  const quiet = defects.filter((d) => !d.known)
+  if (quiet.length === 0) return null
 
-  return defects.reduce((best, d) =>
+  return quiet.reduce((best, d) =>
     d.weight < best.weight || (d.weight === best.weight && d.merged < best.merged) ? d : best,
   )
 }

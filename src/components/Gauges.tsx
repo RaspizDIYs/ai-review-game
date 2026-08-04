@@ -7,11 +7,24 @@
  * иначе игрок их не различает и перестаёт смотреть.
  */
 
-import { Icon } from '../ui/icons.tsx'
+import type { ProdState } from '../defects.ts'
+import { Icon, type IconName } from '../ui/icons.tsx'
+
+/**
+ * Состояние прода словом, а не числом. Сколько именно мин лежит — игрок
+ * не знает и знать не должен, но «есть незакрытое» и «горит прямо сейчас» —
+ * это разные вещи, и путать их нельзя.
+ */
+const STATE: Record<ProdState, { label: string; color: string; icon: IconName }> = {
+  clean: { label: 'чисто', color: '#4a4a54', icon: 'shield-check' },
+  leaking: { label: 'подтекает', color: '#fbbf24', icon: 'bug' },
+  falling: { label: 'падает', color: '#f87171', icon: 'siren' },
+}
 
 interface Props {
   health: number
   velocity: number
+  state: ProdState
   /**
    * Шаг здоровья за прошлый ход. В смене показывается вместо счётчика мин:
    * число «в проде 3» — это готовый ответ «ты пропустил три раза», а наклон
@@ -44,10 +57,9 @@ function Bar({ value, color, width }: { value: number; color: string; width: num
   )
 }
 
-export function Gauges({ health, velocity, delta, accent, compact = false }: Props) {
+export function Gauges({ health, velocity, state, delta, accent, compact = false }: Props) {
   const width = compact ? 56 : 88
-  // Заметная просадка — это уже не «где-то что-то течёт», а «горит».
-  const steep = delta <= -1.5
+  const mode = STATE[state]
 
   return (
     <div className="flex items-center gap-3.5">
@@ -67,11 +79,14 @@ export function Gauges({ health, velocity, delta, accent, compact = false }: Pro
 
       <div
         className="flex items-center gap-1.5 font-mono text-[11px]"
-        title="Сколько здоровья прода ушло за прошлый ход"
-        style={{ color: delta < 0 ? (steep ? '#f87171' : '#fbbf24') : '#4a4a54' }}
+        title={`Прод ${mode.label}, за прошлый ход ${delta === 0 ? 'без изменений' : delta}`}
+        style={{ color: mode.color }}
       >
-        <Icon name={steep ? 'circle-alert' : 'timer'} size={13} />
-        <span className="tabular-nums">{delta === 0 ? '±0' : delta}</span>
+        <span style={{ animation: state === 'falling' ? 'pulseRed 1.2s ease-in-out infinite' : undefined }}>
+          <Icon name={mode.icon} size={13} />
+        </span>
+        <span className="hidden sm:inline">{mode.label}</span>
+        {delta < 0 && <span className="tabular-nums opacity-70">{delta}</span>}
       </div>
     </div>
   )

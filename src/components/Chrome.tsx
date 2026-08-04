@@ -1,3 +1,4 @@
+import type { ProdState } from '../defects.ts'
 import type { Track } from '../music.ts'
 import type { PullRequest } from '../pr.ts'
 import { plural } from '../stats.ts'
@@ -39,7 +40,7 @@ interface Props {
     lives: number
     maxLives: number
     /** Шкалы прода — только в смене. */
-    prod: { health: number; velocity: number; delta: number } | null
+    prod: { health: number; velocity: number; delta: number; state: ProdState } | null
     onExit: () => void
   } | null
 }
@@ -149,6 +150,7 @@ export function Chrome({
               health={run.prod.health}
               velocity={run.prod.velocity}
               delta={run.prod.delta}
+              state={run.prod.state}
               accent={accent}
               compact
             />

@@ -70,11 +70,22 @@ export function afterRound(prod: Prod, outcome: Outcome): Prod {
   return { ...prod, velocity: clamp(prod.velocity + VELOCITY[outcome], MAX_VELOCITY) }
 }
 
-/** Сколько здоровья снимает инцидент по весу дефекта. Гипотеза. */
+/** Сколько здоровья снимает падение прода по весу дефекта. Гипотеза. */
 const BLAST = [6, 10, 15, 20, 25]
 
+/**
+ * Повторное падение по той же причине дешевле первого — но не бесплатно.
+ *
+ * Полная цена каждый ход убивала любого, кто не опознал причину с первой
+ * попытки: прогон показал 45% сгоревших смен у среднего ревьюера против 1%
+ * у хорошего. Такой обрыв — не сложность, а лотерея. Половинная цена
+ * оставляет несколько ходов на то, чтобы всё-таки найти виноватого.
+ */
+const REPEAT = 0.5
+
 export function blastOf(defect: Defect): number {
-  return BLAST[defect.weight - 1]
+  const full = BLAST[defect.weight - 1]
+  return defect.crashes > 1 ? Math.round(full * REPEAT) : full
 }
 
 /**

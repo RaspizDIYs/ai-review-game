@@ -41,6 +41,13 @@ export const SHIFT_TURNS = 14
 export const SUSPECTS = 4
 
 /**
+ * Уборок на смену. Раньше их было сколько угодно, и ход уборки был просто
+ * пропуском с гарантированной пользой — самый выгодный ход в игре. Теперь это
+ * ограниченный ресурс: три штуки, каждая закрывает одну тихую мину наверняка.
+ */
+export const CLEANUPS = 3
+
+/**
  * Что случилось на ходу. Журнал нужен не для красоты: из него собирается
  * сводка смены и список подозреваемых, когда приходит алерт.
  */
@@ -63,6 +70,12 @@ export type ShiftEvent =
       turn: number
       /** Какой дефект разгребли; null — прод был чист. */
       task: string | null
+      /**
+       * Чей PR закрыла уборка. Да, это подсказка: игрок узнаёт, что вот в этом
+       * мёрдже была подлянка. Так и задумано — заряд уборки для того и тратят,
+       * чтобы получить не только здоровье, но и вычеркнутую строку в списке.
+       */
+      pr: number | null
     }
   | {
       kind: 'repair'
@@ -87,6 +100,8 @@ export interface Shift {
    * подсказка: числа мин игроку не показывают, он читает наклон.
    */
   delta: number
+  /** Сколько уборок осталось. Единственная валюта, которую видно целиком. */
+  cleanups: number
 }
 
 /**
@@ -133,6 +148,8 @@ export function start(carry?: Carry, turns: number = SHIFT_TURNS): Shift {
     defects: carry ? [...carry.defects] : [],
     log: [],
     delta: 0,
+    // Уборки не переносятся: каждая смена начинается с трёх.
+    cleanups: CLEANUPS,
   }
 }
 
@@ -178,6 +195,7 @@ export function review(shift: Shift, task: Task, outcome: Outcome): Turn {
       defects: fresh ? [...ticked.defects, fresh] : ticked.defects,
       log: [...shift.log, action, ...incidents(shift.turn, ticked.fired)],
       delta: step(shift.prod, prod),
+      cleanups: shift.cleanups,
     },
     fired: ticked.fired,
   }
@@ -203,7 +221,9 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
   const broken = result === 'broke' ? born(task, 'missed', pr, shift.turn, 'repair') : null
   const rest = cured && guilty ? without(shift.defects, guilty) : shift.defects
 
-  const ticked = tick(rest)
+  // Починка ход не тратит, поэтому и повторного падения на ней нет:
+  // тикают только фитили тех, кто ещё лежит тихо.
+  const ticked = tick(rest, false)
   const prod = afterTick(afterRepair(shift.prod, result, guilty), ticked)
 
   return {
@@ -219,6 +239,7 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
         ...incidents(shift.turn, ticked.fired),
       ],
       delta: step(shift.prod, prod),
+      cleanups: shift.cleanups,
     },
     fired: ticked.fired,
     result,
@@ -226,35 +247,39 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
 }
 
 /**
- * Ход уборки: разгрести долг вместо того, чтобы смотреть новый PR.
+ * Уборка: закрыть одну тихую мину наверняка.
+ *
+ * Тратит заряд, а не ход. Раньше было наоборот — и получалась нелепость:
+ * на ходу падает прод, поэтому кнопка «разгрести долг» обещала плюс здоровья,
+ * а показывала минус. Трёх зарядов на смену достаточно, чтобы уборка не стала
+ * бесплатной, а ход для этого не нужен.
  *
  * Скорость уборка не трогает: команда не замечает, что кто-то починил то,
- * что ещё не сломалось. В этом и вся её невыгодность.
+ * что ещё не сломалось.
  */
 export function cleanup(shift: Shift): Turn {
-  const target = weakest(shift.defects)
-  const rest = target ? without(shift.defects, target) : shift.defects
+  // Заряды кончились — ничего не происходит.
+  if (shift.cleanups <= 0) return { shift, fired: [] }
 
-  const ticked = tick(rest)
+  const target = weakest(shift.defects)
+  const prod = afterCleanup(shift.prod)
   const action: ShiftEvent = {
     kind: 'cleanup',
     turn: shift.turn,
     task: target?.task ?? null,
+    pr: target?.pr ?? null,
   }
-  const prod = afterTick(afterCleanup(shift.prod), ticked)
 
   return {
     shift: {
-      turn: shift.turn + 1,
-      turns: shift.turns,
-      // Номер PR остаётся: уборка не открывает новый пул-реквест.
-      pr: shift.pr,
+      ...shift,
       prod,
-      defects: ticked.defects,
-      log: [...shift.log, action, ...incidents(shift.turn, ticked.fired)],
+      defects: target ? without(shift.defects, target) : shift.defects,
+      log: [...shift.log, action],
       delta: step(shift.prod, prod),
+      cleanups: shift.cleanups - 1,
     },
-    fired: ticked.fired,
+    fired: [],
   }
 }
 
@@ -301,10 +326,10 @@ function isDefect(value: unknown): value is Defect {
   )
 }
 
-const KINDS = ['merged', 'blocked', 'incident', 'cleanup', 'fix']
+const KINDS: ShiftEvent['kind'][] = ['merged', 'blocked', 'incident', 'cleanup', 'repair']
 
 function isEvent(value: unknown): value is ShiftEvent {
-  return isObject(value) && isNumber(value.turn) && KINDS.includes(value.kind as string)
+  return isObject(value) && isNumber(value.turn) && KINDS.includes(value.kind as ShiftEvent['kind'])
 }
 
 /**
@@ -330,5 +355,6 @@ export function restore(raw: unknown): Shift | null {
     log,
     // Сохранения до слепого режима шага здоровья не знают — начнём с нуля.
     delta: isNumber(raw.delta) ? raw.delta : 0,
+    cleanups: isNumber(raw.cleanups) ? raw.cleanups : CLEANUPS,
   }
 }

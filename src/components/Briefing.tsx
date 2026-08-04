@@ -13,6 +13,8 @@ interface Props {
   /** Реплика агента: он уверен, что всё в порядке. В этом и подвох. */
   line: string
   seconds: number
+  /** Приписка под кнопкой — в смене напоминает правило про баги в проде. */
+  note?: string
   onStart: () => void
 }
 
@@ -23,7 +25,7 @@ const LABEL_COLOR: Record<string, string> = {
   'high risk': '#f87171',
 }
 
-export function Briefing({ task, agent, pr, line, seconds, onStart }: Props) {
+export function Briefing({ task, agent, pr, line, seconds, note, onStart }: Props) {
   return (
     <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-6">
       <div className="overflow-hidden rounded-2xl border border-[#26262c] bg-[#111116]">
@@ -116,6 +118,12 @@ export function Briefing({ task, agent, pr, line, seconds, onStart }: Props) {
       <Button accent={agent.color} onClick={onStart} autoFocus>
         Открыть диф · {seconds} секунд
       </Button>
+
+      {note && (
+        <p className="m-0 -mt-1 text-center font-mono text-[11px] leading-[1.6] text-[#5c5c66]">
+          {note}
+        </p>
+      )}
     </div>
   )
 }

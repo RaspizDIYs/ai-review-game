@@ -5,9 +5,18 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import type { Defect } from './defects.ts'
 import { logFor, suspects, type IncidentLog } from './incident.ts'
 import type { ShiftEvent } from './shift.ts'
+import type { Task } from './types.ts'
+
+const PACK: Task[] = JSON.parse(
+  readFileSync(new URL('./content/pack.json', import.meta.url), 'utf8'),
+)
+const CONTENT: IncidentLog[] = JSON.parse(
+  readFileSync(new URL('./content/incidents.json', import.meta.url), 'utf8'),
+)
 
 function defect(over: Partial<Defect> = {}): Defect {
   return {
@@ -19,6 +28,7 @@ function defect(over: Partial<Defect> = {}): Defect {
     fuse: 0,
     leak: 0.6,
     known: true,
+    crashes: 1,
     ...over,
   }
 }
@@ -32,6 +42,17 @@ const LOGS: IncidentLog[] = [
 function mergedEvent(pr: number, turn: number, task = `task-${pr}`): ShiftEvent {
   return { kind: 'merged', turn, pr, task, outcome: 'missed' }
 }
+
+test('каждый лог привязан к тегу, который в паке есть', () => {
+  // Лог на несуществующий тег — мёртвый текст: он не покажется никогда,
+  // а тег, из-за которого его писали, покажет общую заглушку.
+  const tags = new Set(PACK.flatMap((t) => t.bugs.map((b) => b.tag)))
+
+  for (const log of CONTENT) {
+    assert.ok(tags.has(log.tag), `лог на тег «${log.tag}», которого нет в паке`)
+    assert.ok(log.lines.trim().length > 0, `${log.tag}: пустой лог`)
+  }
+})
 
 test('лог берётся по тегу подлянки, а не по задаче', () => {
   const found = logFor(defect({ task: 'py-cache-other-001' }), LOGS)
@@ -75,7 +96,7 @@ test('заблокированные PR в подозреваемые не ид�
   const log: ShiftEvent[] = [
     mergedEvent(1408, 0),
     { kind: 'blocked', turn: 1, pr: 1409, task: 'x', outcome: 'found' },
-    { kind: 'cleanup', turn: 2, task: null },
+    { kind: 'cleanup', turn: 2, task: null, pr: null },
   ]
 
   const list = suspects(defect({ pr: 1408 }), log, 4)
@@ -112,3 +133,4 @@ test('виновный не всегда стоит на одном и том ж
 
   assert.ok(positions.size > 1, `виновный всегда на позиции ${[...positions]}`)
 })
+
