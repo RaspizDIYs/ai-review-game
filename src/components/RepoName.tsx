@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_REPO, normalizeRepo } from '../pr.ts'
 import { Icon } from '../ui/icons.tsx'
+import { Tip } from '../ui/kit.tsx'
 
 interface Props {
   /** Сырое значение из профиля: пусто — покажем имя по умолчанию. */
@@ -43,9 +44,10 @@ export function RepoName({ value, accent, onChange }: Props) {
 
   if (!editing) {
     return (
+      <Tip text="Переименовать репозиторий" side="bottom">
       <button
         onClick={open}
-        title="Переименовать репозиторий"
+        aria-label="Переименовать репозиторий"
         className={`group flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-white/6 ${TEXT} text-[#e7e7ea]`}
       >
         <span className="truncate">{normalizeRepo(value)}</span>
@@ -53,6 +55,7 @@ export function RepoName({ value, accent, onChange }: Props) {
           <Icon name="pencil" size={11} />
         </span>
       </button>
+      </Tip>
     )
   }
 

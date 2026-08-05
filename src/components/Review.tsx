@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { MAX_ATTEMPTS } from '../round.ts'
 import { ROUND_SECONDS } from '../scoring.ts'
 import { plural } from '../stats.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
-import { Button } from '../ui/kit.tsx'
+import { Button, Tip } from '../ui/kit.tsx'
 import { DiffView, type LineState } from './DiffView.tsx'
 
 interface Props {
@@ -28,6 +28,10 @@ interface Props {
   probes?: number | null
   /** Открыть терминал. null — режим без терминала, кнопки не будет. */
   onTerminal?: (() => void) | null
+  /** Терминал развёрнут на весь экран — тогда диф прятать незачем и нечем. */
+  terminalFull?: boolean
+  /** Комментарий автора в коде: зацепка про характер, а не про подлянку. */
+  note?: { index: number; text: string } | null
   onPick: (line: number) => void
   onSubmit: () => void
 }
@@ -46,9 +50,13 @@ export function Review({
   terminal,
   probes = null,
   onTerminal,
+  terminalFull = false,
+  note = null,
   onPick,
   onSubmit,
 }: Props) {
+  /** Код во весь экран — на телефоне единственный способ его прочитать. */
+  const [full, setFull] = useState(false)
   // Починка после смены идёт без таймера: там не про скорость чтения,
   // а про то, найдёшь ли ты в собственном мёрдже то, что проглядел.
   const timed = duration > 0
@@ -158,25 +166,40 @@ export function Review({
             accent={accent}
             onPick={onPick}
             shake={shake}
+            note={note}
+            full={full}
+            onFull={setFull}
+            corner={
+              // Вызов терминала — иконкой в углу самого блока кода. Отдельной
+              // строкой под дифом кнопка уезжала за нижний край экрана,
+              // и на телефоне терминала будто не было вовсе.
+              onTerminal && !terminal && !terminalFull ? (
+                <Tip
+                  text={probes !== null ? `Терминал · ${probes} платных запросов` : 'Терминал'}
+                  side="top"
+                  className="pointer-events-auto"
+                >
+                  <button
+                    onClick={onTerminal}
+                    aria-label="Открыть терминал"
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-[1.5px] transition-transform hover:scale-105 active:scale-95"
+                    style={{
+                      borderColor: `${accent}88`,
+                      color: accent,
+                      background: '#0b0f0ce8',
+                      boxShadow: `0 6px 18px #00000088, 0 0 16px ${accent}33`,
+                    }}
+                  >
+                    <Icon name="terminal" size={18} />
+                  </button>
+                </Tip>
+              ) : null
+            }
           />
         </div>
 
         {terminal && <div className="w-full shrink-0 lg:w-[440px]">{terminal}</div>}
       </div>
-
-      {onTerminal && !terminal && (
-        <button
-          onClick={onTerminal}
-          className="flex cursor-pointer items-center justify-center gap-2.5 self-end rounded-xl border-[1.5px] border-dashed px-5 py-3 font-mono text-[12px] tracking-[.12em] uppercase transition-colors"
-          style={{ borderColor: `${accent}66`, color: accent, background: `${accent}0f` }}
-        >
-          <Icon name="terminal" size={15} />
-          терминал
-          {probes !== null && (
-            <span className="text-[11px] opacity-70">· {probes} запросов</span>
-          )}
-        </button>
-      )}
 
       <Button
         accent={accent}

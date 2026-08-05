@@ -9,6 +9,7 @@
 
 import type { ProdState } from '../defects.ts'
 import { Icon, type IconName } from '../ui/icons.tsx'
+import { Tip } from '../ui/kit.tsx'
 
 /**
  * Состояние прода словом, а не числом. Сколько именно мин лежит — игрок
@@ -63,23 +64,31 @@ export function Gauges({ health, velocity, state, delta, accent, compact = false
 
   return (
     <div className="flex items-center gap-3.5">
-      <div className="flex items-center gap-[7px]" title={`Здоровье прода ${Math.round(health)}`}>
-        <span style={{ color: healthColor(health) }}>
-          <Icon name="heart-pulse" size={13} />
+      <Tip text={`Здоровье прода ${Math.round(health)} из 100`}>
+        <span className="flex items-center gap-[7px]">
+          <span style={{ color: healthColor(health) }}>
+            <Icon name="heart-pulse" size={13} />
+          </span>
+          <Bar value={health} color={healthColor(health)} width={width} />
         </span>
-        <Bar value={health} color={healthColor(health)} width={width} />
-      </div>
+      </Tip>
 
-      <div className="flex items-center gap-[7px]" title={`Скорость команды ${Math.round(velocity)}`}>
-        <span style={{ color: accent }}>
-          <Icon name="zap" size={13} />
+      <Tip text={`Скорость команды ${Math.round(velocity)} из 100.
+Упадёт до нуля — снимут с ревью.`}>
+        <span className="flex items-center gap-[7px]">
+          <span style={{ color: accent }}>
+            <Icon name="zap" size={13} />
+          </span>
+          <Bar value={velocity} color={accent} width={width} />
         </span>
-        <Bar value={velocity} color={accent} width={width} />
-      </div>
+      </Tip>
 
-      <div
+      <Tip
+        text={`Прод ${mode.label}.
+За прошлый ход ${delta === 0 ? 'без изменений' : delta}.`}
+      >
+      <span
         className="flex items-center gap-1.5 font-mono text-[11px]"
-        title={`Прод ${mode.label}, за прошлый ход ${delta === 0 ? 'без изменений' : delta}`}
         style={{ color: mode.color }}
       >
         <span style={{ animation: state === 'falling' ? 'pulseRed 1.2s ease-in-out infinite' : undefined }}>
@@ -87,7 +96,8 @@ export function Gauges({ health, velocity, state, delta, accent, compact = false
         </span>
         <span className="hidden sm:inline">{mode.label}</span>
         {delta < 0 && <span className="tabular-nums opacity-70">{delta}</span>}
-      </div>
+      </span>
+      </Tip>
     </div>
   )
 }

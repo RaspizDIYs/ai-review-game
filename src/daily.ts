@@ -136,19 +136,25 @@ export function pickEndless(
 }
 
 /**
- * Смена: сложность не подбирается вовсе.
+ * Смена: сложность не подбирается вовсе, зато подбирается почерк.
  *
  * Игрок выбрал свой стек и обязан знать его целиком: подлянка в собственном
  * бэкенде бывает и на пятёрке в первый же ход. Разгон по сложности здесь
  * был бы обещанием, которого прод не даёт.
+ *
+ * `hands` — теги подлянок агентов, которые сегодня на смене. Задачи с чужим
+ * почерком не выбрасываются совсем (иначе на узком стеке пул схлопнется),
+ * но идут после своих. Смысл в том, что за смену один и тот же характер
+ * встречается несколько раз — и собранное про него досье окупается.
  */
 export function pickShift(
   pool: Task[],
   seed: string,
   index: number,
   recent: readonly string[] = [],
+  hands: ReadonlySet<string> | null = null,
 ): Task {
-  return pickStream(pool, seed, index, recent, null)
+  return pickStream(pool, seed, index, recent, null, hands)
 }
 
 /**
@@ -164,6 +170,7 @@ function pickStream(
   index: number,
   recent: readonly string[],
   wantDifficulty: number | null,
+  hands: ReadonlySet<string> | null = null,
 ): Task {
   const wantClean = index > 0 && (index + 1) % ENDLESS_CLEAN_EVERY === 0
 
@@ -179,7 +186,11 @@ function pickStream(
     .map((task) => ({
       task,
       difficultyMiss: wantDifficulty === null ? 0 : Math.abs(task.difficulty - wantDifficulty),
+      // Чужой почерк — не запрет, а задвижка в конец очереди.
+      handMiss: hands === null || task.bugs.some((b) => hands.has(b.tag)) ? 0 : 1,
       tie: fnv1a(`${seed}:${index}:${task.id}`),
     }))
-    .sort((a, b) => a.difficultyMiss - b.difficultyMiss || a.tie - b.tie)[0].task
+    .sort(
+      (a, b) => a.handMiss - b.handMiss || a.difficultyMiss - b.difficultyMiss || a.tie - b.tie,
+    )[0].task
 }

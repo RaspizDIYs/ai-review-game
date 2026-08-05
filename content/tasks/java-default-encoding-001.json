@@ -1,0 +1,32 @@
+{
+  "id": "java-default-encoding-001",
+  "stack": "java",
+  "difficulty": 3,
+  "title": "Импорт прайса от поставщика",
+  "prompt": "Заведи импорт прайса кормов — поставщик присылает CSV",
+  "tests": "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  2.774 s",
+  "diff": "--- a/src/main/java/clinic/PriceImport.java\n+++ b/src/main/java/clinic/PriceImport.java\n@@ -1,18 +1,40 @@\n package clinic;\n \n import java.io.BufferedReader;\n import java.io.FileReader;\n import java.math.BigDecimal;\n import java.util.ArrayList;\n import java.util.List;\n \n public class PriceImport {\n \n+    public List<PriceRow> read(String path) throws Exception {\n+        List<PriceRow> rows = new ArrayList<>();\n+\n+        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {\n+            String line;\n+            reader.readLine(); // заголовок\n+\n+            while ((line = reader.readLine()) != null) {\n+                String[] parts = line.split(\";\");\n+                rows.add(new PriceRow(parts[0], parts[1], new BigDecimal(parts[2])));\n+            }\n+        }\n+\n+        return rows;\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/PriceImport.java",
+      "match": "        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {",
+      "kind": "wrong",
+      "tag": "platform-default-encoding",
+      "explain": "FileReader без явной кодировки берёт системную. На машине разработчика это UTF-8, на сервере — та, что назначена локалью JVM. Кодировка самого файла от этого не зависит, а результат чтения зависит целиком.",
+      "consequence": "Прайс приезжает в windows-1251, сервис читает его как UTF-8 — и «Корм для кошек» превращается в кракозябры. Импорт при этом проходит: строки на месте, цены верные, ошибок нет. Замечает это владелец клиники в карточке товара через неделю."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            reader.readLine(); // заголовок",
+      "why": "первую строку и правда надо пропустить — у поставщика в ней названия колонок"
+    },
+    {
+      "match": "                String[] parts = line.split(\";\");",
+      "why": "точка с запятой — родной разделитель этого поставщика, к нему претензий нет"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

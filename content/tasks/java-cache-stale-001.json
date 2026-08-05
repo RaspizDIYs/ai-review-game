@@ -1,0 +1,32 @@
+{
+  "id": "java-cache-stale-001",
+  "stack": "java",
+  "difficulty": 3,
+  "title": "Справочник пород под автодополнение",
+  "prompt": "Справочник пород дёргается на каждый ввод в форме — закэшируй его",
+  "tests": "Tests run: 7, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  3.902 s",
+  "diff": "--- a/src/main/java/clinic/BreedDirectory.java\n+++ b/src/main/java/clinic/BreedDirectory.java\n@@ -1,20 +1,42 @@\n package clinic;\n \n import java.util.List;\n+import java.util.Map;\n+import java.util.concurrent.ConcurrentHashMap;\n \n public class BreedDirectory {\n     private final BreedRepository repository;\n+    private final Map<String, List<Breed>> cache = new ConcurrentHashMap<>();\n \n     public BreedDirectory(BreedRepository repository) {\n         this.repository = repository;\n     }\n \n     public List<Breed> search(String species) {\n-        return repository.findBySpecies(species);\n+        return cache.computeIfAbsent(species, repository::findBySpecies);\n     }\n+\n+    public void add(Breed breed) {\n+        repository.save(breed);\n+    }\n+\n+    public List<Breed> all() {\n+        return repository.findAll();\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/BreedDirectory.java",
+      "match": "        repository.save(breed);",
+      "kind": "wrong",
+      "tag": "cache-no-invalidation",
+      "explain": "Новая порода уезжает в базу, но кэш о ней не знает и знать не начнёт: ConcurrentHashMap живёт всё время работы приложения, а сбрасывать его тут негде. computeIfAbsent посчитает список один раз и вернёт его навсегда.",
+      "consequence": "Администратор заводит новую породу, открывает карточку — в автодополнении её нет. Он заводит её ещё раз, потом ещё. В базе три одинаковых записи, в подсказках по-прежнему ни одной, и появляются они только после перезапуска сервиса."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return cache.computeIfAbsent(species, repository::findBySpecies);",
+      "why": "сам по себе computeIfAbsent тут уместен: справочник читают часто, а меняют редко"
+    },
+    {
+      "match": "        return repository.findAll();",
+      "why": "полный список кэш не трогает вовсе — этот метод честно ходит в базу"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

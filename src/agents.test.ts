@@ -9,7 +9,18 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { AGENTS, AGENT_SLUGS, authorOf, briefLine, ownerOf } from './agents.ts'
+import {
+  AGENTS,
+  AGENT_SLUGS,
+  authorOf,
+  briefLine,
+  castOf,
+  handwritingOf,
+  ownerOf,
+} from './agents.ts'
+import { codeNote } from './note.ts'
+import { parseDiff } from './diff.ts'
+import { hits } from './round.ts'
 import { ownLine, replyTo } from './replies.ts'
 import type { Task } from './types.ts'
 
@@ -106,4 +117,64 @@ test('на git-blame агент признаёт авторство', () => {
 test('реплики брифинга идут по кругу', () => {
   const agent = AGENTS.architect
   assert.equal(briefLine(agent, 0), briefLine(agent, agent.briefs.length))
+})
+
+test('у каждого агента есть свои комментарии в коде', () => {
+  for (const slug of AGENT_SLUGS) {
+    assert.ok(AGENTS[slug].notes.length >= 3, `${slug}: комментариев меньше трёх`)
+  }
+  // Одинаковые фразы у двух агентов сделали бы зацепку бесполезной.
+  const all = AGENT_SLUGS.flatMap((s) => AGENTS[s].notes)
+  assert.equal(new Set(all).size, all.length, 'комментарии повторяются между агентами')
+})
+
+test('смена дня — устойчивый набор агентов, но не один и тот же', () => {
+  assert.deepEqual(
+    castOf('day:3').map((a) => a.slug),
+    castOf('day:3').map((a) => a.slug),
+  )
+
+  const days = new Set(
+    Array.from({ length: 12 }, (_, i) => castOf(`day:${i + 1}`).map((a) => a.slug).join(',')),
+  )
+  assert.ok(days.size > 4, 'состав смены почти не меняется от дня ко дню')
+})
+
+test('почерк смены покрывает заметную часть пака', () => {
+  // Если теги смены встречаются в паке слишком редко, фильтр по почерку
+  // выродится в «берём что попало» и разделения режимов не будет.
+  const dirty = PACK.filter((t) => t.bugs.length > 0)
+
+  for (let day = 1; day <= 8; day++) {
+    const hands = handwritingOf(castOf(`day:${day}`))
+    const own = dirty.filter((t) => t.bugs.some((b) => hands.has(b.tag)))
+    assert.ok(
+      own.length >= 12,
+      `день ${day}: задач с почерком смены всего ${own.length}`,
+    )
+  }
+})
+
+test('комментарий в коде не показывает на подлянку', () => {
+  for (const task of PACK) {
+    if (task.bugs.length === 0) continue
+    const note = codeNote(task, AGENTS.architect, '1408')
+    if (!note) continue
+
+    const line = parseDiff(task.diff)[note.index]
+    assert.ok(line.newNo !== null, `${task.id}: комментарий сел не на строку кода`)
+    assert.ok(
+      !task.bugs.some((b) => hits(b, line.newNo!)),
+      `${task.id}: комментарий сел ровно на подлянку`,
+    )
+    assert.ok(
+      !task.decoys.some((d) => d.line === line.newNo),
+      `${task.id}: комментарий сел на обманку`,
+    )
+  }
+})
+
+test('комментарий в коде не меняется при перерисовке', () => {
+  const task = PACK.find((t) => t.bugs.length > 0)!
+  assert.deepEqual(codeNote(task, AGENTS.oracle, '1408'), codeNote(task, AGENTS.oracle, '1408'))
 })

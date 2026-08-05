@@ -51,3 +51,8 @@ export type IconName =
   | 'terminal'
   | 'search'
   | 'x'
+  | 'maximize'
+  | 'minimize'
+  | 'panel-left'
+  | 'log-out'
+  | 'file-search'

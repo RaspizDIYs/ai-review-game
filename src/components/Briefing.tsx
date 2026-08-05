@@ -71,7 +71,7 @@ export function Briefing({
 
         <div className="flex flex-wrap items-stretch gap-5 border-b border-[#1f1f26] p-5">
           <AgentAvatar
-            slug={anonymous ? 'unknown' : agent.slug}
+            slug={anonymous ? null : agent.slug}
             // Монограмма анонима — вопрос, а не первая буква слова «ai».
             name={anonymous ? '?' : name}
             color={color}

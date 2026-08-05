@@ -3,10 +3,12 @@ import assert from 'node:assert/strict'
 import {
   ACHIEVEMENTS,
   derivedUnlocks,
+  dossierUnlocks,
   langAchievement,
   ownedCount,
   roundUnlocks,
   runUnlocks,
+  shiftUnlocks,
   STAFF_XP,
 } from './achievements.ts'
 import { STACKS } from './stacks.ts'
@@ -104,4 +106,36 @@ test('стафф — тот же порог, что у верхнего ранг
 
 test('чужие id из старых сохранений не считаются полученными', () => {
   assert.equal(ownedCount(['python', 'first']), 1)
+})
+
+test('смена награждает только за доигранную и выжившую', () => {
+  const base = { alive: true, finished: true, crashes: 0, cured: false, day: 1 }
+
+  assert.ok(shiftUnlocks(base).includes('shift'))
+  assert.ok(shiftUnlocks(base).includes('steady'))
+  assert.ok(!shiftUnlocks({ ...base, crashes: 2 }).includes('steady'))
+
+  // Брошенная посреди и сгоревшая не дают ничего.
+  assert.deepEqual(shiftUnlocks({ ...base, finished: false }), [])
+  assert.deepEqual(shiftUnlocks({ ...base, alive: false }), [])
+})
+
+test('пожарного дают даже за проигранную смену', () => {
+  // Прод всё равно сгорел, но руками его чинили — это отдельный навык.
+  const ids = shiftUnlocks({ alive: false, finished: true, crashes: 3, cured: true, day: 2 })
+  assert.deepEqual(ids, ['firefighter'])
+})
+
+test('пятый день отмечается только с пятого', () => {
+  const base = { alive: true, finished: true, crashes: 0, cured: false }
+  assert.ok(!shiftUnlocks({ ...base, day: 4 }).includes('veteran'))
+  assert.ok(shiftUnlocks({ ...base, day: 5 }).includes('veteran'))
+})
+
+test('досье: профайлер за одного, кадровик за всех', () => {
+  const full = { a: 4, b: 4 }
+
+  assert.deepEqual(dossierUnlocks({ a: 3 }, full), [])
+  assert.deepEqual(dossierUnlocks({ a: 4 }, full), ['profiler'])
+  assert.deepEqual(dossierUnlocks({ a: 4, b: 4 }, full), ['profiler', 'headhunter'])
 })

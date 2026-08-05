@@ -1,0 +1,32 @@
+{
+  "id": "go-json-shape-001",
+  "stack": "go",
+  "difficulty": 3,
+  "title": "Импорт вакцинаций из реестра",
+  "prompt": "Подтягивай отметки о вакцинации из государственного реестра",
+  "tests": "ok  \tclinic/registry\t0.196s\nPASS\nok  \tclinic/pets\t0.088s",
+  "diff": "--- a/registry/vaccines.go\n+++ b/registry/vaccines.go\n@@ -1,16 +1,42 @@\n package registry\n \n import (\n\t\"encoding/json\"\n\t\"time\"\n )\n \n+type Vaccination struct {\n+\tName string    `json:\"name\"`\n+\tDate time.Time `json:\"date\"`\n+}\n+\n+type reply struct {\n+\tItems []Vaccination `json:\"items\"`\n+}\n+\n+func Vaccinations(chip string) ([]Vaccination, error) {\n+\tresp, err := shared.Get(\"/pets/\" + chip + \"/vaccinations\")\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tdefer resp.Body.Close()\n+\n+\tvar data reply\n+\tif err := json.NewDecoder(resp.Body).Decode(&data); err != nil {\n+\t\treturn nil, err\n+\t}\n+\n+\treturn data.Items, nil\n+}\n",
+  "bugs": [
+    {
+      "file": "registry/vaccines.go",
+      "match": "\tItems []Vaccination `json:\"items\"`",
+      "kind": "wrong",
+      "tag": "json-decode-shape",
+      "explain": "Реестр отдаёт вакцинации в поле data, а items у него только в списке клиник. Decode на несовпавшее имя поля не ругается — он молча оставляет срез нулевым, и ошибки не будет.",
+      "consequence": "Функция возвращает пустой список и nil вместо ошибки. В карточке питомца написано «сведений о вакцинации нет» — и врач ставит прививку второй раз за год вместо положенного одного, потому что интерфейс сказал, что первой не было."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\tDate time.Time `json:\"date\"`",
+      "why": "time.Time разбирает RFC 3339, а реестр отдаёт именно его — здесь всё сходится"
+    },
+    {
+      "match": "\tresp, err := shared.Get(\"/pets/\" + chip + \"/vaccinations\")",
+      "why": "номер чипа проверяется на входе в сервис, склейка в путь безопасна"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

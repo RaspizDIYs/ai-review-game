@@ -1,0 +1,32 @@
+{
+  "id": "php-n-plus-one-001",
+  "stack": "php",
+  "difficulty": 2,
+  "title": "Список приёмов за день с владельцами",
+  "prompt": "Выведи список приёмов за день, рядом с каждым — телефон владельца",
+  "tests": "PHPUnit 11.2.0 by Sebastian Bergmann and contributors.\n\n.....                                                     5 / 5 (100%)\n\nOK (5 tests, 9 assertions)",
+  "diff": "--- a/src/Reports/DailyVisits.php\n+++ b/src/Reports/DailyVisits.php\n@@ -1,18 +1,40 @@\n <?php\n \n namespace Clinic\\Reports;\n \n final class DailyVisits\n {\n     public function __construct(private \\PDO $db) {}\n \n+    public function forDay(string $day): array\n+    {\n+        $visits = $this->db\n+            ->prepare('SELECT id, pet_id, owner_id, starts_at FROM visits WHERE day = ?');\n+        $visits->execute([$day]);\n+\n+        $rows = [];\n+        foreach ($visits->fetchAll() as $visit) {\n+            $owner = $this->db->prepare('SELECT phone FROM owners WHERE id = ?');\n+            $owner->execute([$visit['owner_id']]);\n+\n+            $rows[] = $visit + ['phone' => $owner->fetchColumn()];\n+        }\n+\n+        return $rows;\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "src/Reports/DailyVisits.php",
+      "match": "            $owner = $this->db->prepare('SELECT phone FROM owners WHERE id = ?');",
+      "kind": "wrong",
+      "tag": "n-plus-one",
+      "explain": "На каждый приём уходит отдельный запрос за телефоном владельца — плюс prepare, который тоже делается заново в каждой итерации. Один JOIN или выборка телефонов пачкой по списку id закрыли бы это одним походом в базу.",
+      "consequence": "В тестах день на пять приёмов, и всё летает. В сетевой клинике их четыреста: четыреста первых запросов вместо одного, отчёт открывается двенадцать секунд, а регистратура открывает его каждые пять минут."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            ->prepare('SELECT id, pet_id, owner_id, starts_at FROM visits WHERE day = ?');",
+      "why": "выборка приёмов за день по параметру — ровно то, что просили, и она одна"
+    },
+    {
+      "match": "            $rows[] = $visit + ['phone' => $owner->fetchColumn()];",
+      "why": "сложение массивов сохраняет строковые ключи, здесь это работает как задумано"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

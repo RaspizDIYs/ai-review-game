@@ -5,7 +5,7 @@ import { formatTime, isWin } from '../share.ts'
 import { plural } from '../stats.ts'
 import type { DailyRecord, RunProgress } from '../storage'
 import { Icon } from '../ui/icons.tsx'
-import { AgentAvatar, Button } from '../ui/kit.tsx'
+import { AgentAvatar, Button, Tip } from '../ui/kit.tsx'
 import { OutcomeTile } from '../ui/outcome.tsx'
 
 interface Props {
@@ -142,26 +142,30 @@ export function Home({
               className="mx-auto transition-[box-shadow,border-color] duration-300"
             />
             <div className="flex items-center justify-between gap-2">
+              <Tip text="Предыдущий агент" side="top">
               <button
                 onClick={() => step(-1)}
-                title="Предыдущий агент"
+                aria-label="Предыдущий агент"
                 className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[9px] border-[1.5px] border-[#2c2c34] bg-[#15151b] text-[#8b8b95] shadow-[0_3px_0_#0c0c10]"
               >
                 <Icon name="chevron-left" size={16} />
               </button>
+              </Tip>
               <span
                 className="text-center font-mono text-[11px] tracking-[.14em] uppercase"
                 style={{ color: accent }}
               >
                 {agent.name}
               </span>
+              <Tip text="Следующий агент" side="top">
               <button
                 onClick={() => step(1)}
-                title="Следующий агент"
+                aria-label="Следующий агент"
                 className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[9px] border-[1.5px] border-[#2c2c34] bg-[#15151b] text-[#8b8b95] shadow-[0_3px_0_#0c0c10]"
               >
                 <Icon name="chevron-right" size={16} />
               </button>
+              </Tip>
             </div>
             <span className="text-center font-mono text-[10px] leading-[1.4] text-[#5c5c66]">
               {agent.trait}
@@ -310,9 +314,9 @@ export function Home({
             {ACHIEVEMENTS.map((a) => {
               const on = unlocked.includes(a.id)
               return (
+                <Tip key={a.id} text={`${a.title}
+${a.desc}`} side="top">
                 <span
-                  key={a.id}
-                  title={`${a.title} — ${a.desc}`}
                   className="mb-[5px] flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px]"
                   style={{
                     border: on ? `1.5px solid ${accent}77` : '1.5px solid #202027',
@@ -331,6 +335,7 @@ export function Home({
                     <Icon name={on ? a.icon : 'lock'} size={19} />
                   )}
                 </span>
+                </Tip>
               )
             })}
           </div>

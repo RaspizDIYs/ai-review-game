@@ -13,7 +13,7 @@
  * можно только по проду: замедлилась утечка — попал.
  */
 
-import type { Defect } from '../defects.ts'
+import { FUSE_MAX, FUSE_MIN, type Defect } from '../defects.ts'
 import type { IncidentLog } from '../incident.ts'
 import { Icon } from '../ui/icons.tsx'
 import { Button } from '../ui/kit.tsx'
@@ -25,6 +25,8 @@ interface Props {
   delta: number
   /** Который раз подряд падает по этой причине. */
   again: boolean
+  /** Сколько аварий пришло на этом ходу — если их несколько, это надо сказать. */
+  total: number
   accent: string
   onRepair: () => void
   onNext: () => void
@@ -40,7 +42,7 @@ function fallback(defect: Defect): IncidentLog {
   }
 }
 
-export function Incident({ defect, log, delta, again, accent, onRepair, onNext }: Props) {
+export function Incident({ defect, log, delta, again, total, accent, onRepair, onNext }: Props) {
   const shown = log ?? fallback(defect)
 
   return (
@@ -57,6 +59,9 @@ export function Incident({ defect, log, delta, again, accent, onRepair, onNext }
             Инцидент в проде
           </h1>
           <span className="flex-1" />
+          {total > 1 && (
+            <span className="font-mono text-[11px] text-[#8b8b95]">рвануло сразу {total}</span>
+          )}
           <span
             className="rounded-full px-2.5 py-1 font-mono text-[11px] tabular-nums"
             style={{ border: `1px solid ${RED}55`, color: RED }}
@@ -82,8 +87,27 @@ export function Incident({ defect, log, delta, again, accent, onRepair, onNext }
           : 'Что-то из смёрженного уронило прод. Пока причину не найдёшь, он будет падать снова каждый ход.'}
       </p>
 
+      {/* Правило появления аварий раньше нигде не проговаривалось, и алерт
+          читался как случайность. Диапазон фитиля — это правило, а не адрес:
+          он объясняет механику и не называет ни PR, ни ход. */}
+      <div className="flex items-start gap-3 rounded-[14px] border border-[#26262c] bg-[#101014] px-4 py-3.5">
+        <span className="mt-0.5 text-[#6b6b77]">
+          <Icon name="timer" size={15} />
+        </span>
+        <p className="m-0 text-[13px] leading-[1.55] text-[#8b8b95]">
+          Пропущенная подлянка не рвёт прод сразу: она лежит в нём{' '}
+          <span className="text-[#d8d8dd]">
+            от {FUSE_MIN} до {FUSE_MAX} ходов
+          </span>{' '}
+          и всё это время тихо подтекает. Значит, виноват один из мёрджей той
+          давности — и чем тяжелее была подлянка, тем сильнее просело здоровье.
+        </p>
+      </div>
+
       {/* Авария — единственное место в смене, где чинить можно прямо сейчас.
-          Времени и попыток там не считают: прод лежит, остальное подождёт. */}
+          Времени и попыток там не считают: прод лежит, остальное подождёт.
+          Терминал на экране починки работает: диагностика — это не бонус
+          за спокойную обстановку. */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
         <Button accent={RED} onClick={onRepair} autoFocus>
           Чинить · время не идёт
@@ -93,8 +117,10 @@ export function Incident({ defect, log, delta, again, accent, onRepair, onNext }
         </Button>
       </div>
 
-      <p className="m-0 font-mono text-[11px] text-[#5c5c66]">
+      <p className="m-0 font-mono text-[11px] leading-[1.6] text-[#5c5c66]">
         оставить — значит согласиться, что прод падает каждый ход
+        <br />
+        на экране починки есть терминал, а вернуться сюда можно в любой момент
       </p>
     </div>
   )

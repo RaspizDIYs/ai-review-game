@@ -73,6 +73,30 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'streak10', icon: 'sparkles', title: 'Серия', desc: 'Десять найденных подлянок подряд' },
   ...FOUND_ACHIEVEMENTS,
   ...LANG_ACHIEVEMENTS,
+  // Смена: свои правила, свои награды. Раньше режим был единственным,
+  // за который не давали ничего, — при том что он самый длинный.
+  { id: 'shift', icon: 'heart-pulse', title: 'Смена сдана', desc: 'Доработать смену до конца' },
+  {
+    id: 'steady',
+    icon: 'shield-check',
+    title: 'Без падений',
+    desc: 'Закрыть смену, ни разу не уронив прод',
+  },
+  { id: 'firefighter', icon: 'siren', title: 'Пожарный', desc: 'Починить упавший прод руками' },
+  { id: 'veteran', icon: 'graduation-cap', title: 'Пятый день', desc: 'Дожить до пятого рабочего дня' },
+  // Расследование: досье собирается терминалом и живёт между сменами.
+  {
+    id: 'profiler',
+    icon: 'file-search',
+    title: 'Профайлер',
+    desc: 'Собрать полное досье на одного ИИ-агента',
+  },
+  {
+    id: 'headhunter',
+    icon: 'search',
+    title: 'Кадровик',
+    desc: 'Собрать досье на всех восьмерых агентов',
+  },
   { id: 'perfect', icon: 'trophy', title: 'Чистая проверка', desc: 'Пройти день без пропусков' },
   { id: 'night', icon: 'alarm-clock', title: 'Ночная смена', desc: 'Продержаться 12 раундов в бесконечном' },
   { id: 'week', icon: 'calendar-check', title: 'Неделя', desc: 'Семь дней подряд' },
@@ -156,6 +180,58 @@ export function runUnlocks({ mode, outcomes, streak }: RunContext): string[] {
 
   if (mode === 'endless' && outcomes.length >= NIGHT_ROUNDS) ids.push('night')
 
+  return ids
+}
+
+/** С какого рабочего дня выдаётся «Пятый день». */
+const VETERAN_DAY = 5
+
+export interface ShiftContext {
+  /** Прод пережил смену. Сгоревший ничего не открывает. */
+  alive: boolean
+  /** Смена доиграна до конца, а не брошена посреди. */
+  finished: boolean
+  /** Сколько раз за смену прод падал. */
+  crashes: number
+  /** Хотя бы одну аварию закрыли своими руками. */
+  cured: boolean
+  /** Какой это по счёту рабочий день. */
+  day: number
+}
+
+/**
+ * Что открылось по итогам смены.
+ *
+ * Считается отдельно от `runUnlocks`: у смены нет ни серии раундов, ни очков,
+ * ни «пройти день без пропусков» — там другая единица успеха, прод.
+ */
+export function shiftUnlocks({ alive, finished, crashes, cured, day }: ShiftContext): string[] {
+  const ids: string[] = []
+
+  if (cured) ids.push('firefighter')
+  if (!finished || !alive) return ids
+
+  ids.push('shift')
+  if (crashes === 0) ids.push('steady')
+  if (day >= VETERAN_DAY) ids.push('veteran')
+
+  return ids
+}
+
+/**
+ * Что открылось за собранное досье. Считается от профиля, а не от хода:
+ * досье копится терминалом и переживает смены.
+ */
+export function dossierUnlocks(
+  dossier: Readonly<Record<string, number>>,
+  full: Readonly<Record<string, number>>,
+): string[] {
+  const slugs = Object.keys(full)
+  const done = slugs.filter((slug) => (dossier[slug] ?? 0) >= full[slug])
+
+  const ids: string[] = []
+  if (done.length > 0) ids.push('profiler')
+  if (done.length === slugs.length) ids.push('headhunter')
   return ids
 }
 
