@@ -27,6 +27,8 @@ interface Props {
     health: number
     turn: number
     turns: number
+    /** Номер рабочего дня: смена закрылась — начался следующий. */
+    day: number
     unfinished: boolean
     /** Прошлая смена проиграна — прод следующей начнётся с нуля. */
     lost: boolean
@@ -162,7 +164,7 @@ export function Home({
               </button>
             </div>
             <span className="text-center font-mono text-[10px] leading-[1.4] text-[#5c5c66]">
-              {agent.lang}
+              {agent.trait}
             </span>
           </div>
         </div>
@@ -265,6 +267,11 @@ export function Home({
                   <Icon name="heart-pulse" size={16} />
                 </span>
                 Смена
+                {shift && !shift.lost && (
+                  <span className="font-mono text-[11px] font-normal text-[#6b6b77]">
+                    день {shift.day}
+                  </span>
+                )}
               </span>
               <span className="font-mono text-[11px] text-[#6b6b77]">
                 {!shift || shift.lost ? 'прод чист' : `прод ${Math.round(shift.health)}`}
@@ -275,7 +282,7 @@ export function Home({
                 ? `Смена не доиграна: ход ${shift.turn} из ${shift.turns}.`
                 : shift?.lost
                   ? 'Прошлая смена проиграна. Прод пересобран с нуля — начинаем заново.'
-                  : 'Четырнадцать ходов. Пропущенное возвращается ночным алертом — и прод это помнит.'}
+                  : 'Двенадцать ходов, сверка с продом каждые четыре. Пропущенное возвращается ночным алертом — и прод это помнит.'}
             </p>
             <Button variant="secondary" accent={accent} onClick={onShift}>
               {shift?.unfinished ? 'Вернуться на смену' : 'Заступить на смену'}
