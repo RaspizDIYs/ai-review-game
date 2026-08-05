@@ -10,13 +10,15 @@
  *   — здоровье монотонно падает от идеального к слабому;
  *   — средний ревьюер заканчивает смену где-то на сорока;
  *   — идеальный НЕ теряет скорость: наказание за работу — сломанное правило;
- *   — перестраховщик теряет скорость и за несколько смен доезжает до снятия.
+ *   — перестраховщик теряет скорость и за несколько смен доезжает до снятия;
+ *   — «не чинит вовсе» ревьюит не хуже среднего, но сгорает почти всегда:
+ *     диагностика — отдельный навык, и у него должна быть цена.
  *
  * `npm run sim`
  */
 import { readFileSync } from 'node:fs'
 import { fnv1a } from '../src/daily.ts'
-import { finish, isShiftOver, repair, review, start } from '../src/shift.ts'
+import { finish, isShiftOver, probe, repair, review, start, watch } from '../src/shift.ts'
 import type { Outcome, Task } from '../src/types.ts'
 
 const PACK: Task[] = JSON.parse(
@@ -28,6 +30,10 @@ const byId = new Map(PACK.map((t) => [t.id, t]))
 
 /**
  * Доли исходов: нашёл / частично / пропустил / зря обвинил.
+ *
+ * Терминал модель тоже учитывает: без него прогон описывает не ту игру,
+ * в которую играют — подсказки меняют качество ревью, а слежка меняет цену
+ * пропуска.
  * `diagnosis` — с какой вероятностью игрок опознаёт виновный PR по логу.
  * Вслепую это отдельный навык, и он важнее, чем кажется: неопознанная мина
  * течёт до конца смены.
@@ -39,21 +45,33 @@ type Player = {
   missed: number
   wrong: number
   diagnosis: number
+  /** Доля PR, на которых игрок тратит запрос терминала на подсказку. */
+  probe: number
+  /** Доля PR, которые он отпускает на логирование вместо решения. */
+  watch: number
 }
 
+/**
+ * Насколько подсказка терминала повышает шанс найти подлянку. Гипотеза:
+ * досье говорит, что искать, но не где, — значит, заметная прибавка,
+ * а не готовый ответ.
+ */
+const PROBE_BOOST = 0.15
+
 const PLAYERS: Player[] = [
-  { name: 'идеальный', found: 1, partial: 0, missed: 0, wrong: 0, diagnosis: 1 },
-  { name: 'хороший', found: 0.7, partial: 0.15, missed: 0.15, wrong: 0, diagnosis: 0.7 },
-  { name: 'средний', found: 0.5, partial: 0.2, missed: 0.3, wrong: 0, diagnosis: 0.5 },
-  { name: 'слабый', found: 0.3, partial: 0.2, missed: 0.5, wrong: 0, diagnosis: 0.25 },
-  { name: 'перестраховщик', found: 0.9, partial: 0, missed: 0.1, wrong: 1, diagnosis: 0.6 },
-  { name: 'не чинит вовсе', found: 0.5, partial: 0.2, missed: 0.3, wrong: 0, diagnosis: -1 },
+  // Идеальному терминал не нужен: он и так находит всё.
+  { name: 'идеальный', found: 1, partial: 0, missed: 0, wrong: 0, diagnosis: 1, probe: 0, watch: 0 },
+  { name: 'хороший', found: 0.7, partial: 0.15, missed: 0.15, wrong: 0, diagnosis: 0.7, probe: 0.35, watch: 0.1 },
+  { name: 'средний', found: 0.5, partial: 0.2, missed: 0.3, wrong: 0, diagnosis: 0.5, probe: 0.5, watch: 0.15 },
+  { name: 'слабый', found: 0.3, partial: 0.2, missed: 0.5, wrong: 0, diagnosis: 0.25, probe: 0.6, watch: 0.2 },
+  { name: 'перестраховщик', found: 0.9, partial: 0, missed: 0.1, wrong: 1, diagnosis: 0.6, probe: 0.3, watch: 0.1 },
+  { name: 'не чинит вовсе', found: 0.5, partial: 0.2, missed: 0.3, wrong: 0, diagnosis: -1, probe: 0.5, watch: 0.15 },
 ]
 
-function outcome(p: Player, roll: number, clean: boolean): Outcome {
+function outcome(p: Player, roll: number, clean: boolean, boost = 0): Outcome {
   if (clean) return roll < p.wrong ? 'false-accusation' : 'clean-correct'
-  if (roll < p.found) return 'found'
-  if (roll < p.found + p.partial) return 'partial'
+  if (roll < p.found + boost) return 'found'
+  if (roll < p.found + boost + p.partial) return 'partial'
   return 'missed'
 }
 
@@ -117,13 +135,36 @@ for (const p of PLAYERS) {
       }
       attempts = 0
 
-      // Каждый пятый PR чистый — как в базовой игре.
-      const clean = turn % 5 === 4
+      // PR с логирования возвращается тем же самым — ход на него уже потрачен.
+      const back = s.pending
+      const clean = back ? byId.get(back.task)!.clean : turn % 5 === 4
       const pool = clean ? CLEAN : DIRTY
-      const task = pool[fnv1a(`sim:${p.name}:${run}:${turn}`) % pool.length]
+      const task = back
+        ? byId.get(back.task)!
+        : pool[fnv1a(`sim:${p.name}:${run}:${turn}`) % pool.length]
       const roll = (fnv1a(`roll:${p.name}:${run}:${turn}`) % 1000) / 1000
 
-      const step = review(s, task, outcome(p, roll, clean))
+      // Терминал. Подсказка тратит запрос и повышает шанс найти; слежка
+      // тратит целый ход, зато промах стоит трети обычного пропуска.
+      const wantWatch = (fnv1a(`watch:${p.name}:${run}:${turn}`) % 1000) / 1000 < p.watch
+      if (!back && wantWatch && !clean) {
+        const hit = roll < p.found
+        s = watch(s, task, [task.bugs[0]?.line ?? 1], hit).shift
+        alerts = s.defects.filter((d) => d.known).map((d) => d.pr)
+        turn++
+        continue
+      }
+
+      let boost = 0
+      const wantProbe = (fnv1a(`probe:${p.name}:${run}:${turn}`) % 1000) / 1000 < p.probe
+      if (wantProbe && s.probes > 0) {
+        s = probe(s)
+        boost = PROBE_BOOST
+      }
+      // Лог сел на подлянку — строки уже размечены, промахнуться негде.
+      if (back?.hit) boost = 1
+
+      const step = review(s, task, outcome(p, roll, clean, boost))
       s = step.shift
       alerts = s.defects.filter((d) => d.known).map((d) => d.pr)
       turn++

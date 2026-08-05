@@ -48,4 +48,6 @@ export type IconName =
   | 'git-branch'
   | 'pencil'
   | 'settings'
+  | 'terminal'
+  | 'search'
   | 'x'
