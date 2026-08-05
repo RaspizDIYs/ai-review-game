@@ -1,0 +1,36 @@
+{
+  "id": "sh-git-rebase-published-001",
+  "stack": "sh",
+  "difficulty": 4,
+  "title": "Автообновление веток от свежего main",
+  "prompt": "Пусть бот раз в час подтягивает свежий main во все открытые ветки, чтобы они не отставали",
+  "tests": "$ ./scripts/refresh-branches.sh\nветка feature/vaccine-plan: обновлена\nветка feature/stock-report: обновлена\nветка fix/owner-search: обновлена\n\nобновлено веток: 3, конфликтов: 0",
+  "diff": "--- a/scripts/refresh-branches.sh\n+++ b/scripts/refresh-branches.sh\n@@ -1,6 +1,26 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n git fetch origin --prune\n \n+branches=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin \\\n+  | grep -v 'origin/main' | sed 's|origin/||')\n+\n+for branch in $branches; do\n+  git switch \"$branch\"\n+  git rebase origin/main\n+  git push --force-with-lease origin \"$branch\"\n+  echo \"ветка $branch: обновлена\"\n+done\n+\n+git switch main\n+echo \"обновлено веток: $(echo \"$branches\" | wc -w), конфликтов: 0\"\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/refresh-branches.sh",
+      "match": "  git rebase origin/main",
+      "kind": "wrong",
+      "tag": "rebase-published-branch",
+      "explain": "Rebase переписывает коммиты, а ветки опубликованы: над ними работают люди и висят пул-реквесты с комментариями к строкам. Ветку, которую видят другие, обновляют мёрджем, а не ребейзом — либо ребейзят её только те, кто в ней работает, и только осознанно.",
+      "consequence": "У всех, кто работал с этими ветками, следующий git pull даёт расхождение и разбирается вручную. Комментарии ревьюеров в пул-реквестах отвязываются от строк и превращаются в «устаревшее», хотя обсуждение не закончено."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  git push --force-with-lease origin \"$branch\"",
+      "why": "с lease, а не голый --force — если бы ребейз был уместен, это правильная форма"
+    },
+    {
+      "match": "git fetch origin --prune",
+      "why": "чистка исчезнувших веток — полезно и безопасно"
+    },
+    {
+      "match": "  | grep -v 'origin/main' | sed 's|origin/||')",
+      "why": "разбор списка веток текстом — хрупко, но работает"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

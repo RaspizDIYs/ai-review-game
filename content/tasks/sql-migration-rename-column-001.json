@@ -1,0 +1,32 @@
+{
+  "id": "sql-migration-rename-column-001",
+  "stack": "sql",
+  "difficulty": 4,
+  "title": "Переименование поля владельца",
+  "prompt": "Переименуй owners.name в owners.full_name, а то путается с кличкой питомца",
+  "tests": "PASS  tests/owners.test.ts (7)\n  ✓ владелец создаётся с full_name\n  ✓ поиск по фамилии работает\n  ✓ карточка отдаёт full_name\n\nTests  7 passed (7)  ·  миграция накатилась за 41ms",
+  "diff": "--- a/migrations/0043_owner_full_name.sql\n+++ b/migrations/0043_owner_full_name.sql\n@@ -1,3 +1,20 @@\n+-- Переименование поля. Выкатка обычная: инстансы api обновляются\n+-- по одному, старые и новые какое-то время работают вместе.\n+\n+BEGIN;\n+\n+ALTER TABLE owners\n+  RENAME COLUMN name TO full_name;\n+\n+DROP INDEX IF EXISTS owners_name_idx;\n+\n+CREATE INDEX owners_full_name_idx\n+  ON owners (lower(full_name));\n+\n+COMMIT;\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "migrations/0043_owner_full_name.sql",
+      "match": "  RENAME COLUMN name TO full_name;",
+      "kind": "wrong",
+      "tag": "rename-breaks-running-code",
+      "explain": "Переименование мгновенно ломает все инстансы, которые ещё работают на старом коде, — а во время выкатки они работают всегда. Так делают в три релиза: добавить новую колонку и писать в обе, перевести чтение, удалить старую.",
+      "consequence": "На несколько минут выкатки половина запросов падает с «column owners.name does not exist». Откатить миграцию нельзя так же быстро, как код, поэтому окно растягивается до тех пор, пока не докатятся все инстансы."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "CREATE INDEX owners_full_name_idx",
+      "why": "индекс по lower() под поиск без учёта регистра — правильно"
+    },
+    {
+      "match": "DROP INDEX IF EXISTS owners_name_idx;",
+      "why": "старый индекс убирают вместе с колонкой — само по себе не ошибка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

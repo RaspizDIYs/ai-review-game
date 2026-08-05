@@ -46,6 +46,57 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #454554, #2c2c36); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* Ползунок громкости. Заполненную часть рисуем градиентом по --vol-pos:
+   отдельного элемента под неё в range нет, а красить её надо в цвет агента. */
+.vol-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  background: transparent;
+}
+.vol-range:focus-visible { outline: none; }
+.vol-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vol-accent) var(--vol-pos), #2a2a32 var(--vol-pos));
+}
+.vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 999px;
+  border: 2px solid #0b0b0f;
+  background: var(--vol-accent);
+}
+.vol-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #2a2a32;
+}
+.vol-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--vol-accent);
+}
+.vol-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #0b0b0f;
+  background: var(--vol-accent);
+}
+
+/* Лента, которую листают пальцем: полоса прокрутки под ней только мешает —
+   на телефоне её всё равно не ухватить, а место она занимает. */
+.swipe-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.swipe-x::-webkit-scrollbar { display: none; }
+
 @keyframes scrIn {
   from { opacity: 0; transform: translateY(14px) scale(.985); filter: blur(6px); }
   to { opacity: 1; transform: none; filter: none; }

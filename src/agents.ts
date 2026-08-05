@@ -122,6 +122,9 @@ const BY_STACK: Record<Stack, AgentSlug> = {
   swift: 'commander',
   py: 'guardian',
   sh: 'guardian',
+  // Сборка и пайплайны — это про то, как всё устроено и как оно едет.
+  docker: 'architect',
+  yaml: 'commander',
   sql: 'oracle',
   cs: 'architect',
   java: 'architect',

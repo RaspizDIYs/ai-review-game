@@ -1,0 +1,32 @@
+{
+  "id": "docker-dev-env-in-prod-001",
+  "stack": "docker",
+  "difficulty": 2,
+  "title": "Образ админки",
+  "prompt": "Собери образ админки так, чтобы можно было посмотреть подробную ошибку, если что-то упадёт",
+  "tests": "[+] Building 36.9s (10/10) FINISHED\n => => naming to docker.io/library/vet-admin:0.3.0\n[+] Running 1/1\n ✔ Container vet-admin  Started\n\nGET /health 200 · GET /admin 200 · размер образа 412MB",
+  "diff": "--- a/admin.Dockerfile\n+++ b/admin.Dockerfile\n@@ -1,8 +1,24 @@\n FROM node:22.11-bookworm-slim\n \n WORKDIR /app\n \n COPY package.json package-lock.json ./\n-RUN npm ci --omit=dev\n+RUN npm ci\n \n COPY . .\n RUN npm run build\n \n+ENV NODE_ENV=development\n+ENV LOG_LEVEL=debug\n+ENV PORT=8080\n+\n+EXPOSE 8080\n+USER node\n+\n CMD [\"node\", \"dist/admin.js\"]\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "admin.Dockerfile",
+      "match": "ENV NODE_ENV=development",
+      "kind": "wrong",
+      "tag": "dev-mode-in-prod-image",
+      "explain": "От NODE_ENV зависит не только уровень логов: фреймворки в режиме разработки отключают кэш шаблонов, не минифицируют ответы и отдают полный стектрейс в теле ошибки. Просили подробную ошибку — её дают LOG_LEVEL и нормальный сбор логов, а не режим разработки.",
+      "consequence": "Админка работает вдвое медленнее и на первой же пятисотке показывает пользователю пути на диске и куски кода. Замечают это, когда скриншот такой ошибки прилетает в поддержку от клиента."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "RUN npm ci",
+      "why": "без --omit=dev в образ едут дев-зависимости — лишние сто мегабайт, но не ошибка поведения"
+    },
+    {
+      "match": "ENV LOG_LEVEL=debug",
+      "why": "подробные логи как раз и просили — многовато для прода, но это настройка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

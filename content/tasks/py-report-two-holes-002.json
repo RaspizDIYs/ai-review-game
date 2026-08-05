@@ -1,0 +1,48 @@
+{
+  "id": "py-report-two-holes-002",
+  "stack": "py",
+  "difficulty": 5,
+  "title": "Выгрузка визитов за месяц",
+  "prompt": "Сделай выгрузку визитов за месяц в csv, бухгалтерия просит",
+  "tests": "PASS  tests/test_export.py (5)\n  ✓ выгружает визиты за период\n  ✓ пишет заголовок\n  ✓ пустой месяц даёт пустой файл\n\n5 passed in 0.42s",
+  "diff": "--- a/app/export.py\n+++ b/app/export.py\n@@ -1,20 +1,42 @@\n import csv\n from datetime import date, datetime\n from decimal import Decimal\n \n from app.db import session\n from app.models import Visit\n \n \n+def export_month(year: int, month: int, path: str) -> int:\n+    start = date(year, month, 1)\n+    end = date(year + (month == 12), month % 12 + 1, 1)\n+\n+    visits = (\n+        session.query(Visit)\n+        .filter(Visit.created_at >= start)\n+        .filter(Visit.created_at <= end)\n+        .order_by(Visit.created_at)\n+        .all()\n+    )\n+\n+    with open(path, \"w\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"дата\", \"питомец\", \"владелец\", \"сумма\"])\n+\n+        for v in visits:\n+            writer.writerow([\n+                v.created_at.strftime(\"%d.%m.%Y\"),\n+                v.patient.name,\n+                v.patient.owner.name,\n+                float(v.total),\n+            ])\n+\n+    return len(visits)\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "app/export.py",
+      "match": "        .filter(Visit.created_at <= end)",
+      "kind": "wrong",
+      "tag": "off-by-one-boundary",
+      "explain": "Правая граница включена, а end — это уже первое число следующего месяца. Визиты, заведённые ровно в полночь первого числа, попадают и в этот отчёт, и в следующий. Нужно строгое сравнение.",
+      "consequence": "Годовая сверка не сходится на несколько визитов, и найти их можно только выгрузив все двенадцать месяцев и сравнив построчно."
+    },
+    {
+      "file": "app/export.py",
+      "match": "                float(v.total),",
+      "kind": "wrong",
+      "tag": "float-money",
+      "explain": "Сумма хранится Decimal, а в файл уходит float. 1834.85 превращается в 1834.8500000000001 или, наоборот, теряет копейку при сложении в экселе.",
+      "consequence": "Бухгалтерия складывает столбец и получает расхождение с кассой на копейки. Каждый месяц заново, и каждый раз это ищут в кассе, а не в выгрузке."
+    },
+    {
+      "file": "app/export.py",
+      "match": "    with open(path, \"w\") as f:",
+      "kind": "wrong",
+      "tag": "platform-default-encoding",
+      "explain": "Файл открыт без указания кодировки: на сервере это utf-8, на машине бухгалтера — cp1251. Ещё и newline не задан, из-за чего csv на Windows пишет пустую строку между записями.",
+      "consequence": "Файл открывается кракозябрами у половины получателей. Списывают на «эксель кривой» и пересылают друг другу скриншоты."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        .order_by(Visit.created_at)",
+      "why": "сортировка без вторичного ключа — при равных датах порядок не гарантирован, но для выгрузки это не важно"
+    },
+    {
+      "match": "    end = date(year + (month == 12), month % 12 + 1, 1)",
+      "why": "переход через декабрь выглядит хитро, но считает верно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

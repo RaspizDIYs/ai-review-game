@@ -1,0 +1,36 @@
+{
+  "id": "sql-migration-not-null-001",
+  "stack": "sql",
+  "difficulty": 3,
+  "title": "Обязательный вид приёма",
+  "prompt": "Добавь визитам вид приёма, он обязательный — первичный, повторный или вакцинация",
+  "tests": "PASS  tests/migrations.test.ts (4)\n  ✓ миграция накатывается на пустую базу\n  ✓ колонка не принимает null\n  ✓ откат возвращает схему назад\n\nTests  4 passed (4)  ·  visits: 12 строк в тестовой базе",
+  "diff": "--- a/migrations/0042_visit_kind.sql\n+++ b/migrations/0042_visit_kind.sql\n@@ -1,3 +1,24 @@\n+-- Вид приёма. В проде visits — самая большая таблица клиники,\n+-- на конец июля 4.1 млн строк.\n+\n+BEGIN;\n+\n+CREATE TYPE visit_kind AS ENUM ('first', 'repeat', 'vaccination');\n+\n+ALTER TABLE visits\n+  ADD COLUMN kind visit_kind NOT NULL;\n+\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS visits_kind_idx\n+  ON visits (kind);\n+\n+COMMIT;\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "migrations/0042_visit_kind.sql",
+      "match": "  ADD COLUMN kind visit_kind NOT NULL;",
+      "kind": "wrong",
+      "tag": "not-null-without-default",
+      "explain": "Добавить NOT NULL без DEFAULT в таблицу, где уже есть строки, нельзя: постгрес нечем заполнить существующие четыре миллиона. На пустой тестовой базе миграция проходит, на проде падает сразу. Делают в три шага: колонка с DEFAULT, бэкфилл батчами, потом ограничение.",
+      "consequence": "Деплой останавливается на миграции, когда новый код уже выкачен и ждёт колонку. Прод лежит, пока кто-то вручную придумывает, чем заполнить историю за четыре года."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "CREATE TYPE visit_kind AS ENUM ('first', 'repeat', 'vaccination');",
+      "why": "перечисление вместо строки — спорно на будущее, но работает и не ломается"
+    },
+    {
+      "match": "BEGIN;",
+      "why": "миграция в транзакции — правильно, кроме одного нюанса ниже"
+    },
+    {
+      "match": "CREATE INDEX CONCURRENTLY IF NOT EXISTS visits_kind_idx",
+      "why": "CONCURRENTLY внутри транзакции постгрес не разрешит — но это уже следствие, а не сама подлянка"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

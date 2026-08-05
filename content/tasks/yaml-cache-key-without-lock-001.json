@@ -1,0 +1,32 @@
+{
+  "id": "yaml-cache-key-without-lock-001",
+  "stack": "yaml",
+  "difficulty": 2,
+  "title": "Кэш зависимостей в пайплайне",
+  "prompt": "Ускорь пайплайн, зависимости качаются по две минуты каждый раз",
+  "tests": "✓ checks / test (pull_request)  Successful in 51s\n  Cache restored from key: deps-ubuntu-24.04\n  → npm ci: 6s (было 2m 11s)\n\nAll checks have passed",
+  "diff": "--- a/.github/workflows/checks.yml\n+++ b/.github/workflows/checks.yml\n@@ -1,12 +1,30 @@\n name: checks\n \n on:\n   pull_request:\n \n jobs:\n   test:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n       - uses: actions/setup-node@v4\n         with:\n           node-version: '22.11'\n+      - name: cache deps\n+        uses: actions/cache@v4\n+        with:\n+          path: ~/.npm\n+          key: deps-${{ runner.os }}\n+          restore-keys: |\n+            deps-\n+      - run: npm ci\n+      - run: npm test\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": ".github/workflows/checks.yml",
+      "match": "          key: deps-${{ runner.os }}",
+      "kind": "wrong",
+      "tag": "cache-key-ignores-lockfile",
+      "explain": "Ключ не зависит от содержимого package-lock.json, поэтому кэш не обновляется никогда: первый сохранённый архив продолжает восстанавливаться и после смены зависимостей. В ключ подмешивают hashFiles('**/package-lock.json').",
+      "consequence": "Обновили библиотеку, влили, на CI всё зелёное — потому что там стоит старая версия из кэша недельной давности. Ломается это на проде, где зависимости ставятся честно."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "          path: ~/.npm",
+      "why": "кэшируется каталог npm, а не node_modules — так и рекомендуется"
+    },
+    {
+      "match": "            deps-",
+      "why": "restore-keys как запасной вариант — нормальная практика, проблема не в нём"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -27,6 +27,10 @@ export const LANG = {
   rb: 'ruby',
   swift: 'swift',
   sh: 'bash',
+  // Не языки, а то, чем код доезжает до прода. Ошибки ИИ здесь стоят дороже:
+  // сломанная логика ломает ручку, сломанная сборка — весь сервис.
+  docker: 'docker',
+  yaml: 'yaml',
 }
 const THEME = 'github-dark-default'
 

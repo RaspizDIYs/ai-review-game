@@ -64,6 +64,15 @@ export function parseDiff(diff: string): DiffLine[] {
   return out
 }
 
+/** Сколько строк добавлено и удалено — та же цифра, что в списке PR на гите. */
+export function diffStat(diff: string): { adds: number; dels: number } {
+  const lines = diff.split('\n')
+  return {
+    adds: lines.filter((l) => l.startsWith('+') && !l.startsWith('+++')).length,
+    dels: lines.filter((l) => l.startsWith('-') && !l.startsWith('---')).length,
+  }
+}
+
 /**
  * Кликать можно только по строкам, существующим в новой версии файла:
  * подлянка всегда размечена номером новой строки, а удалённых строк там нет.

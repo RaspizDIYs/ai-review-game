@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { parseDiff, isClickable, type DiffLine } from '../diff.ts'
+import { diffStat, parseDiff, isClickable, type DiffLine } from '../diff.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
 
@@ -59,9 +59,7 @@ function fileName(diff: string): string {
 }
 
 function stat(diff: string): string {
-  const lines = diff.split('\n')
-  const adds = lines.filter((l) => l.startsWith('+') && !l.startsWith('+++')).length
-  const dels = lines.filter((l) => l.startsWith('-') && !l.startsWith('---')).length
+  const { adds, dels } = diffStat(diff)
   return `+${adds} −${dels}`
 }
 
@@ -187,3 +185,4 @@ export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake 
     </div>
   )
 }
+

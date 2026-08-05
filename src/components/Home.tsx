@@ -1,15 +1,12 @@
 import { ACHIEVEMENTS } from '../achievements.ts'
 import { AGENTS, AGENT_SLUGS, type AgentSlug } from '../agents.ts'
 import { challengeNumber, msUntilNextDay } from '../daily.ts'
-import type { LevelId } from '../levels.ts'
 import { formatTime, isWin } from '../share.ts'
 import { plural } from '../stats.ts'
 import type { DailyRecord, RunProgress } from '../storage'
-import type { Stack } from '../types'
 import { Icon } from '../ui/icons.tsx'
 import { AgentAvatar, Button } from '../ui/kit.tsx'
 import { OutcomeTile } from '../ui/outcome.tsx'
-import { SetPicker } from './SetPicker.tsx'
 
 interface Props {
   day: string
@@ -24,13 +21,19 @@ interface Props {
   onHero: (slug: AgentSlug) => void
   onDaily: () => void
   onEndless: () => void
+  onShift: () => void
+  /** Состояние прода из прошлой смены. null — смены ещё не было. */
+  shift: {
+    health: number
+    turn: number
+    turns: number
+    unfinished: boolean
+    /** Прошлая смена проиграна — прод следующей начнётся с нуля. */
+    lost: boolean
+  } | null
   onAch: () => void
-  level: LevelId
-  stacks: Stack[]
-  counts: Map<Stack, number | null>
+  /** Длина ближайшей подборки — на карточке своего режима. */
   setSize: number
-  onLevel: (level: LevelId) => void
-  onToggle: (stack: Stack) => void
   onSet: () => void
 }
 
@@ -67,13 +70,10 @@ export function Home({
   onHero,
   onDaily,
   onEndless,
+  onShift,
+  shift,
   onAch,
-  level,
-  stacks,
-  counts,
   setSize,
-  onLevel,
-  onToggle,
   onSet,
 }: Props) {
   const agent = AGENTS[hero]
@@ -81,7 +81,7 @@ export function Home({
     onHero(AGENT_SLUGS[(AGENT_SLUGS.indexOf(hero) + dir + AGENT_SLUGS.length) % AGENT_SLUGS.length])
 
   return (
-    <div className="screen-in mx-auto flex max-w-[1120px] flex-wrap items-start gap-[22px] px-[18px] pt-7">
+    <div className="screen-in mx-auto flex max-w-[900px] flex-wrap items-start gap-[22px] px-[18px] pt-7">
       <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-[22px]">
         <div className="relative flex flex-wrap items-center gap-[26px] overflow-hidden rounded-[18px] border border-[#26262c] bg-[linear-gradient(150deg,#15151c_0%,#101014_55%,#0d0d11_100%)] p-[26px]">
           <div
@@ -129,7 +129,9 @@ export function Home({
             </div>
           </div>
 
-          <div className="flex min-w-[160px] flex-[0_1_190px] flex-col gap-2">
+          {/* mx-auto работает только когда блок перенесло на свою строку:
+              на широком экране колонка с текстом забирает всё свободное место. */}
+          <div className="mx-auto flex min-w-[160px] flex-[0_1_190px] flex-col gap-2">
             <AgentAvatar
               slug={agent.slug}
               name={agent.name}
@@ -234,7 +236,53 @@ export function Home({
               Ночное дежурство
             </Button>
           </div>
+
+          <div className="flex flex-col gap-3.5 rounded-2xl border border-[#26262c] bg-[#111116] p-5">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 font-semibold text-[#f2f2f5]">
+                <span className="text-[#8b8b95]">
+                  <Icon name="shuffle" size={16} />
+                </span>
+                Своя подборка
+              </span>
+              <span className="font-mono text-[11px] text-[#6b6b77]">
+                {setSize} {plural(setSize, 'задача', 'задачи', 'задач')}
+              </span>
+            </div>
+            <p className="m-0 min-h-[42px] text-sm leading-[1.5] text-[#9a9aa4]">
+              Три задачи под выбранный уровень и языки. Каждая следующая — другая.
+            </p>
+            <Button variant="secondary" accent={accent} onClick={onSet}>
+              Собрать подборку
+            </Button>
+          </div>
+
+          {/* Смена — единственный режим, который помнит, что было вчера. */}
+          <div className="flex flex-col gap-3.5 rounded-2xl border border-[#26262c] bg-[#111116] p-5">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 font-semibold text-[#f2f2f5]">
+                <span className="text-[#8b8b95]">
+                  <Icon name="heart-pulse" size={16} />
+                </span>
+                Смена
+              </span>
+              <span className="font-mono text-[11px] text-[#6b6b77]">
+                {!shift || shift.lost ? 'прод чист' : `прод ${Math.round(shift.health)}`}
+              </span>
+            </div>
+            <p className="m-0 min-h-[42px] text-sm leading-[1.5] text-[#9a9aa4]">
+              {shift?.unfinished
+                ? `Смена не доиграна: ход ${shift.turn} из ${shift.turns}.`
+                : shift?.lost
+                  ? 'Прошлая смена проиграна. Прод пересобран с нуля — начинаем заново.'
+                  : 'Четырнадцать ходов. Пропущенное возвращается ночным алертом — и прод это помнит.'}
+            </p>
+            <Button variant="secondary" accent={accent} onClick={onShift}>
+              {shift?.unfinished ? 'Вернуться на смену' : 'Заступить на смену'}
+            </Button>
+          </div>
         </div>
+
 
         {streak > 0 && (
           <div className="flex items-center gap-2 text-[13px] text-[#8b8b95]">
@@ -248,33 +296,41 @@ export function Home({
           </div>
         )}
 
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-          {ACHIEVEMENTS.map((a) => {
-            const on = unlocked.includes(a.id)
-            return (
-              <span
-                key={a.id}
-                title={`${a.title} — ${a.desc}`}
-                className="mb-[5px] flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px]"
-                style={{
-                  border: on ? `1.5px solid ${accent}77` : '1.5px solid #202027',
-                  background: on
-                    ? `radial-gradient(120% 130% at 50% 0%, ${accent}30, #14141a 72%)`
-                    : 'repeating-linear-gradient(135deg,#101014 0 5px,#0c0c10 5px 10px)',
-                  boxShadow: on
-                    ? `inset 0 1px 0 rgba(255,255,255,.14), 0 4px 0 #0b0b0e, 0 0 20px ${accent}22`
-                    : 'inset 0 1px 0 rgba(255,255,255,.03), 0 4px 0 #0a0a0d',
-                  color: on ? accent : '#33333c',
-                }}
-              >
-                <Icon name={on ? a.icon : 'lock'} size={19} />
-              </span>
-            )
-          })}
+        {/* Лента ачивок листается пальцем, а «все ачивки» стоит под ней:
+            уехав в конец ленты, кнопка на телефоне просто не видна. */}
+        <div className="flex flex-col items-start gap-1.5">
+          <div className="swipe-x flex w-full items-center gap-2.5 pb-1">
+            {ACHIEVEMENTS.map((a) => {
+              const on = unlocked.includes(a.id)
+              return (
+                <span
+                  key={a.id}
+                  title={`${a.title} — ${a.desc}`}
+                  className="mb-[5px] flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px]"
+                  style={{
+                    border: on ? `1.5px solid ${accent}77` : '1.5px solid #202027',
+                    background: on
+                      ? `radial-gradient(120% 130% at 50% 0%, ${accent}30, #14141a 72%)`
+                      : 'repeating-linear-gradient(135deg,#101014 0 5px,#0c0c10 5px 10px)',
+                    boxShadow: on
+                      ? `inset 0 1px 0 rgba(255,255,255,.14), 0 4px 0 #0b0b0e, 0 0 20px ${accent}22`
+                      : 'inset 0 1px 0 rgba(255,255,255,.03), 0 4px 0 #0a0a0d',
+                    color: on ? accent : '#33333c',
+                  }}
+                >
+                  {on && a.badge ? (
+                    <span className="font-mono text-[12px] font-bold lowercase">{a.badge}</span>
+                  ) : (
+                    <Icon name={on ? a.icon : 'lock'} size={19} />
+                  )}
+                </span>
+              )
+            })}
+          </div>
+
           <button
             onClick={onAch}
             className="cursor-pointer font-mono text-[11px] whitespace-nowrap text-[#6b6b77] transition-colors"
-            style={{ color: undefined }}
             onMouseEnter={(e) => (e.currentTarget.style.color = accent)}
             onMouseLeave={(e) => (e.currentTarget.style.color = '')}
           >
@@ -283,16 +339,6 @@ export function Home({
         </div>
       </div>
 
-      <SetPicker
-        level={level}
-        stacks={stacks}
-        counts={counts}
-        setSize={setSize}
-        accent={accent}
-        onLevel={onLevel}
-        onToggle={onToggle}
-        onStart={onSet}
-      />
     </div>
   )
 }

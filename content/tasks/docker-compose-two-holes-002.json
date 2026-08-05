@@ -1,0 +1,44 @@
+{
+  "id": "docker-compose-two-holes-002",
+  "stack": "docker",
+  "difficulty": 4,
+  "title": "Вынесли базу в отдельный сервис",
+  "prompt": "Раздели апи и базу по контейнерам, чтобы можно было обновлять их по отдельности",
+  "tests": "[+] Running 2/2\n ✔ Container vet-postgres  Started\n ✔ Container vet-api       Started\n\nsmoke: POST /api/visits 201 · GET /api/visits 200 (14 записей)",
+  "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,14 +1,36 @@\n services:\n   api:\n     image: vet-api:0.6.0\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: postgres://vet:vet@postgres:5432/vet\n     ports:\n       - \"3000:3000\"\n+    depends_on:\n+      - postgres\n \n+  postgres:\n+    image: postgres:16.4-alpine\n+    restart: unless-stopped\n+    environment:\n+      POSTGRES_USER: vet\n+      POSTGRES_PASSWORD: vet\n+      POSTGRES_DB: vet\n+    ports:\n+      - \"5432:5432\"\n+    volumes:\n+      - pgdata:/var/lib/postgresql/data\n+\n+volumes:\n+  pgdata:\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "docker-compose.yml",
+      "match": "      POSTGRES_PASSWORD: vet",
+      "kind": "wrong",
+      "tag": "default-credentials-in-config",
+      "explain": "Пароль базы записан в файл, который лежит в репозитории, и он же — словарное слово. Пароль берут из переменной окружения и падают, если её нет.",
+      "consequence": "Пароль от прод-базы известен всем, у кого есть доступ к репозиторию, и остаётся в истории навсегда. Менять его придётся вместе со строками подключения во всех сервисах."
+    },
+    {
+      "file": "docker-compose.yml",
+      "match": "      - \"5432:5432\"",
+      "kind": "wrong",
+      "tag": "database-port-published",
+      "explain": "Порт базы проброшен наружу, на все интерфейсы хоста. Апи ходит в базу по внутренней сети композа, публиковать порт для этого не нужно вовсе.",
+      "consequence": "Постгрес со словарным паролем оказывается доступен из интернета. Находят такое сканеры за часы, а не за месяцы."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "    depends_on:",
+      "why": "зависимость без условия готовности — апи стартует раньше базы и переподключается, неаккуратно, но не дыра"
+    },
+    {
+      "match": "      - pgdata:/var/lib/postgresql/data",
+      "why": "данные на именованном томе — как раз правильно"
+    },
+    {
+      "match": "      - \"3000:3000\"",
+      "why": "апи наружу торчать и должен, это его работа"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

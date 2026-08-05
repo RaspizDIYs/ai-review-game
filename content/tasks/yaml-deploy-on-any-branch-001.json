@@ -1,0 +1,32 @@
+{
+  "id": "yaml-deploy-on-any-branch-001",
+  "stack": "yaml",
+  "difficulty": 3,
+  "title": "Автовыкладка на сервер",
+  "prompt": "Сделай автодеплой: когда изменения попадают в main, выкладываем на сервер",
+  "tests": "✓ deploy / release (push)  Successful in 2m 04s\n  → vet-api:0.5.2 pushed to registry\n  → docker compose up -d on vet-prod\n\nDeployment succeeded",
+  "diff": "--- a/.github/workflows/deploy.yml\n+++ b/.github/workflows/deploy.yml\n@@ -1,8 +1,30 @@\n name: deploy\n \n on:\n   push:\n+    tags:\n+      - 'v*'\n+  workflow_dispatch:\n \n+concurrency:\n+  group: deploy-prod\n+  cancel-in-progress: false\n+\n jobs:\n   release:\n     runs-on: ubuntu-24.04\n+    environment: production\n+    steps:\n+      - uses: actions/checkout@v4\n+      - name: build image\n+        run: docker build -t vet-api:${{ github.ref_name }} .\n+      - name: push\n+        run: docker push vet-api:${{ github.ref_name }}\n+      - name: up\n+        run: ssh deploy@vet-prod 'cd /srv/vet && docker compose up -d'\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": ".github/workflows/deploy.yml",
+      "match": "    tags:",
+      "kind": "wrong",
+      "tag": "deploy-trigger-mismatch",
+      "explain": "Просили выкладывать то, что попало в main, а триггер стоит на теги. Пуш в main деплой не запускает вовсе — выкладка происходит, только когда кто-то вручную поставит тег. Работает не то, что заказывали.",
+      "consequence": "Команда неделю уверена, что main автоматически едет в прод, и никто не проверяет сервер. Расхождение находят, когда срочный фикс «уже выкачен» два дня как, а на проде старая версия."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  group: deploy-prod",
+      "why": "одна выкладка за раз — это правильно, две параллельные хуже"
+    },
+    {
+      "match": "      - name: up",
+      "why": "деплой через ssh и compose — грубовато, но это наш способ, см. deploy/"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

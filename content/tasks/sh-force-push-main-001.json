@@ -1,0 +1,32 @@
+{
+  "id": "sh-force-push-main-001",
+  "stack": "sh",
+  "difficulty": 3,
+  "title": "Скрипт выкладки релиза",
+  "prompt": "Собери скрипт релиза: обнови версию, поставь тег и отправь всё в репозиторий",
+  "tests": "$ ./scripts/release.sh 0.5.3\nверсия обновлена: 0.5.3\ntag v0.5.3 создан\nEverything up-to-date\n\n$ git tag --list 'v0.5.3'\nv0.5.3",
+  "diff": "--- a/scripts/release.sh\n+++ b/scripts/release.sh\n@@ -1,6 +1,24 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n version=${1:?нужен номер версии}\n \n+git fetch origin main\n+git switch main\n+\n+npm version \"$version\" --no-git-tag-version\n+git add package.json package-lock.json\n+git commit -m \"chore(release): $version\"\n+\n+git tag \"v$version\"\n+\n+# отправляем ветку и тег\n+git push --force origin main\n+git push origin \"v$version\"\n+\n+echo \"версия обновлена: $version\"\n+echo \"tag v$version создан\"\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "scripts/release.sh",
+      "match": "git push --force origin main",
+      "kind": "wrong",
+      "tag": "force-push-shared-branch",
+      "explain": "Ветка релиза общая. --force затирает на сервере всё, что появилось там после git fetch, — то есть чужие коммиты, влитые за последние секунды. Здесь --force не нужен вовсе, а если бы был нужен, то только --force-with-lease.",
+      "consequence": "Коллега мёржит пул-реквест, пока идёт релиз, и его коммит исчезает с сервера. Локально он у автора остался, но узнают об этом через неделю по отсутствующей фиче, и восстанавливать историю приходится по рефлогам."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "git tag \"v$version\"",
+      "why": "тег без -a, то есть лёгкий, — вопрос вкуса, а не ошибка"
+    },
+    {
+      "match": "npm version \"$version\" --no-git-tag-version",
+      "why": "версия ставится без своего тега, тег ставим ниже сами — так и задумано"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}

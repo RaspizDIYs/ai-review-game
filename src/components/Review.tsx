@@ -33,8 +33,11 @@ export function Review({
   onPick,
   onSubmit,
 }: Props) {
-  const tense = left <= 20
-  const tired = duration < ROUND_SECONDS
+  // Починка после смены идёт без таймера: там не про скорость чтения,
+  // а про то, найдёшь ли ты в собственном мёрдже то, что проглядел.
+  const timed = duration > 0
+  const tense = timed && left <= 20
+  const tired = timed && duration < ROUND_SECONDS
 
   return (
     <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-3.5 px-[18px] pt-5">
@@ -47,11 +50,12 @@ export function Review({
             <span style={{ animation: tense ? 'pulseRed .8s ease-in-out infinite' : undefined }}>
               <Icon name={tense ? 'alarm-clock' : 'timer'} size={13} />
             </span>
-            {tired ? 'осталось · после инцидента' : 'осталось'}
+            {!timed ? 'чиним · без таймера' : tired ? 'осталось · после инцидента' : 'осталось'}
           </span>
 
           <span className="flex items-center gap-3">
-            <span className="flex items-center gap-[5px]">
+            {/* В починке попытка одна: показывать «две» было бы враньём. */}
+            <span className="flex items-center gap-[5px]" hidden={!timed}>
               {Array.from({ length: MAX_ATTEMPTS }, (_, i) => {
                 const live = i < MAX_ATTEMPTS - attempts
                 return (
@@ -73,7 +77,7 @@ export function Review({
                 animation: tense ? 'pulseRed .8s ease-in-out infinite' : undefined,
               }}
             >
-              {Math.ceil(left)} с
+              {timed ? `${Math.ceil(left)} с` : '∞'}
             </span>
           </span>
         </div>
@@ -81,7 +85,10 @@ export function Review({
         <div className="h-[5px] overflow-hidden rounded-full bg-[#1c1c22]">
           <div
             className="h-full transition-[width,background] duration-[120ms] ease-linear"
-            style={{ width: `${(left / duration) * 100}%`, background: tense ? '#f87171' : accent }}
+            style={{
+              width: timed ? `${(left / duration) * 100}%` : '100%',
+              background: tense ? '#f87171' : accent,
+            }}
           />
         </div>
       </div>
@@ -100,9 +107,11 @@ export function Review({
             className="font-mono text-[11px] tracking-[.1em] uppercase"
             style={{ color: attempts ? '#f87171' : '#5c5c66' }}
           >
-            {attempts
-              ? `осталась ${MAX_ATTEMPTS - attempts} попытка`
-              : `${MAX_ATTEMPTS} попытки`}
+            {!timed
+              ? 'одна попытка'
+              : attempts
+                ? `осталась ${MAX_ATTEMPTS - attempts} попытка`
+                : `${MAX_ATTEMPTS} попытки`}
           </span>
         </span>
       </div>
@@ -119,12 +128,16 @@ export function Review({
       <Button
         accent={accent}
         variant={selected.length ? 'primary' : 'secondary'}
-        icon={selected.length ? 'zap' : 'shield-check'}
+        icon={selected.length ? (timed ? 'zap' : 'hammer') : 'shield-check'}
         onClick={onSubmit}
       >
         {selected.length
-          ? `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
-          : 'Здесь чисто — апрув'}
+          ? timed
+            ? `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+            : `Править ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+          : timed
+            ? 'Здесь чисто — апрув'
+            : 'Закрыть, не трогая'}
       </Button>
     </div>
   )

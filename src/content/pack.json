@@ -320,6 +320,246 @@
     "verified_at": ""
   },
   {
+    "id": "docker-compose-two-holes-002",
+    "stack": "docker",
+    "difficulty": 4,
+    "title": "Вынесли базу в отдельный сервис",
+    "prompt": "Раздели апи и базу по контейнерам, чтобы можно было обновлять их по отдельности",
+    "tests": "[+] Running 2/2\n ✔ Container vet-postgres  Started\n ✔ Container vet-api       Started\n\nsmoke: POST /api/visits 201 · GET /api/visits 200 (14 записей)",
+    "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,14 +1,36 @@\n services:\n   api:\n     image: vet-api:0.6.0\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: postgres://vet:vet@postgres:5432/vet\n     ports:\n       - \"3000:3000\"\n+    depends_on:\n+      - postgres\n \n+  postgres:\n+    image: postgres:16.4-alpine\n+    restart: unless-stopped\n+    environment:\n+      POSTGRES_USER: vet\n+      POSTGRES_PASSWORD: vet\n+      POSTGRES_DB: vet\n+    ports:\n+      - \"5432:5432\"\n+    volumes:\n+      - pgdata:/var/lib/postgresql/data\n+\n+volumes:\n+  pgdata:\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "docker-compose.yml",
+        "kind": "wrong",
+        "tag": "default-credentials-in-config",
+        "explain": "Пароль базы записан в файл, который лежит в репозитории, и он же — словарное слово. Пароль берут из переменной окружения и падают, если её нет.",
+        "consequence": "Пароль от прод-базы известен всем, у кого есть доступ к репозиторию, и остаётся в истории навсегда. Менять его придётся вместе со строками подключения во всех сервисах.",
+        "line": 17
+      },
+      {
+        "file": "docker-compose.yml",
+        "kind": "wrong",
+        "tag": "database-port-published",
+        "explain": "Порт базы проброшен наружу, на все интерфейсы хоста. Апи ходит в базу по внутренней сети композа, публиковать порт для этого не нужно вовсе.",
+        "consequence": "Постгрес со словарным паролем оказывается доступен из интернета. Находят такое сканеры за часы, а не за месяцы.",
+        "line": 20
+      }
+    ],
+    "decoys": [
+      {
+        "why": "зависимость без условия готовности — апи стартует раньше базы и переподключается, неаккуратно, но не дыра",
+        "line": 9
+      },
+      {
+        "why": "данные на именованном томе — как раз правильно",
+        "line": 22
+      },
+      {
+        "why": "апи наружу торчать и должен, это его работа",
+        "line": 8
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-copy-before-install-001",
+    "stack": "docker",
+    "difficulty": 2,
+    "title": "Апи в контейнере",
+    "prompt": "Заверни апи в докер, чтобы поднималось одной командой",
+    "tests": "[+] Building 41.3s (11/11) FINISHED\n => => naming to docker.io/library/vet-api:0.4.1\n[+] Running 1/1\n ✔ Container vet-api  Started\n\nhealthcheck: ok (200 /ready)",
+    "diff": "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -1,3 +1,22 @@\n+FROM node:22.11-bookworm-slim\n+\n+WORKDIR /app\n+\n+# ставим зависимости и собираем\n+COPY . .\n+RUN npm ci --omit=dev\n+RUN npm run build\n+\n+ENV NODE_ENV=production\n+ENV PORT=3000\n+EXPOSE 3000\n+\n+USER node\n+\n+HEALTHCHECK --interval=30s --timeout=3s \\\n+  CMD node -e \"fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1))\"\n+\n+CMD [\"node\", \"dist/server.js\"]\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "Dockerfile",
+        "kind": "wrong",
+        "tag": "docker-copy-before-install",
+        "explain": "Слой с зависимостями зависит от всего репозитория: любая правка исходника инвалидирует кэш, и npm ci запускается заново. Копировать package.json и package-lock.json надо отдельным слоем до установки, а остальное — после.",
+        "consequence": "Сборка на CI из сорока секунд превращается в четыре минуты, и так на каждый коммит. Замечают это не сразу, а через месяц, когда деплой перестаёт помещаться в перерыв.",
+        "line": 6
+      }
+    ],
+    "decoys": [
+      {
+        "why": "процесс не от root — так и надо, это как раз правильно",
+        "line": 14
+      },
+      {
+        "why": "версия зафиксирована явно, а не latest — претензий нет",
+        "line": 1
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-dev-env-in-prod-001",
+    "stack": "docker",
+    "difficulty": 2,
+    "title": "Образ админки",
+    "prompt": "Собери образ админки так, чтобы можно было посмотреть подробную ошибку, если что-то упадёт",
+    "tests": "[+] Building 36.9s (10/10) FINISHED\n => => naming to docker.io/library/vet-admin:0.3.0\n[+] Running 1/1\n ✔ Container vet-admin  Started\n\nGET /health 200 · GET /admin 200 · размер образа 412MB",
+    "diff": "--- a/admin.Dockerfile\n+++ b/admin.Dockerfile\n@@ -1,8 +1,24 @@\n FROM node:22.11-bookworm-slim\n \n WORKDIR /app\n \n COPY package.json package-lock.json ./\n-RUN npm ci --omit=dev\n+RUN npm ci\n \n COPY . .\n RUN npm run build\n \n+ENV NODE_ENV=development\n+ENV LOG_LEVEL=debug\n+ENV PORT=8080\n+\n+EXPOSE 8080\n+USER node\n+\n CMD [\"node\", \"dist/admin.js\"]\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "admin.Dockerfile",
+        "kind": "wrong",
+        "tag": "dev-mode-in-prod-image",
+        "explain": "От NODE_ENV зависит не только уровень логов: фреймворки в режиме разработки отключают кэш шаблонов, не минифицируют ответы и отдают полный стектрейс в теле ошибки. Просили подробную ошибку — её дают LOG_LEVEL и нормальный сбор логов, а не режим разработки.",
+        "consequence": "Админка работает вдвое медленнее и на первой же пятисотке показывает пользователю пути на диске и куски кода. Замечают это, когда скриншот такой ошибки прилетает в поддержку от клиента.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "без --omit=dev в образ едут дев-зависимости — лишние сто мегабайт, но не ошибка поведения",
+        "line": 6
+      },
+      {
+        "why": "подробные логи как раз и просили — многовато для прода, но это настройка",
+        "line": 12
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-healthcheck-shallow-001",
+    "stack": "docker",
+    "difficulty": 3,
+    "title": "Проверка готовности контейнера",
+    "prompt": "Добавь healthcheck, чтобы оркестратор не слал трафик в неподнявшийся контейнер",
+    "tests": "[+] Running 2/2\n ✔ Container vet-postgres  Healthy\n ✔ Container vet-api       Healthy\n\ndocker inspect --format='{{.State.Health.Status}}' vet-api\nhealthy",
+    "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,16 +1,34 @@\n services:\n   api:\n     image: vet-api:0.4.1\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: ${DATABASE_URL:?нужен DATABASE_URL}\n     ports:\n       - \"3000:3000\"\n+    healthcheck:\n+      test: [\"CMD\", \"curl\", \"-fsS\", \"http://127.0.0.1:3000/\"]\n+      interval: 10s\n+      timeout: 3s\n+      retries: 3\n+      start_period: 5s\n+    depends_on:\n+      postgres:\n+        condition: service_healthy\n \n   postgres:\n     image: postgres:16.4-alpine\n     restart: unless-stopped\n+    healthcheck:\n+      test: [\"CMD-SHELL\", \"pg_isready -U vet\"]\n+      interval: 10s\n+      timeout: 3s\n+      retries: 5\n     volumes:\n       - pgdata:/var/lib/postgresql/data\n \n volumes:\n   pgdata:\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "docker-compose.yml",
+        "kind": "wrong",
+        "tag": "healthcheck-checks-nothing",
+        "explain": "Корневая ручка отдаёт статику и живёт без базы. Контейнер отчитывается «healthy», ещё не открыв ни одного соединения к постгресу. Проверять надо ту ручку, которая ходит в зависимости, — /ready.",
+        "consequence": "После выкатки балансировщик пускает трафик в контейнер, который не может ответить ни на один реальный запрос. Пользователи видят пятисотые, а мониторинг — зелёный healthcheck, и первые двадцать минут инцидента уходят на спор, кто врёт.",
+        "line": 10
+      }
+    ],
+    "decoys": [
+      {
+        "why": "пять секунд на старт маловато для холодного джаваскрипта, но это вопрос настройки, а не ошибка",
+        "line": 14
+      },
+      {
+        "why": "апи ждёт готовности базы — как раз правильно",
+        "line": 17
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-latest-tag-001",
+    "stack": "docker",
+    "difficulty": 1,
+    "title": "Образ для обработчика очереди",
+    "prompt": "Собери отдельный образ под воркер, который разгребает очередь напоминаний",
+    "tests": "[+] Building 28.4s (9/9) FINISHED\n => => naming to docker.io/library/vet-worker:0.2.0\n[+] Running 1/1\n ✔ Container vet-worker  Started\n\nworker: подключился к очереди, задач в работе 0",
+    "diff": "--- a/worker.Dockerfile\n+++ b/worker.Dockerfile\n@@ -1,3 +1,20 @@\n+FROM node:latest\n+\n+WORKDIR /app\n+\n+COPY package.json package-lock.json ./\n+RUN npm ci --omit=dev\n+\n+COPY src ./src\n+\n+ENV NODE_ENV=production\n+ENV QUEUE_URL=${QUEUE_URL:?нужен QUEUE_URL}\n+\n+USER node\n+\n+CMD [\"node\", \"src/worker.js\"]\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "worker.Dockerfile",
+        "kind": "wrong",
+        "tag": "base-image-floats",
+        "explain": "Тег latest — это не версия, а указатель, который меняется без спроса. Сегодня за ним двадцать вторая нода, завтра двадцать четвёртая. Базовый образ фиксируют версией, а лучше ещё и дайджестом.",
+        "consequence": "Сборка, которая проходила месяц, однажды падает или, хуже, не падает — воркер поднимается на новой ноде с другим поведением таймеров. Виноватым выглядит последний коммит, хотя его автор не трогал ничего похожего.",
+        "line": 1
+      }
+    ],
+    "decoys": [
+      {
+        "why": "зависимости отдельным слоем до исходников — правильный порядок, кэш не ломается",
+        "line": 5
+      },
+      {
+        "why": "подстановка в ENV на этапе сборки выглядит странно, но это просто значение по умолчанию",
+        "line": 11
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-secret-in-layer-001",
+    "stack": "docker",
+    "difficulty": 4,
+    "title": "Приватный пакет в сборке",
+    "prompt": "Нам нужен наш приватный npm-пакет в образе, добавь токен в сборку",
+    "tests": "[+] Building 52.7s (13/13) FINISHED\n => [4/8] RUN npm ci --omit=dev                              31.2s\n => => added 214 packages, including @vet/billing-core\n => => naming to docker.io/library/vet-api:0.5.0\n\ntrivy image vet-api:0.5.0 → 0 CRITICAL, 0 HIGH",
+    "diff": "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -1,14 +1,26 @@\n FROM node:22.11-bookworm-slim\n \n WORKDIR /app\n \n+ARG NPM_TOKEN\n+RUN printf \"//registry.npmjs.org/:_authToken=%s\\n\" \"$NPM_TOKEN\" > .npmrc\n+\n COPY package.json package-lock.json ./\n RUN npm ci --omit=dev\n \n+RUN rm -f .npmrc\n+\n COPY src ./src\n RUN npm run build\n \n ENV NODE_ENV=production\n USER node\n \n CMD [\"node\", \"dist/server.js\"]\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "Dockerfile",
+        "kind": "wrong",
+        "tag": "secret-baked-into-layer",
+        "explain": "Слой с токеном остаётся в образе навсегда: следующий RUN его не удаляет, он лишь добавляет слой поверх. Токен достаётся из образа командой docker history. Для этого есть RUN --mount=type=secret, который в слой ничего не пишет.",
+        "consequence": "Образ уезжает в реестр, а вместе с ним и токен публикации в npm. Утечка обнаруживается не сканером — он ничего криминального не видит, — а тем, что от вашего имени опубликован пакет.",
+        "line": 6
+      }
+    ],
+    "decoys": [
+      {
+        "why": "удаление выглядит как решение проблемы — в этом и подвох, но сама строка не ошибка",
+        "line": 11
+      },
+      {
+        "why": "зависимости отдельным слоем до исходников — правильный порядок",
+        "line": 8
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "docker-volume-missing-001",
+    "stack": "docker",
+    "difficulty": 5,
+    "title": "Хранилище файлов клиники",
+    "prompt": "Подними рядом minio под снимки и анализы, чтобы не держать файлы в базе",
+    "tests": "[+] Running 3/3\n ✔ Container vet-postgres  Healthy\n ✔ Container vet-minio     Healthy\n ✔ Container vet-api       Healthy\n\nsmoke: загружен снимок 2.1MB → отдан обратно, контрольная сумма совпала",
+    "diff": "--- a/docker-compose.yml\n+++ b/docker-compose.yml\n@@ -1,20 +1,40 @@\n services:\n   api:\n     image: vet-api:0.5.0\n     restart: unless-stopped\n     environment:\n       DATABASE_URL: ${DATABASE_URL:?}\n       S3_ENDPOINT: http://minio:9000\n     depends_on:\n       minio:\n         condition: service_healthy\n \n+  minio:\n+    image: minio/minio:RELEASE.2026-05-14T02-52-50Z\n+    restart: unless-stopped\n+    command: server /data --console-address \":9001\"\n+    environment:\n+      MINIO_ROOT_USER: ${MINIO_USER:?}\n+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?}\n+    healthcheck:\n+      test: [\"CMD\", \"mc\", \"ready\", \"local\"]\n+      interval: 15s\n+      retries: 5\n+\n   postgres:\n     image: postgres:16.4-alpine\n     restart: unless-stopped\n     volumes:\n       - pgdata:/var/lib/postgresql/data\n \n volumes:\n   pgdata:\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "docker-compose.yml",
+        "kind": "missing",
+        "tag": "container-data-not-persisted",
+        "explain": "У minio нет тома: каталог /data живёт в слое контейнера. У постгреса рядом том есть — и это делает пропуск незаметным, глаз видит volumes ниже и успокаивается. Нужен свой именованный том и запись о нём в volumes.",
+        "consequence": "Всё работает ровно до первого docker compose up с новым образом: контейнер пересоздаётся, и снимки за всё время исчезают. Восстановить нечего — бэкапят базу, а файлы никто не бэкапил, потому что все были уверены, что они на томе.",
+        "line": 15
+      }
+    ],
+    "decoys": [
+      {
+        "why": "версия прибита намертво — именно так и надо",
+        "line": 13
+      },
+      {
+        "why": "пароль из переменной окружения и падение без неё — правильно",
+        "line": 18
+      },
+      {
+        "why": "http внутри сети композа — нормально, наружу это не торчит",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "go-context-leak-001",
     "stack": "go",
     "difficulty": 3,
@@ -1185,6 +1425,46 @@
     "verified_at": ""
   },
   {
+    "id": "js-two-cache-writes-002",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Кэш карточки владельца",
+    "prompt": "Закэшируй карточку владельца, а то на приёме её дёргают по десять раз",
+    "tests": "PASS  src/owner-card.test.ts (6)\n  ✓ первый вызов идёт в базу\n  ✓ второй вызов берёт из кэша\n  ✓ после переименования отдаёт новое имя\n\nTests  6 passed (6)",
+    "diff": "--- a/src/owner-card.ts\n+++ b/src/owner-card.ts\n@@ -1,18 +1,38 @@\n import { db } from './db.ts'\n \n const cache = new Map<number, Owner>()\n \n export async function getOwner(id: number): Promise<Owner> {\n   const hit = cache.get(id)\n   if (hit) return hit\n \n   const owner = await db.owners.byId(id)\n   cache.set(id, owner)\n   return owner\n }\n \n+export async function renameOwner(id: number, fullName: string): Promise<void> {\n+  await db.owners.update(id, { fullName })\n+  cache.set(id, { ...cache.get(id)!, fullName })\n+}\n+\n+export async function attachPhone(id: number, phone: string): Promise<void> {\n+  await db.owners.update(id, { phone })\n+}\n+\n+export async function deleteOwner(id: number): Promise<void> {\n+  await db.owners.remove(id)\n+  cache.delete(id)\n+}\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "src/owner-card.ts",
+        "kind": "wrong",
+        "tag": "cache-updated-from-itself",
+        "explain": "Кэш обновляется из самого себя, а не из базы: если записи там ещё нет, `cache.get(id)!` вернёт undefined и в кэш ляжет объект из одного поля. Проще и надёжнее — удалить ключ и дать следующему чтению сходить в базу.",
+        "consequence": "Владелец, которого переименовали до первого просмотра карточки, начинает отдаваться без телефона и адреса. На приёме это видно как «карточка сломалась», а воспроизвести не выходит: у того, кто проверяет, карточка уже в кэше целиком.",
+        "line": 16
+      },
+      {
+        "file": "src/owner-card.ts",
+        "kind": "missing",
+        "tag": "cache-no-invalidation",
+        "explain": "Телефон записан в базу, а кэш не тронут вовсе — рядом, в переименовании, про кэш не забыли. Строкой ниже должен быть сброс ключа.",
+        "consequence": "Клиент меняет телефон, регистратура звонит по старому. Живёт это до перезапуска процесса, то есть неделями.",
+        "line": 20
+      }
+    ],
+    "decoys": [
+      {
+        "why": "кэш без ограничения размера — вопрос к памяти, но не та ошибка, которую здесь ищут",
+        "line": 3
+      },
+      {
+        "why": "при удалении кэш сброшен — здесь как раз всё правильно",
+        "line": 25
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "php-array-merge-reindexes-001",
     "stack": "php",
     "difficulty": 4,
@@ -1768,6 +2048,54 @@
     "verified_at": ""
   },
   {
+    "id": "py-report-two-holes-002",
+    "stack": "py",
+    "difficulty": 5,
+    "title": "Выгрузка визитов за месяц",
+    "prompt": "Сделай выгрузку визитов за месяц в csv, бухгалтерия просит",
+    "tests": "PASS  tests/test_export.py (5)\n  ✓ выгружает визиты за период\n  ✓ пишет заголовок\n  ✓ пустой месяц даёт пустой файл\n\n5 passed in 0.42s",
+    "diff": "--- a/app/export.py\n+++ b/app/export.py\n@@ -1,20 +1,42 @@\n import csv\n from datetime import date, datetime\n from decimal import Decimal\n \n from app.db import session\n from app.models import Visit\n \n \n+def export_month(year: int, month: int, path: str) -> int:\n+    start = date(year, month, 1)\n+    end = date(year + (month == 12), month % 12 + 1, 1)\n+\n+    visits = (\n+        session.query(Visit)\n+        .filter(Visit.created_at >= start)\n+        .filter(Visit.created_at <= end)\n+        .order_by(Visit.created_at)\n+        .all()\n+    )\n+\n+    with open(path, \"w\") as f:\n+        writer = csv.writer(f)\n+        writer.writerow([\"дата\", \"питомец\", \"владелец\", \"сумма\"])\n+\n+        for v in visits:\n+            writer.writerow([\n+                v.created_at.strftime(\"%d.%m.%Y\"),\n+                v.patient.name,\n+                v.patient.owner.name,\n+                float(v.total),\n+            ])\n+\n+    return len(visits)\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "app/export.py",
+        "kind": "wrong",
+        "tag": "off-by-one-boundary",
+        "explain": "Правая граница включена, а end — это уже первое число следующего месяца. Визиты, заведённые ровно в полночь первого числа, попадают и в этот отчёт, и в следующий. Нужно строгое сравнение.",
+        "consequence": "Годовая сверка не сходится на несколько визитов, и найти их можно только выгрузив все двенадцать месяцев и сравнив построчно.",
+        "line": 16
+      },
+      {
+        "file": "app/export.py",
+        "kind": "wrong",
+        "tag": "float-money",
+        "explain": "Сумма хранится Decimal, а в файл уходит float. 1834.85 превращается в 1834.8500000000001 или, наоборот, теряет копейку при сложении в экселе.",
+        "consequence": "Бухгалтерия складывает столбец и получает расхождение с кассой на копейки. Каждый месяц заново, и каждый раз это ищут в кассе, а не в выгрузке.",
+        "line": 30
+      },
+      {
+        "file": "app/export.py",
+        "kind": "wrong",
+        "tag": "platform-default-encoding",
+        "explain": "Файл открыт без указания кодировки: на сервере это utf-8, на машине бухгалтера — cp1251. Ещё и newline не задан, из-за чего csv на Windows пишет пустую строку между записями.",
+        "consequence": "Файл открывается кракозябрами у половины получателей. Списывают на «эксель кривой» и пересылают друг другу скриншоты.",
+        "line": 21
+      }
+    ],
+    "decoys": [
+      {
+        "why": "сортировка без вторичного ключа — при равных датах порядок не гарантирован, но для выгрузки это не важно",
+        "line": 17
+      },
+      {
+        "why": "переход через декабрь выглядит хитро, но считает верно",
+        "line": 11
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "py-retry-broad-001",
     "stack": "py",
     "difficulty": 4,
@@ -2184,6 +2512,138 @@
     "verified_at": ""
   },
   {
+    "id": "sh-force-push-main-001",
+    "stack": "sh",
+    "difficulty": 3,
+    "title": "Скрипт выкладки релиза",
+    "prompt": "Собери скрипт релиза: обнови версию, поставь тег и отправь всё в репозиторий",
+    "tests": "$ ./scripts/release.sh 0.5.3\nверсия обновлена: 0.5.3\ntag v0.5.3 создан\nEverything up-to-date\n\n$ git tag --list 'v0.5.3'\nv0.5.3",
+    "diff": "--- a/scripts/release.sh\n+++ b/scripts/release.sh\n@@ -1,6 +1,24 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n version=${1:?нужен номер версии}\n \n+git fetch origin main\n+git switch main\n+\n+npm version \"$version\" --no-git-tag-version\n+git add package.json package-lock.json\n+git commit -m \"chore(release): $version\"\n+\n+git tag \"v$version\"\n+\n+# отправляем ветку и тег\n+git push --force origin main\n+git push origin \"v$version\"\n+\n+echo \"версия обновлена: $version\"\n+echo \"tag v$version создан\"\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "scripts/release.sh",
+        "kind": "wrong",
+        "tag": "force-push-shared-branch",
+        "explain": "Ветка релиза общая. --force затирает на сервере всё, что появилось там после git fetch, — то есть чужие коммиты, влитые за последние секунды. Здесь --force не нужен вовсе, а если бы был нужен, то только --force-with-lease.",
+        "consequence": "Коллега мёржит пул-реквест, пока идёт релиз, и его коммит исчезает с сервера. Локально он у автора остался, но узнают об этом через неделю по отсутствующей фиче, и восстанавливать историю приходится по рефлогам.",
+        "line": 16
+      }
+    ],
+    "decoys": [
+      {
+        "why": "тег без -a, то есть лёгкий, — вопрос вкуса, а не ошибка",
+        "line": 13
+      },
+      {
+        "why": "версия ставится без своего тега, тег ставим ниже сами — так и задумано",
+        "line": 9
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "sh-git-add-all-secrets-001",
+    "stack": "sh",
+    "difficulty": 3,
+    "title": "Скрипт снятия дампа схемы",
+    "prompt": "Пусть скрипт снимает схему базы и коммитит её, чтобы изменения схемы были видны в истории",
+    "tests": "$ ./scripts/dump-schema.sh\nсхема снята: db/schema.sql (214 строк)\n[main 4c1e88a] chore(db): обновлена схема\n 1 file changed, 6 insertions(+), 2 deletions(-)\n\n$ git status\nnothing to commit, working tree clean",
+    "diff": "--- a/scripts/dump-schema.sh\n+++ b/scripts/dump-schema.sh\n@@ -1,6 +1,24 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n source .env\n \n+pg_dump --schema-only --no-owner \"$DATABASE_URL\" > db/schema.sql\n+\n+lines=$(wc -l < db/schema.sql)\n+echo \"схема снята: db/schema.sql ($lines строк)\"\n+\n+git add -A\n+git commit -m \"chore(db): обновлена схема\"\n+\n+git push origin main\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "scripts/dump-schema.sh",
+        "kind": "wrong",
+        "tag": "commit-everything-blindly",
+        "explain": "add -A забирает всё, что оказалось в рабочей копии: чужие незакоммиченные правки, временные дампы и .env, если он не в .gitignore, — а скрипт двумя строками выше как раз показывает, что .env лежит рядом. Коммитить надо ровно тот файл, который сняли.",
+        "consequence": "Строка подключения к проду с паролем уезжает в историю репозитория. Удалить её следующим коммитом мало: она остаётся в истории навсегда, и пароль придётся менять — вместе со всеми, кто его прописал у себя.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "чтение переменных из .env — обычный способ, вопрос не к нему",
+        "line": 4
+      },
+      {
+        "why": "только схема, без владельцев и данных — ровно то, что просили",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "sh-git-rebase-published-001",
+    "stack": "sh",
+    "difficulty": 4,
+    "title": "Автообновление веток от свежего main",
+    "prompt": "Пусть бот раз в час подтягивает свежий main во все открытые ветки, чтобы они не отставали",
+    "tests": "$ ./scripts/refresh-branches.sh\nветка feature/vaccine-plan: обновлена\nветка feature/stock-report: обновлена\nветка fix/owner-search: обновлена\n\nобновлено веток: 3, конфликтов: 0",
+    "diff": "--- a/scripts/refresh-branches.sh\n+++ b/scripts/refresh-branches.sh\n@@ -1,6 +1,26 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n git fetch origin --prune\n \n+branches=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin \\\n+  | grep -v 'origin/main' | sed 's|origin/||')\n+\n+for branch in $branches; do\n+  git switch \"$branch\"\n+  git rebase origin/main\n+  git push --force-with-lease origin \"$branch\"\n+  echo \"ветка $branch: обновлена\"\n+done\n+\n+git switch main\n+echo \"обновлено веток: $(echo \"$branches\" | wc -w), конфликтов: 0\"\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "scripts/refresh-branches.sh",
+        "kind": "wrong",
+        "tag": "rebase-published-branch",
+        "explain": "Rebase переписывает коммиты, а ветки опубликованы: над ними работают люди и висят пул-реквесты с комментариями к строкам. Ветку, которую видят другие, обновляют мёрджем, а не ребейзом — либо ребейзят её только те, кто в ней работает, и только осознанно.",
+        "consequence": "У всех, кто работал с этими ветками, следующий git pull даёт расхождение и разбирается вручную. Комментарии ревьюеров в пул-реквестах отвязываются от строк и превращаются в «устаревшее», хотя обсуждение не закончено.",
+        "line": 11
+      }
+    ],
+    "decoys": [
+      {
+        "why": "с lease, а не голый --force — если бы ребейз был уместен, это правильная форма",
+        "line": 12
+      },
+      {
+        "why": "чистка исчезнувших веток — полезно и безопасно",
+        "line": 4
+      },
+      {
+        "why": "разбор списка веток текстом — хрупко, но работает",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "sh-git-reset-hard-001",
+    "stack": "sh",
+    "difficulty": 2,
+    "title": "Обновление рабочей копии на сервере",
+    "prompt": "Сделай скрипт, который подтягивает свежий main на сервере перед перезапуском",
+    "tests": "$ ./deploy/pull.sh\nиз origin/main: 3 коммита\nHEAD теперь на 9f2c1ab chore(release): 0.5.3\nсервисы перезапущены\n\n$ git status --porcelain\n(пусто)",
+    "diff": "--- a/deploy/pull.sh\n+++ b/deploy/pull.sh\n@@ -1,5 +1,22 @@\n #!/usr/bin/env bash\n set -euo pipefail\n \n cd /srv/vet\n \n+git fetch origin main\n+\n+# приводим рабочую копию к состоянию origin\n+git reset --hard origin/main\n+\n+git log --oneline -1\n+\n+docker compose pull\n+docker compose up -d\n+\n+echo \"сервисы перезапущены\"\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "deploy/pull.sh",
+        "kind": "wrong",
+        "tag": "reset-hard-drops-local-work",
+        "explain": "reset --hard молча выбрасывает всё, что в рабочей копии отличается от origin: правку в конфиге, наспех поменянный лимит, файл, который кто-то оставил на сервере. Скрипт должен либо падать при грязной копии (git diff --quiet), либо не трогать её вовсе.",
+        "consequence": "Однажды кто-то правит nginx.conf прямо на сервере, чтобы потушить инцидент, и уходит спать. Утренний деплой стирает правку, инцидент повторяется — и связать одно с другим не выходит, потому что в истории гита этой правки никогда не было.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "образы тянутся до перезапуска — правильный порядок",
+        "line": 13
+      },
+      {
+        "why": "fetch без merge — сам по себе безопасен",
+        "line": 6
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "sh-glob-unmatched-001",
     "stack": "sh",
     "difficulty": 1,
@@ -2546,6 +3006,110 @@
     "verified_at": ""
   },
   {
+    "id": "sql-migration-backfill-lock-001",
+    "stack": "sql",
+    "difficulty": 5,
+    "title": "Заполнить город у владельцев",
+    "prompt": "У владельцев появился город. Заполни его из адреса для всех, у кого он пустой",
+    "tests": "PASS  tests/backfill.test.ts (5)\n  ✓ город берётся из первой части адреса\n  ✓ пустой адрес оставляет null\n  ✓ повторный запуск ничего не меняет\n\nTests  5 passed (5)  ·  на тестовых данных: 40 строк, 12ms",
+    "diff": "--- a/migrations/0044_owner_city_backfill.sql\n+++ b/migrations/0044_owner_city_backfill.sql\n@@ -1,3 +1,26 @@\n+-- Бэкфилл города. owners в проде — 118 тысяч строк,\n+-- таблица горячая: в неё пишет регистратура во время приёма.\n+\n+BEGIN;\n+\n+ALTER TABLE owners\n+  ADD COLUMN city text;\n+\n+UPDATE owners\n+   SET city = split_part(address, ',', 1)\n+ WHERE city IS NULL\n+   AND address IS NOT NULL;\n+\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS owners_city_idx\n+  ON owners (city);\n+\n+COMMIT;\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "migrations/0044_owner_city_backfill.sql",
+        "kind": "wrong",
+        "tag": "backfill-in-one-statement",
+        "explain": "Один UPDATE на сто восемнадцать тысяч строк держит блокировки до конца транзакции и переписывает всю таблицу целиком. Бэкфилл гоняют батчами по несколько тысяч строк, отдельными транзакциями и вне миграции схемы.",
+        "consequence": "На время бэкфилла регистратура не может сохранить ни одного владельца: запись встаёт в очередь за блокировкой. Приём идёт, люди в коридоре, а карточка не сохраняется — и никто не связывает это с выкаткой, потому что «мы же только колонку добавили».",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "разбор адреса по запятой — грубо, но задача именно такая и была",
+        "line": 10
+      },
+      {
+        "why": "повторный запуск ничего не испортит — это как раз хорошо",
+        "line": 11
+      },
+      {
+        "why": "колонка без NOT NULL и без DEFAULT добавляется мгновенно — здесь всё правильно",
+        "line": 7
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "sql-migration-not-null-001",
+    "stack": "sql",
+    "difficulty": 3,
+    "title": "Обязательный вид приёма",
+    "prompt": "Добавь визитам вид приёма, он обязательный — первичный, повторный или вакцинация",
+    "tests": "PASS  tests/migrations.test.ts (4)\n  ✓ миграция накатывается на пустую базу\n  ✓ колонка не принимает null\n  ✓ откат возвращает схему назад\n\nTests  4 passed (4)  ·  visits: 12 строк в тестовой базе",
+    "diff": "--- a/migrations/0042_visit_kind.sql\n+++ b/migrations/0042_visit_kind.sql\n@@ -1,3 +1,24 @@\n+-- Вид приёма. В проде visits — самая большая таблица клиники,\n+-- на конец июля 4.1 млн строк.\n+\n+BEGIN;\n+\n+CREATE TYPE visit_kind AS ENUM ('first', 'repeat', 'vaccination');\n+\n+ALTER TABLE visits\n+  ADD COLUMN kind visit_kind NOT NULL;\n+\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS visits_kind_idx\n+  ON visits (kind);\n+\n+COMMIT;\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "migrations/0042_visit_kind.sql",
+        "kind": "wrong",
+        "tag": "not-null-without-default",
+        "explain": "Добавить NOT NULL без DEFAULT в таблицу, где уже есть строки, нельзя: постгрес нечем заполнить существующие четыре миллиона. На пустой тестовой базе миграция проходит, на проде падает сразу. Делают в три шага: колонка с DEFAULT, бэкфилл батчами, потом ограничение.",
+        "consequence": "Деплой останавливается на миграции, когда новый код уже выкачен и ждёт колонку. Прод лежит, пока кто-то вручную придумывает, чем заполнить историю за четыре года.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "перечисление вместо строки — спорно на будущее, но работает и не ломается",
+        "line": 6
+      },
+      {
+        "why": "миграция в транзакции — правильно, кроме одного нюанса ниже",
+        "line": 4
+      },
+      {
+        "why": "CONCURRENTLY внутри транзакции постгрес не разрешит — но это уже следствие, а не сама подлянка",
+        "line": 11
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "sql-migration-rename-column-001",
+    "stack": "sql",
+    "difficulty": 4,
+    "title": "Переименование поля владельца",
+    "prompt": "Переименуй owners.name в owners.full_name, а то путается с кличкой питомца",
+    "tests": "PASS  tests/owners.test.ts (7)\n  ✓ владелец создаётся с full_name\n  ✓ поиск по фамилии работает\n  ✓ карточка отдаёт full_name\n\nTests  7 passed (7)  ·  миграция накатилась за 41ms",
+    "diff": "--- a/migrations/0043_owner_full_name.sql\n+++ b/migrations/0043_owner_full_name.sql\n@@ -1,3 +1,20 @@\n+-- Переименование поля. Выкатка обычная: инстансы api обновляются\n+-- по одному, старые и новые какое-то время работают вместе.\n+\n+BEGIN;\n+\n+ALTER TABLE owners\n+  RENAME COLUMN name TO full_name;\n+\n+DROP INDEX IF EXISTS owners_name_idx;\n+\n+CREATE INDEX owners_full_name_idx\n+  ON owners (lower(full_name));\n+\n+COMMIT;\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": "migrations/0043_owner_full_name.sql",
+        "kind": "wrong",
+        "tag": "rename-breaks-running-code",
+        "explain": "Переименование мгновенно ломает все инстансы, которые ещё работают на старом коде, — а во время выкатки они работают всегда. Так делают в три релиза: добавить новую колонку и писать в обе, перевести чтение, удалить старую.",
+        "consequence": "На несколько минут выкатки половина запросов падает с «column owners.name does not exist». Откатить миграцию нельзя так же быстро, как код, поэтому окно растягивается до тех пор, пока не докатятся все инстансы.",
+        "line": 7
+      }
+    ],
+    "decoys": [
+      {
+        "why": "индекс по lower() под поиск без учёта регистра — правильно",
+        "line": 11
+      },
+      {
+        "why": "старый индекс убирают вместе с колонкой — само по себе не ошибка",
+        "line": 9
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "sql-not-in-null-001",
     "stack": "sql",
     "difficulty": 4,
@@ -2832,6 +3396,198 @@
       {
         "why": "Снятие наблюдателя по объекту, а не по возвращённому токену — на блочной подписке это не работает, но проблема начинается раньше",
         "line": 31
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-cache-key-without-lock-001",
+    "stack": "yaml",
+    "difficulty": 2,
+    "title": "Кэш зависимостей в пайплайне",
+    "prompt": "Ускорь пайплайн, зависимости качаются по две минуты каждый раз",
+    "tests": "✓ checks / test (pull_request)  Successful in 51s\n  Cache restored from key: deps-ubuntu-24.04\n  → npm ci: 6s (было 2m 11s)\n\nAll checks have passed",
+    "diff": "--- a/.github/workflows/checks.yml\n+++ b/.github/workflows/checks.yml\n@@ -1,12 +1,30 @@\n name: checks\n \n on:\n   pull_request:\n \n jobs:\n   test:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n       - uses: actions/setup-node@v4\n         with:\n           node-version: '22.11'\n+      - name: cache deps\n+        uses: actions/cache@v4\n+        with:\n+          path: ~/.npm\n+          key: deps-${{ runner.os }}\n+          restore-keys: |\n+            deps-\n+      - run: npm ci\n+      - run: npm test\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/checks.yml",
+        "kind": "wrong",
+        "tag": "cache-key-ignores-lockfile",
+        "explain": "Ключ не зависит от содержимого package-lock.json, поэтому кэш не обновляется никогда: первый сохранённый архив продолжает восстанавливаться и после смены зависимостей. В ключ подмешивают hashFiles('**/package-lock.json').",
+        "consequence": "Обновили библиотеку, влили, на CI всё зелёное — потому что там стоит старая версия из кэша недельной давности. Ломается это на проде, где зависимости ставятся честно.",
+        "line": 18
+      }
+    ],
+    "decoys": [
+      {
+        "why": "кэшируется каталог npm, а не node_modules — так и рекомендуется",
+        "line": 17
+      },
+      {
+        "why": "restore-keys как запасной вариант — нормальная практика, проблема не в нём",
+        "line": 20
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-deploy-on-any-branch-001",
+    "stack": "yaml",
+    "difficulty": 3,
+    "title": "Автовыкладка на сервер",
+    "prompt": "Сделай автодеплой: когда изменения попадают в main, выкладываем на сервер",
+    "tests": "✓ deploy / release (push)  Successful in 2m 04s\n  → vet-api:0.5.2 pushed to registry\n  → docker compose up -d on vet-prod\n\nDeployment succeeded",
+    "diff": "--- a/.github/workflows/deploy.yml\n+++ b/.github/workflows/deploy.yml\n@@ -1,8 +1,30 @@\n name: deploy\n \n on:\n   push:\n+    tags:\n+      - 'v*'\n+  workflow_dispatch:\n \n+concurrency:\n+  group: deploy-prod\n+  cancel-in-progress: false\n+\n jobs:\n   release:\n     runs-on: ubuntu-24.04\n+    environment: production\n+    steps:\n+      - uses: actions/checkout@v4\n+      - name: build image\n+        run: docker build -t vet-api:${{ github.ref_name }} .\n+      - name: push\n+        run: docker push vet-api:${{ github.ref_name }}\n+      - name: up\n+        run: ssh deploy@vet-prod 'cd /srv/vet && docker compose up -d'\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/deploy.yml",
+        "kind": "wrong",
+        "tag": "deploy-trigger-mismatch",
+        "explain": "Просили выкладывать то, что попало в main, а триггер стоит на теги. Пуш в main деплой не запускает вовсе — выкладка происходит, только когда кто-то вручную поставит тег. Работает не то, что заказывали.",
+        "consequence": "Команда неделю уверена, что main автоматически едет в прод, и никто не проверяет сервер. Расхождение находят, когда срочный фикс «уже выкачен» два дня как, а на проде старая версия.",
+        "line": 5
+      }
+    ],
+    "decoys": [
+      {
+        "why": "одна выкладка за раз — это правильно, две параллельные хуже",
+        "line": 10
+      },
+      {
+        "why": "деплой через ssh и compose — грубовато, но это наш способ, см. deploy/",
+        "line": 23
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-npm-install-not-ci-001",
+    "stack": "yaml",
+    "difficulty": 1,
+    "title": "Прогон линтера на пуше",
+    "prompt": "Добавь в CI шаг с линтером, чтобы стиль не разъезжался",
+    "tests": "✓ lint / oxlint (push)  Successful in 22s\n  → 0 warnings, 0 errors\n\nAll checks have passed",
+    "diff": "--- a/.github/workflows/lint.yml\n+++ b/.github/workflows/lint.yml\n@@ -1,6 +1,22 @@\n name: lint\n \n on:\n   push:\n \n jobs:\n   oxlint:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+          cache: npm\n+      - name: deps\n+        run: npm install\n+      - name: lint\n+        run: npm run lint\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/lint.yml",
+        "kind": "wrong",
+        "tag": "ci-install-rewrites-lock",
+        "explain": "npm install имеет право обновить версии в пределах диапазонов и переписать package-lock.json. На CI ставят npm ci — он ставит ровно то, что в лок-файле, и падает, если лок разошёлся с package.json.",
+        "consequence": "Проверка идёт на других версиях, чем прод, — и однажды зелёный CI сопровождает сборку, которая на сервере не поднимается. Разбираться приходится сравнением деревьев зависимостей, а не кодом.",
+        "line": 16
+      }
+    ],
+    "decoys": [
+      {
+        "why": "кэш зависимостей от setup-node — нормально, ключ он считает сам по лок-файлу",
+        "line": 14
+      },
+      {
+        "why": "линтер на каждый пуш, а не только на PR — это дороже, но не ошибка",
+        "line": 4
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-pr-target-checkout-001",
+    "stack": "yaml",
+    "difficulty": 5,
+    "title": "Бот с покрытием в пул-реквестах",
+    "prompt": "Пусть бот пишет в пул-реквест комментарий с покрытием тестов, в том числе на внешние PR",
+    "tests": "✓ coverage / report (pull_request_target)  Successful in 1m 07s\n  → покрытие 74.2% (+0.8%)\n  → комментарий обновлён в PR #218\n\nAll checks have passed",
+    "diff": "--- a/.github/workflows/coverage.yml\n+++ b/.github/workflows/coverage.yml\n@@ -1,10 +1,32 @@\n name: coverage\n \n on:\n-  pull_request:\n+  pull_request_target:\n \n permissions:\n   pull-requests: write\n \n jobs:\n   report:\n     runs-on: ubuntu-24.04\n     steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          ref: ${{ github.event.pull_request.head.sha }}\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+      - run: npm ci\n+      - run: npm run coverage\n+      - name: comment\n+        uses: actions/github-script@v7\n+        with:\n+          script: |\n+            const body = require('fs').readFileSync('coverage/summary.md', 'utf8')\n+            await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body })\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/coverage.yml",
+        "kind": "wrong",
+        "tag": "untrusted-code-with-write-token",
+        "explain": "pull_request_target выполняется в контексте базовой ветки — с правами на запись и доступом к секретам. Выкачивать сюда код из чужого пул-реквеста и запускать его npm ci означает отдать этот токен автору PR: любой хук установки выполнит что угодно. Либо checkout базовой ветки, либо обычный pull_request без прав на запись.",
+        "consequence": "Первый же посторонний пул-реквест с постустановочным скриптом получает токен с правом записи в репозиторий. Понять, что произошло, можно только по логам аудита, и то если знать, что искать.",
+        "line": 15
+      }
+    ],
+    "decoys": [
+      {
+        "why": "право писать комментарии боту действительно нужно, само по себе оно не ошибка",
+        "line": 7
+      },
+      {
+        "why": "официальное действие с закреплённой мажорной версией — обычная практика",
+        "line": 22
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-secret-through-base64-001",
+    "stack": "yaml",
+    "difficulty": 4,
+    "title": "Ключ подписи в сборке приложения",
+    "prompt": "Нужно подписывать сборку, положи ключ в секреты и достань его в пайплайне",
+    "tests": "✓ release / sign (workflow_dispatch)  Successful in 1m 33s\n  → keystore восстановлен, размер 2.3KB\n  → apk подписан, verify: ok\n\nDeployment succeeded",
+    "diff": "--- a/.github/workflows/release.yml\n+++ b/.github/workflows/release.yml\n@@ -1,10 +1,28 @@\n name: release\n \n on:\n   workflow_dispatch:\n \n jobs:\n   sign:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n+      - name: restore keystore\n+        run: |\n+          echo \"${{ secrets.KEYSTORE_B64 }}\" | base64 -d > release.keystore\n+          echo \"восстановлен, размер $(stat -c%s release.keystore)\"\n+      - name: sign\n+        env:\n+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}\n+        run: ./gradlew assembleRelease\n+      - name: cleanup\n+        if: always()\n+        run: rm -f release.keystore\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/release.yml",
+        "kind": "wrong",
+        "tag": "secret-unmasked-in-log",
+        "explain": "Раннер заменяет в логе только точное значение секрета. Подстановка ${{ secrets.X }} прямо в команду — это ещё и способ получить его в логе через любое преобразование: достаточно ошибки в пайпе, и base64 напечатает вход. Секреты передают через env, а не подставляют в текст команды.",
+        "consequence": "Ключ подписи утекает в лог публичного пайплайна и живёт там, пока кто-нибудь не заметит. Отзыв ключа означает перевыпуск и новую подпись у всех, кто уже поставил приложение.",
+        "line": 13
+      }
+    ],
+    "decoys": [
+      {
+        "why": "а вот так — правильно: секрет уходит в env шага, а не в текст команды",
+        "line": 17
+      },
+      {
+        "why": "удаление ключа при любом исходе — как раз то, что нужно",
+        "line": 20
+      }
+    ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "yaml-tests-never-fail-001",
+    "stack": "yaml",
+    "difficulty": 2,
+    "title": "Тесты на пул-реквестах",
+    "prompt": "Пусть на каждый пул-реквест гоняются тесты, а результат виден в PR",
+    "tests": "✓ checks / test (pull_request)  Successful in 48s\n✓ checks / build (pull_request)  Successful in 1m 12s\n\nAll checks have passed",
+    "diff": "--- a/.github/workflows/checks.yml\n+++ b/.github/workflows/checks.yml\n@@ -1,10 +1,29 @@\n name: checks\n \n on:\n   pull_request:\n \n jobs:\n   test:\n     runs-on: ubuntu-24.04\n     steps:\n       - uses: actions/checkout@v4\n+      - uses: actions/setup-node@v4\n+        with:\n+          node-version: '22.11'\n+          cache: npm\n+      - run: npm ci\n+      - name: unit\n+        continue-on-error: true\n+        run: npm test\n+      - name: summary\n+        if: always()\n+        run: echo \"тесты отработали\" >> $GITHUB_STEP_SUMMARY\n+\n+  build:\n+    runs-on: ubuntu-24.04\n+    steps:\n+      - uses: actions/checkout@v4\n+      - run: npm ci && npm run build\n",
+    "clean": false,
+    "bugs": [
+      {
+        "file": ".github/workflows/checks.yml",
+        "kind": "wrong",
+        "tag": "ci-step-cannot-fail",
+        "explain": "Шаг с continue-on-error не роняет джобу. Тесты гоняются, красные тесты честно печатаются в лог — и проверка всё равно зелёная. Галочка в пул-реквесте перестаёт что-либо значить.",
+        "consequence": "Красные тесты едут в main месяцами, потому что никто не открывает лог зелёной проверки. Обнаруживается это в тот день, когда кто-то наконец запускает тесты локально — и видит, что их там сорок штук падает.",
+        "line": 17
+      }
+    ],
+    "decoys": [
+      {
+        "why": "шаг сводки должен выполняться и при падении — здесь always() как раз к месту",
+        "line": 20
+      },
+      {
+        "why": "сборка отдельной джобой без кэша — медленно, но не ошибка",
+        "line": 27
       }
     ],
     "verified_by": "",

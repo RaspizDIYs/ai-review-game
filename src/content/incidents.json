@@ -1,0 +1,242 @@
+[
+  {
+    "tag": "error-swallowed",
+    "lines": "03:41  api-7f4c  INFO   sync started, 4128 records\n03:41  api-7f4c  INFO   sync finished, 0 errors\n03:41  api-7f4c  INFO   sync finished, 0 errors\n09:12  support        «у нас со вторника не приходят напоминания»\n09:14  api-7f4c  INFO   queue depth 12401, consumers 0",
+    "metric": "ошибок за сутки: 0 · доставлено: 0"
+  },
+  {
+    "tag": "cache-no-invalidation",
+    "lines": "14:02  api-9ab1  WARN   cache hit ratio 0.99 (было 0.42)\n14:02  api-9ab1  INFO   GET /api/owners/318 200 3ms\n14:07  support        «сменил телефон, в карточке старый»\n14:31  support        «и у меня тоже»",
+    "metric": "обращений в поддержку: 11 за час"
+  },
+  {
+    "tag": "n-plus-one",
+    "lines": "21:14  db-main   WARN   connections 98/100\n21:14  db-main   WARN   SELECT * FROM visits WHERE patient_id = $1  ×1841\n21:15  api-7f4c  ERROR  timeout acquiring connection from pool\n21:15  api-7f4c  ERROR  GET /api/reports/day 504",
+    "metric": "p95 ответа: 210ms → 8400ms"
+  },
+  {
+    "tag": "no-transaction-no-guard",
+    "lines": "18:22  api-7f4c  ERROR  payment gateway 503\n18:22  api-7f4c  INFO   visit 8814 marked as paid\n18:22  api-7f4c  ERROR  invoice 8814 not created\n19:40  бухгалтерия    «визит оплачен, счёта нет. таких 23»",
+    "metric": "расхождение с кассой: 23 визита"
+  },
+  {
+    "tag": "off-by-one-pagination",
+    "lines": "11:03  api-9ab1  INFO   GET /api/patients?page=1 200  (20 записей)\n11:03  api-9ab1  INFO   GET /api/patients?page=2 200  (20 записей)\n11:48  клиника        «выгрузили список, в нём 39 питомцев из 40»\n11:52  клиника        «каждый двадцать первый пропадает»",
+    "metric": "выгружено 1938 из 1980"
+  },
+  {
+    "tag": "naive-datetime",
+    "lines": "00:04  cron-1    INFO   напоминания на 2026-08-04: 0\n00:04  cron-1    INFO   напоминания на 2026-08-05: 812\n08:15  support        «клиентам пришло за день до приёма в 3 ночи»\n08:20  support        «а кому-то не пришло вообще»",
+    "metric": "доставлено вовремя: 61%"
+  },
+  {
+    "tag": "float-money",
+    "lines": "23:59  billing   INFO   день закрыт, итог 418 204.97\n23:59  billing   WARN   сумма по чекам 418 204.99\n09:30  бухгалтерия    «второй месяц не сходится на копейки»",
+    "metric": "расхождение: 0.02 ₽ в день, 7.30 ₽ в год"
+  },
+  {
+    "tag": "update-without-where",
+    "lines": "16:41  db-main   INFO   UPDATE patients SET clinic_id = $1\n16:41  db-main   INFO   1980 rows affected\n16:42  api-7f4c  INFO   GET /api/patients 200 (1980 записей)\n16:44  клиника        «у нас в списке чужие животные»",
+    "metric": "затронуто записей: 1980 из 1980"
+  },
+  {
+    "tag": "mutating-while-iterating",
+    "lines": "10:41  api-7f4c  INFO   архивация карточек: 412 к обработке\n10:41  api-7f4c  INFO   архивация завершена: обработано 206\n10:41  api-7f4c  INFO   ошибок нет\n15:20  клиника        «половина карточек так и висит активными»",
+    "metric": "обработано 206 из 412, ошибок 0"
+  },
+  {
+    "tag": "integer-division",
+    "lines": "18:04  billing   INFO   счёт 4412: услуги 3, сумма 2500\n18:04  billing   INFO   доля врача: 833\n18:04  billing   INFO   остаток клинике: 1\n09:15  бухгалтерия    «у врачей каждый месяц не хватает рублей»",
+    "metric": "потеряно на округлении: 1-2 ₽ на счёт"
+  },
+  {
+    "tag": "falsy-vs-none",
+    "lines": "12:33  api-9ab1  INFO   POST /api/visits вес 0 кг → сохранено как null\n12:33  api-9ab1  INFO   POST /api/visits вес 4.2 кг → сохранено 4.2\n14:02  врач           «новорождённым не проставляется вес»",
+    "metric": "пустых полей веса за неделю: 38"
+  },
+  {
+    "tag": "platform-default-encoding",
+    "lines": "16:10  export    INFO   выгрузка готова: owners.csv, 118412 строк\n16:12  клиника        «открыли в экселе — кракозябры»\n16:20  клиника        «у Маши открывается нормально, у меня нет»",
+    "metric": "жалоб на выгрузку: 9 из 14 получателей"
+  },
+  {
+    "tag": "off-by-one-boundary",
+    "lines": "00:05  report    INFO   отчёт за август: визитов 1938\n00:05  report    INFO   отчёт за сентябрь: визитов 1902\n11:40  бухгалтерия    «сумма за год не бьётся с помесячной на 23 визита»",
+    "metric": "расхождение год против месяцев: 23 визита"
+  },
+  {
+    "tag": "index-out-of-range",
+    "lines": "13:52  api-7f4c  ERROR  GET /api/patients/8814/visits 500\n13:52  api-7f4c  ERROR  index out of range\n13:52  api-7f4c  INFO   GET /api/patients/8815/visits 200\n13:58  регистратура   «у некоторых питомцев карточка не открывается»",
+    "metric": "пятисотых на ручке: 4% запросов"
+  },
+  {
+    "tag": "not-thread-safe-shared",
+    "lines": "19:12  api-7f4c  INFO   визит 9001 записан к врачу Петрову\n19:12  api-9ab1  INFO   визит 9002 записан к врачу Петрову\n19:12  api-7f4c  INFO   слот 19:30 занят\n20:05  регистратура   «два питомца пришли на одно время»",
+    "metric": "двойных броней за сутки: 6"
+  },
+  {
+    "tag": "context-leak",
+    "lines": "02:00  api-7f4c  WARN   goroutines 214\n06:00  api-7f4c  WARN   goroutines 1892\n10:00  api-7f4c  WARN   goroutines 8140\n10:04  api-7f4c  ERROR  out of memory, процесс перезапущен",
+    "metric": "память: 180MB → 1.9GB за восемь часов"
+  },
+  {
+    "tag": "debug-left-in-code",
+    "lines": "11:15  api-7f4c  INFO   владелец 318: {\"phone\":\"+7912...\",\"passport\":\"4512 ...\"}\n11:15  api-7f4c  INFO   владелец 319: {\"phone\":\"+7916...\",\"passport\":\"4014 ...\"}\n11:40  безопасность   «персональные данные в логах, лог уходит в облако»",
+    "metric": "строк с персональными данными за сутки: 41208"
+  },
+  {
+    "tag": "healthcheck-checks-nothing",
+    "lines": "04:20  deploy    INFO   контейнер vet-api healthy за 3s\n04:20  balancer  INFO   трафик пущен\n04:20  api-7f4c  ERROR  connection to postgres refused ×214\n04:21  on-call        поднят по алерту, в мониторинге всё зелёное",
+    "metric": "healthcheck: ok · пятисотых: 100%"
+  },
+  {
+    "tag": "container-data-not-persisted",
+    "lines": "03:00  deploy    INFO   docker compose up -d, образ обновлён\n03:00  minio     INFO   стартовал, /data пуст\n09:12  врач           «не открывается ни один снимок за три года»",
+    "metric": "файлов было: 41208 · сейчас: 0"
+  },
+  {
+    "tag": "ci-step-cannot-fail",
+    "lines": "весь месяц:  checks / test  ✓ Successful ×214\n03.08 09:40  локально: npm test → 37 failed\n03.08 09:44  git log: последний зелёный по-настоящему — 12 июля",
+    "metric": "красных тестов в main: 37, проверка зелёная"
+  },
+  {
+    "tag": "not-null-without-default",
+    "lines": "04:00  migrate   INFO   0042_visit_kind: начата\n04:00  migrate   ERROR  column \"kind\" contains null values\n04:00  deploy    ERROR  выкладка остановлена\n04:01  api-7f4c  ERROR  column visits.kind does not exist ×3120",
+    "metric": "прод недоступен: 22 минуты"
+  },
+  {
+    "tag": "backfill-in-one-statement",
+    "lines": "14:30  migrate   INFO   0044_owner_city_backfill: начата\n14:30  db-main   WARN   lock wait на owners: 41 запрос в очереди\n14:33  регистратура   «карточка не сохраняется, крутится колесо»\n14:38  db-main   INFO   миграция завершена за 8m 12s",
+    "metric": "запись в owners недоступна: 8 минут"
+  },
+  {
+    "tag": "reset-hard-drops-local-work",
+    "lines": "03:00  deploy    INFO   git reset --hard origin/main\n03:00  deploy    INFO   сервисы перезапущены\n09:30  on-call        «вчера правил лимит в конфиге, инцидент повторился»\n09:31  git       INFO   в истории этой правки нет",
+    "metric": "тот же инцидент второй раз за сутки"
+  },
+  {
+    "tag": "async-void",
+    "lines": "17:41  api-7f4c  INFO   карточка 8814 сохранена\n17:41  api-7f4c  INFO   уведомление владельцу поставлено в очередь\n17:41  api-7f4c  INFO   запрос завершён 200 · 41ms\n09:00  владелец       «мне не пришло ни одного напоминания за месяц»",
+    "metric": "поставлено в очередь: 3120 · доставлено: 0"
+  },
+  {
+    "tag": "httpclient-per-call",
+    "lines": "11:20  api-7f4c  WARN   sockets in TIME_WAIT: 12408\n11:22  api-7f4c  ERROR  unable to connect to insurer.example: address in use\n11:22  api-7f4c  ERROR  проверка полиса недоступна\n11:30  регистратура   «полисы перестали проверяться после обеда»",
+    "metric": "сокетов открыто: 12408 · лимит: 16384"
+  },
+  {
+    "tag": "sync-over-async",
+    "lines": "14:02  api-7f4c  WARN   thread pool starvation, доступных потоков 0\n14:02  api-7f4c  WARN   очередь запросов: 812\n14:03  api-7f4c  ERROR  request timeout ×214\n14:05  клиника        «сайт открывается по минуте, но не падает»",
+    "metric": "p95 ответа: 90ms → 61s"
+  },
+  {
+    "tag": "default-credentials-in-config",
+    "lines": "03:12  db-main   INFO   connection accepted from 91.***.***.14\n03:12  db-main   INFO   authenticated as vet\n03:14  db-main   INFO   SELECT * FROM owners LIMIT 100000\n09:40  безопасность   «база отвечает из интернета, пароль словарный»",
+    "metric": "внешних подключений за ночь: 41"
+  },
+  {
+    "tag": "database-port-published",
+    "lines": "02:40  scanner   INFO   0.0.0.0:5432 открыт наружу\n02:41  db-main   INFO   connection accepted from 45.***.***.221\n02:41  db-main   FATAL  password authentication failed ×3120\n04:10  db-main   INFO   authenticated as vet",
+    "metric": "попыток подбора: 3120 за полтора часа"
+  },
+  {
+    "tag": "docker-copy-before-install",
+    "lines": "весь месяц:  сборка на CI  ≈ 4m 20s\n12.07:       та же сборка  ≈ 41s\nлог шага:    #4 [4/8] RUN npm ci — CACHED × 0 раз за 214 сборок",
+    "metric": "время сборки: 41s → 4m 20s, кэш не попадает никогда"
+  },
+  {
+    "tag": "dev-mode-in-prod-image",
+    "lines": "12:14  admin     ERROR  TypeError: Cannot read properties of undefined\n12:14  admin     ERROR  at /app/src/admin/visits.ts:214:11 (полный стектрейс отдан клиенту)\n12:20  клиника        прислали скриншот ошибки с путями до файлов",
+    "metric": "размер ответов: +180% · шаблоны не кэшируются"
+  },
+  {
+    "tag": "base-image-floats",
+    "lines": "вчера:  worker собран, node v22.11, очередь разгребается\nсегодня: worker собран, node v24.2\n06:12  worker    ERROR  таймеры сработали дважды на одной задаче\n06:12  worker    INFO   код не менялся уже девять дней",
+    "metric": "дублей в очереди: 412 за ночь"
+  },
+  {
+    "tag": "secret-baked-into-layer",
+    "lines": "10:02  registry  INFO   vet-api:0.5.0 запушен, публичный\n11:30  npm       INFO   опубликован @vet/billing-core@9.9.9 от нашего имени\n11:41  безопасность   «docker history отдаёт .npmrc из слоя»",
+    "metric": "токен публикации в открытом образе"
+  },
+  {
+    "tag": "error-ignored",
+    "lines": "04:00  api-7f4c  INFO   конфиг загружен\n04:00  api-7f4c  INFO   лимит запросов: 0\n04:00  api-7f4c  INFO   таймаут: 0s\n04:02  api-7f4c  ERROR  все запросы отклонены: превышен лимит",
+    "metric": "файла конфига на диске нет, ошибка не всплыла"
+  },
+  {
+    "tag": "nil-map-write",
+    "lines": "08:15  api-9ab1  ERROR  panic: assignment to entry in nil map\n08:15  api-9ab1  ERROR  goroutine 214 [running]\n08:15  api-9ab1  INFO   процесс перезапущен\n08:16  api-9ab1  ERROR  panic: assignment to entry in nil map",
+    "metric": "перезапусков за час: 41"
+  },
+  {
+    "tag": "floating-promise",
+    "lines": "16:30  api-7f4c  INFO   визит 9114 создан\n16:30  api-7f4c  INFO   ответ отдан 201 · 12ms\n16:30  api-7f4c  (уведомление: ошибка не залогирована, promise не дождались)\n18:00  владелец       «записались, но подтверждение не пришло»",
+    "metric": "подтверждений отправлено: 62%"
+  },
+  {
+    "tag": "effect-without-cleanup",
+    "lines": "браузер регистратуры, вкладка открыта с утра:\n09:00  подписок на очередь: 1\n13:00  подписок на очередь: 48\n17:00  подписок на очередь: 214 · вкладка ест 1.8GB",
+    "metric": "очередь перерисовывается 214 раз на одно событие"
+  },
+  {
+    "tag": "stale-state-update",
+    "lines": "12:00  клиника        принято пациентов: 14\n12:00  журнал         записей о приёме: 17\n15:20  врач           «счётчик отстаёт, если быстро жать»",
+    "metric": "расхождение счётчика и журнала: 3 за смену"
+  },
+  {
+    "tag": "props-mutated-in-place",
+    "lines": "10:12  клиника        отсортировали список приёмов по времени\n10:12  клиника        вернулись назад — исходный порядок не восстановился\n10:40  врач           «список приёмов перемешался у всех, кто открыл вкладку»",
+    "metric": "жалоб на порядок в списке: 7 за день"
+  },
+  {
+    "tag": "utc-vs-local-day",
+    "lines": "00:40  report    INFO   визит 9210 записан на 2026-08-04\n07:00  клиника        «вчерашний вечерний приём попал в сегодняшний отчёт»\n07:05  клиника        «а ночной — вообще исчез»",
+    "metric": "визитов не в своём дне: 18 за месяц"
+  },
+  {
+    "tag": "test-asserts-the-mock",
+    "lines": "весь месяц:  PASS  tests/user.test.ts ×214\n03.08 10:00  прод: GET /api/users/318 500\n03.08 10:02  тот же вызов локально с настоящей базой — падает так же",
+    "metric": "тесты зелёные, ручка не работала три недели"
+  },
+  {
+    "tag": "cache-updated-from-itself",
+    "lines": "13:20  api-7f4c  INFO   владелец 412 переименован\n13:20  api-7f4c  INFO   GET /api/owners/412 → {\"fullName\":\"Иванова А.\"}\n13:21  регистратура   «в карточке пропали телефон и адрес»",
+    "metric": "карточек с пустыми полями: 63"
+  },
+  {
+    "tag": "path-traversal",
+    "lines": "05:14  api-7f4c  INFO   GET /api/files?name=..%2F..%2F..%2Fetc%2Fpasswd\n05:14  api-7f4c  INFO   200 · отдано 1842 байта\n05:15  api-7f4c  INFO   GET /api/files?name=..%2F..%2F.env\n05:15  api-7f4c  INFO   200 · отдано 412 байт",
+    "metric": "отдано за пределами каталога вложений: 9 файлов"
+  },
+  {
+    "tag": "retry-on-non-retryable",
+    "lines": "19:02  ofd       ERROR  400 Bad Request: неверный ИНН в чеке\n19:02  ofd       INFO   повтор 1/5\n19:03  ofd       INFO   повтор 5/5 — тот же 400\n19:03  ofd       ERROR  чек 8814 не пробит, очередь растёт",
+    "metric": "бесполезных повторов за час: 3120"
+  },
+  {
+    "tag": "unicode-normalization",
+    "lines": "11:41  api-7f4c  INFO   поиск «Иванов Пётр» → найдено 0\n11:41  api-7f4c  INFO   поиск «Иванов Петр» → найдено 1\n11:50  регистратура   «завели второго владельца, теперь их два»",
+    "metric": "дублей владельцев за месяц: 34"
+  },
+  {
+    "tag": "unwrap-panics",
+    "lines": "14:22  api-9ab1  ERROR  thread panicked at 'called Option::unwrap() on a None value'\n14:22  api-9ab1  INFO   форма веса: поле пустое\n14:22  api-9ab1  INFO   процесс перезапущен, соединения оборваны",
+    "metric": "падений на пустом поле: 28 за смену"
+  },
+  {
+    "tag": "force-push-shared-branch",
+    "lines": "18:40  git       INFO   release.sh: push --force origin main\n18:40  git       INFO   main: 9f2c1ab (было 4c1e88a)\n09:12  коллега        «мой вчерашний мёрдж исчез, локально он есть»",
+    "metric": "потеряно коммитов: 2"
+  },
+  {
+    "tag": "commit-everything-blindly",
+    "lines": "03:00  cron      INFO   dump-schema.sh: закоммичено 3 файла\n03:00  git       INFO   db/schema.sql, dump.tmp, .env\n10:15  безопасность   «строка подключения к проду в истории репозитория»",
+    "metric": "пароль в истории с 12 июля, 214 коммитов назад"
+  },
+  {
+    "tag": "sql-injection",
+    "lines": "02:11  api-7f4c  INFO   GET /api/search?q=%27%20OR%201%3D1--\n02:11  db-main   INFO   SELECT * FROM owners WHERE name LIKE '' OR 1=1--'\n02:11  api-7f4c  INFO   200, отдано 4128 записей\n02:12  api-7f4c  INFO   тот же запрос, ещё 40 раз",
+    "metric": "отдано наружу: 4128 карточек владельцев"
+  }
+]

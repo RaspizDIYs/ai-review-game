@@ -1,4 +1,4 @@
-import { ACHIEVEMENTS } from '../achievements.ts'
+import { ACHIEVEMENTS, ownedCount } from '../achievements.ts'
 import { Icon } from '../ui/icons.tsx'
 import { Button } from '../ui/kit.tsx'
 
@@ -16,7 +16,7 @@ export function Achievements({ unlocked, accent, onBack }: Props) {
           Ачивки
         </h2>
         <span className="font-mono text-xs text-[#6b6b77]">
-          {unlocked.length} из {ACHIEVEMENTS.length} · за типы подлянок
+          {ownedCount(unlocked)} из {ACHIEVEMENTS.length} · за языки, находки и упорство
         </span>
       </div>
 
@@ -49,7 +49,11 @@ export function Achievements({ unlocked, accent, onBack }: Props) {
                   color: on ? accent : '#33333c',
                 }}
               >
-                <Icon name={on ? a.icon : 'lock'} size={21} />
+                {on && a.badge ? (
+                  <span className="font-mono text-[13px] font-bold lowercase">{a.badge}</span>
+                ) : (
+                  <Icon name={on ? a.icon : 'lock'} size={21} />
+                )}
               </span>
 
               <div className="flex-1">

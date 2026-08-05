@@ -8,41 +8,9 @@
  * Часть путей взята из макета, остальные дорисованы в том же наборе (Lucide).
  */
 
-export type IconName =
-  | 'git-pull-request'
-  | 'award'
-  | 'volume-2'
-  | 'volume-x'
-  | 'arrow-left'
-  | 'arrow-right'
-  | 'chevron-left'
-  | 'chevron-right'
-  | 'heart-pulse'
-  | 'calendar-check'
-  | 'infinity'
-  | 'flame'
-  | 'graduation-cap'
-  | 'sprout'
-  | 'hammer'
-  | 'medal'
-  | 'crown'
-  | 'eye'
-  | 'zap'
-  | 'shield-check'
-  | 'shuffle'
-  | 'file-code'
-  | 'trophy'
-  | 'sparkles'
-  | 'lock'
-  | 'check-check'
-  | 'bug'
-  | 'circle-alert'
-  | 'share-2'
-  | 'timer'
-  | 'alarm-clock'
-  | 'target'
-  | 'siren'
-  | 'gavel'
+import type { IconName } from './icon-names.ts'
+
+export type { IconName }
 
 const PATHS: Record<IconName, string[]> = {
   'git-pull-request': [
@@ -193,6 +161,31 @@ const PATHS: Record<IconName, string[]> = {
     'm9 7 8 8',
     'm21 11-8-8',
   ],
+  music: [
+    'M9 18V5l12-2v13',
+    'M6 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+    'M18 16m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+  ],
+  'skip-forward': ['M5 4l10 8-10 8z', 'M19 5v14'],
+  'circle-dot': [
+    'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0 -20 0',
+    'M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0',
+  ],
+  'git-branch': [
+    'M6 3v12',
+    'M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+    'M6 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+    'M18 9a9 9 0 0 1-9 9',
+  ],
+  pencil: [
+    'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z',
+    'm15 5 4 4',
+  ],
+  settings: [
+    'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z',
+    'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+  ],
+  x: ['M18 6 6 18', 'm6 6 12 12'],
 }
 
 interface Props {

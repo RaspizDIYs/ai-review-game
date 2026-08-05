@@ -4,6 +4,8 @@
  */
 
 import type { LevelId } from './levels'
+import { DEFAULT_MUSIC } from './music.ts'
+import { DEFAULT_SHIFT_STACK, type ShiftStack } from './stacks.ts'
 import type { Outcome, Stack } from './types'
 
 const KEY = 'review-after-ai:v1'
@@ -42,6 +44,8 @@ export interface Settings {
   level: LevelId
   stacks: Stack[]
   played: number
+  /** Свой стек для смены — фронт, бэкенд и пайплайн. Уровень там не при чём. */
+  shiftStack: ShiftStack
 }
 
 interface Save {
@@ -53,14 +57,28 @@ interface Save {
   /** Подсказку первого раунда показываем ровно один раз за всю жизнь. */
   onboarded: boolean
   progress: RunProgress | null
+  /**
+   * Смена: незаконченная — чтобы продолжить, законченная — чтобы следующая
+   * приняла прод. Лежит как есть и проверяется на входе `restore` из
+   * `shift.ts`: схема тут своя, и знать её хранилищу незачем.
+   */
+  shift: unknown
   settings: Settings | null
   /** Полученные ачивки — id из ACHIEVEMENTS. */
   unlocked: string[]
   /** Опыт за всё время: из него считается ранг. */
   lifetime: number
+  /** Пойманных подлянок за всё время — от него ачивки на пробег. */
+  found: number
   sound: boolean
+  /** Громкость фоновой темы, 0..1. Отдельно от выключателя: выключив музыку
+   *  и включив обратно, игрок ждёт ту же громкость, что и была. */
+  music: number
+  musicOn: boolean
   /** Агент, выбранный на главной — просто чтобы экран был свой. */
   hero: string
+  /** Имя репозитория в шапке. Пусто — подставится значение по умолчанию. */
+  repo: string
 }
 
 const EMPTY: Save = {
@@ -71,11 +89,16 @@ const EMPTY: Save = {
   streakLastDay: null,
   onboarded: false,
   progress: null,
+  shift: null,
   settings: null,
   unlocked: [],
   lifetime: 0,
+  found: 0,
   sound: true,
+  music: DEFAULT_MUSIC,
+  musicOn: true,
   hero: 'commander',
+  repo: '',
 }
 
 function read(): Save {
@@ -123,6 +146,15 @@ export function clearProgress(): void {
   write({ ...read(), progress: null })
 }
 
+/** Сырая смена: разбирать её — дело `shift.ts`, а не хранилища. */
+export function getShift(): unknown {
+  return read().shift
+}
+
+export function saveShift(shift: unknown): void {
+  write({ ...read(), shift })
+}
+
 export function saveDaily(day: string, record: DailyRecord): void {
   const save = read()
   save.progress = null // серия доиграна, продолжать больше нечего
@@ -153,7 +185,10 @@ export function getSettings(fallback: Settings): Settings {
   // оставлять игрока с пустой подборкой и без объяснений.
   const stacks = saved?.stacks.filter((s) => fallback.stacks.includes(s)) ?? []
 
-  return saved && stacks.length > 0 ? { ...saved, stacks } : fallback
+  // Свой стек мог не сохраниться вовсе — до смены его в настройках не было.
+  const shiftStack = saved?.shiftStack ?? DEFAULT_SHIFT_STACK
+
+  return saved && stacks.length > 0 ? { ...saved, stacks, shiftStack } : fallback
 }
 
 export function saveSettings(settings: Settings): void {
@@ -172,13 +207,17 @@ export function markOnboarded(): void {
 export interface Profile {
   unlocked: string[]
   lifetime: number
+  found: number
   sound: boolean
+  music: number
+  musicOn: boolean
   hero: string
+  repo: string
 }
 
 export function getProfile(): Profile {
-  const { unlocked, lifetime, sound, hero } = read()
-  return { unlocked, lifetime, sound, hero }
+  const { unlocked, lifetime, found, sound, music, musicOn, hero, repo } = read()
+  return { unlocked, lifetime, found, sound, music, musicOn, hero, repo }
 }
 
 export function saveProfile(profile: Profile): void {

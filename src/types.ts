@@ -14,6 +14,8 @@ export type Stack =
   | 'rb'
   | 'swift'
   | 'sh'
+  | 'docker'
+  | 'yaml'
 
 /** 1..5, см. таблицу сложностей в ТЗ. */
 export type Difficulty = 1 | 2 | 3 | 4 | 5

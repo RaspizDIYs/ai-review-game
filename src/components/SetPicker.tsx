@@ -17,6 +17,10 @@ interface Props {
   onLevel: (level: LevelId) => void
   onToggle: (stack: Stack) => void
   onStart: () => void
+  /** В шторке панель занимает всю ширину; в колонке — липнет к шапке. */
+  sheet?: boolean
+  /** Без своей рамки и кнопки: панель вложена в экран настройки. */
+  bare?: boolean
 }
 
 /** Иконка ранга и уровня одна и та же: это одна и та же лестница. */
@@ -43,9 +47,19 @@ export function SetPicker({
   onLevel,
   onToggle,
   onStart,
+  sheet = false,
+  bare = false,
 }: Props) {
+  // На узком экране колонка уезжает в шторку под шестерёнкой: на телефоне
+  // она вдвое длиннее самой игры и отжимает кнопку «начать» за экран.
+  const shell = bare
+    ? 'flex w-full flex-col gap-4'
+    : sheet
+      ? 'flex w-full flex-col gap-4 rounded-2xl border border-[#26262c] bg-[#101014] p-[18px]'
+      : 'sticky top-16 hidden min-w-[240px] flex-[0_1_288px] flex-col gap-4 rounded-2xl border border-[#26262c] bg-[#101014] p-[18px] lg:flex'
+
   return (
-    <aside className="sticky top-16 flex min-w-[240px] flex-[0_1_288px] flex-col gap-4 rounded-2xl border border-[#26262c] bg-[#101014] p-[18px]">
+    <aside className={shell}>
       <div className="flex items-baseline justify-between gap-2.5">
         <span className="font-mono text-[11px] tracking-[.18em] uppercase text-[#5c5c66]">
           кто ты на ревью
@@ -137,14 +151,16 @@ export function SetPicker({
         })}
       </div>
 
-      <Button
-        variant="secondary"
-        accent={accent}
-        onClick={onStart}
-        disabled={stacks.length === 0}
-      >
-        {stacks.length === 0 ? 'Выбери язык' : 'Собрать подборку'}
-      </Button>
+      {!bare && (
+        <Button
+          variant="secondary"
+          accent={accent}
+          onClick={onStart}
+          disabled={stacks.length === 0}
+        >
+          {stacks.length === 0 ? 'Выбери язык' : 'Собрать подборку'}
+        </Button>
+      )}
     </aside>
   )
 }

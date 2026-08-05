@@ -1,0 +1,36 @@
+{
+  "id": "sql-migration-backfill-lock-001",
+  "stack": "sql",
+  "difficulty": 5,
+  "title": "Заполнить город у владельцев",
+  "prompt": "У владельцев появился город. Заполни его из адреса для всех, у кого он пустой",
+  "tests": "PASS  tests/backfill.test.ts (5)\n  ✓ город берётся из первой части адреса\n  ✓ пустой адрес оставляет null\n  ✓ повторный запуск ничего не меняет\n\nTests  5 passed (5)  ·  на тестовых данных: 40 строк, 12ms",
+  "diff": "--- a/migrations/0044_owner_city_backfill.sql\n+++ b/migrations/0044_owner_city_backfill.sql\n@@ -1,3 +1,26 @@\n+-- Бэкфилл города. owners в проде — 118 тысяч строк,\n+-- таблица горячая: в неё пишет регистратура во время приёма.\n+\n+BEGIN;\n+\n+ALTER TABLE owners\n+  ADD COLUMN city text;\n+\n+UPDATE owners\n+   SET city = split_part(address, ',', 1)\n+ WHERE city IS NULL\n+   AND address IS NOT NULL;\n+\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS owners_city_idx\n+  ON owners (city);\n+\n+COMMIT;\n",
+  "clean": false,
+  "bugs": [
+    {
+      "file": "migrations/0044_owner_city_backfill.sql",
+      "match": "UPDATE owners",
+      "kind": "wrong",
+      "tag": "backfill-in-one-statement",
+      "explain": "Один UPDATE на сто восемнадцать тысяч строк держит блокировки до конца транзакции и переписывает всю таблицу целиком. Бэкфилл гоняют батчами по несколько тысяч строк, отдельными транзакциями и вне миграции схемы.",
+      "consequence": "На время бэкфилла регистратура не может сохранить ни одного владельца: запись встаёт в очередь за блокировкой. Приём идёт, люди в коридоре, а карточка не сохраняется — и никто не связывает это с выкаткой, потому что «мы же только колонку добавили»."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "   SET city = split_part(address, ',', 1)",
+      "why": "разбор адреса по запятой — грубо, но задача именно такая и была"
+    },
+    {
+      "match": " WHERE city IS NULL",
+      "why": "повторный запуск ничего не испортит — это как раз хорошо"
+    },
+    {
+      "match": "  ADD COLUMN city text;",
+      "why": "колонка без NOT NULL и без DEFAULT добавляется мгновенно — здесь всё правильно"
+    }
+  ],
+  "verified_by": "",
+  "verified_at": ""
+}
