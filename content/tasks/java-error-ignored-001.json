@@ -1,0 +1,32 @@
+{
+  "id": "java-error-ignored-001",
+  "stack": "java",
+  "difficulty": 3,
+  "title": "Выгрузка карты пациента в архив",
+  "prompt": "Складывай карту пациента в архив при выписке, файл потом отдаём по ссылке",
+  "tests": "Tests run: 6, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  4.118 s",
+  "diff": "--- a/src/main/java/clinic/ArchiveService.java\n+++ b/src/main/java/clinic/ArchiveService.java\n@@ -1,18 +1,38 @@\n package clinic;\n \n import java.io.File;\n import java.nio.file.Files;\n \n public class ArchiveService {\n     private final File root;\n \n     public ArchiveService(File root) {\n         this.root = root;\n     }\n \n+    public String archive(PatientCard card) throws Exception {\n+        File folder = new File(root, card.year());\n+        folder.mkdirs();\n+\n+        File target = new File(folder, card.id() + \".json\");\n+        Files.writeString(target.toPath(), card.toJson());\n+\n+        return target.getName();\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/ArchiveService.java",
+      "match": "        folder.mkdirs();",
+      "kind": "wrong",
+      "tag": "error-ignored",
+      "explain": "mkdirs возвращает boolean и не бросает исключение: если каталог создать не удалось — нет прав, кончилось место, путь занят файлом, — метод просто вернёт false, и код пойдёт дальше писать в несуществующую папку.",
+      "consequence": "На проде архив лежит на смонтированном диске, который иногда отваливается. mkdirs молча возвращает false, writeString падает с NoSuchFileException уже в следующей строке — но в логе видно только «не смогли записать файл», и полдня уходит на поиски того, чего нет вовсе: прав на запись."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        File target = new File(folder, card.id() + \".json\");",
+      "why": "имя файла из идентификатора карты — он в этой системе числовой, склейка безопасна"
+    },
+    {
+      "match": "        Files.writeString(target.toPath(), card.toJson());",
+      "why": "writeString как раз бросает исключение при отказе — с ней всё честно"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

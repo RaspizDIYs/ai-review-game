@@ -1,0 +1,32 @@
+{
+  "id": "js-optional-chain-001",
+  "stack": "js",
+  "difficulty": 3,
+  "title": "Напоминание за сутки до приёма",
+  "prompt": "Шли владельцу смс за сутки до приёма — время и кличку в текст",
+  "tests": "PASS  src/reminders.test.ts (5)\n  ✓ собирает текст напоминания\n  ✓ шлёт на телефон владельца\n  ✓ подставляет кличку\n\nTests  5 passed (5)",
+  "diff": "--- a/src/reminders.ts\n+++ b/src/reminders.ts\n@@ -1,14 +1,34 @@\n import { db } from './db'\n import { sms } from './sms'\n import { atClinic } from './time'\n \n+/** Напоминание за сутки до приёма. Дёргается ночным планировщиком. */\n+export async function remind(visitId: string) {\n+  const visit = await db.visits.byId(visitId)\n+\n+  const phone = visit?.owner?.phone ?? ''\n+  const pet = visit?.pet?.name ?? 'вашего питомца'\n+  const when = atClinic(visit?.startsAt)\n+\n+  await sms.send(phone, `Завтра в ${when} ждём ${pet} в клинике`)\n+\n+  return { visitId, phone }\n+}\n",
+  "bugs": [
+    {
+      "file": "src/reminders.ts",
+      "match": "  const phone = visit?.owner?.phone ?? ''",
+      "kind": "wrong",
+      "tag": "optional-chain-hides-absence",
+      "explain": "Цепочка `?.` вместе с `??` превращает три разных случая в один: приёма нет, владелец не привязан, телефон не заполнен — всё это даёт пустую строку, и дальше код идёт как ни в чём не бывало. Раньше на месте этой строки была бы проверка, которая говорит, чего именно не хватило.",
+      "consequence": "Планировщик получает id отменённого приёма, byId возвращает undefined, sms.send уходит на пустой номер и возвращает ok. В отчёте «разослано 340 напоминаний», владельцы ничего не получили, и понять это можно только сверив счёт от оператора."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  const pet = visit?.pet?.name ?? 'вашего питомца'",
+      "why": "вот здесь запасное значение уместно: кличка может быть не заполнена, и текст всё равно осмысленный"
+    },
+    {
+      "match": "  return { visitId, phone }",
+      "why": "возвращать телефон, на который ушло сообщение, полезно для журнала рассылки"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

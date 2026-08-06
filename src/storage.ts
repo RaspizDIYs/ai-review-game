@@ -71,6 +71,11 @@ interface Save {
   /** Пойманных подлянок за всё время — от него ачивки на пробег. */
   found: number
   sound: boolean
+  /** Стук клавиш в терминале. Отдельный тумблер: щелчки интерфейса редкие,
+   *  а печать — это поток, и выключать её хотят отдельно. */
+  typing: boolean
+  /** Как игрок вводит команды терминала. */
+  termInput: TermInput
   /** Громкость фоновой темы, 0..1. Отдельно от выключателя: выключив музыку
    *  и включив обратно, игрок ждёт ту же громкость, что и была. */
   music: number
@@ -85,6 +90,12 @@ interface Save {
   dossier: Record<string, number>
   /** Имя репозитория в шапке. Пусто — подставится значение по умолчанию. */
   repo: string
+  /**
+   * Игрок уже видел окно «как называется твой репозиторий». Показывается один
+   * раз за жизнь: имя репозитория — это начало игры, а не настройка, которую
+   * предлагают каждый заход.
+   */
+  repoAsked: boolean
 }
 
 const EMPTY: Save = {
@@ -101,11 +112,14 @@ const EMPTY: Save = {
   lifetime: 0,
   found: 0,
   sound: true,
+  typing: true,
+  termInput: 'both',
   music: DEFAULT_MUSIC,
   musicOn: true,
   hero: 'commander',
   dossier: {},
   repo: '',
+  repoAsked: false,
 }
 
 function read(): Save {
@@ -210,22 +224,45 @@ export function markOnboarded(): void {
   write({ ...read(), onboarded: true })
 }
 
+/**
+ * Как игрок вводит команды терминала: печатает руками, жмёт кнопки или и то,
+ * и другое. На телефоне набирать `/compare-with-blueprint` мучительно, а на
+ * клавиатуре кнопки только мешают — поэтому это настройка, а не выбор за игрока.
+ */
+export type TermInput = 'type' | 'buttons' | 'both'
+
 /** Профиль игрока: то, что переживает серию. */
 export interface Profile {
   unlocked: string[]
   lifetime: number
   found: number
   sound: boolean
+  typing: boolean
+  termInput: TermInput
   music: number
   musicOn: boolean
   hero: string
   dossier: Record<string, number>
   repo: string
+  repoAsked: boolean
 }
 
 export function getProfile(): Profile {
-  const { unlocked, lifetime, found, sound, music, musicOn, hero, dossier, repo } = read()
-  return { unlocked, lifetime, found, sound, music, musicOn, hero, dossier, repo }
+  const s = read()
+  return {
+    unlocked: s.unlocked,
+    lifetime: s.lifetime,
+    found: s.found,
+    sound: s.sound,
+    typing: s.typing,
+    termInput: s.termInput,
+    music: s.music,
+    musicOn: s.musicOn,
+    hero: s.hero,
+    dossier: s.dossier,
+    repo: s.repo,
+    repoAsked: s.repoAsked,
+  }
 }
 
 export function saveProfile(profile: Profile): void {

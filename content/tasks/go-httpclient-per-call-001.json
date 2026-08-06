@@ -1,0 +1,32 @@
+{
+  "id": "go-httpclient-per-call-001",
+  "stack": "go",
+  "difficulty": 3,
+  "title": "Проверка полиса в страховой",
+  "prompt": "Проверяй полис в страховой перед приёмом, у них обычный REST",
+  "tests": "ok  \tclinic/insurance\t0.284s\nPASS\nok  \tclinic/visits\t0.112s",
+  "diff": "--- a/insurance/client.go\n+++ b/insurance/client.go\n@@ -1,14 +1,38 @@\n package insurance\n \n import (\n \t\"encoding/json\"\n \t\"fmt\"\n \t\"net/http\"\n \t\"time\"\n )\n \n+type Policy struct {\n+\tNumber string `json:\"number\"`\n+\tValid  bool   `json:\"valid\"`\n+}\n+\n+func Check(number string) (Policy, error) {\n+\tclient := &http.Client{Timeout: 5 * time.Second}\n+\n+\tresp, err := client.Get(fmt.Sprintf(\"%s/policies/%s\", baseURL, number))\n+\tif err != nil {\n+\t\treturn Policy{}, err\n+\t}\n+\tdefer resp.Body.Close()\n+\n+\tvar policy Policy\n+\tif err := json.NewDecoder(resp.Body).Decode(&policy); err != nil {\n+\t\treturn Policy{}, err\n+\t}\n+\n+\treturn policy, nil\n+}\n",
+  "bugs": [
+    {
+      "file": "insurance/client.go",
+      "match": "\tclient := &http.Client{Timeout: 5 * time.Second}",
+      "kind": "wrong",
+      "tag": "httpclient-per-call",
+      "explain": "Клиент создаётся внутри функции, то есть на каждую проверку полиса. Свой http.Client — это свой Transport, а значит свой пул соединений: переиспользовать keep-alive между вызовами нечем, и каждый запрос открывает новое TCP-соединение с новым TLS-рукопожатием.",
+      "consequence": "Утренний обход: сто приёмов подряд, сто новых соединений к страховой. Соединения висят в TIME_WAIT, порты на ноде кончаются к обеду, и проверка полиса начинает падать по таймауту — при том что сама страховая работает нормально."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "\tdefer resp.Body.Close()",
+      "why": "тело закрывается — это как раз сделано правильно, без него утекали бы соединения"
+    },
+    {
+      "match": "\tresp, err := client.Get(fmt.Sprintf(\"%s/policies/%s\", baseURL, number))",
+      "why": "номер полиса в этой системе валидируется на входе, склейка в URL безопасна"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

@@ -1,0 +1,32 @@
+{
+  "id": "py-no-transaction-001",
+  "stack": "py",
+  "difficulty": 3,
+  "title": "Перенос приёма на другого врача",
+  "prompt": "Дай переносить приём на другого врача — старый слот освобождай",
+  "tests": "=== test session starts ===\ncollected 5 items\n\ntests/test_schedule.py .....                          [100%]\n\n=== 5 passed in 0.31s ===",
+  "diff": "--- a/clinic/schedule.py\n+++ b/clinic/schedule.py\n@@ -1,16 +1,34 @@\n from clinic.db import connection\n \n \n def move_visit(visit_id: int, doctor_id: int, slot_id: int) -> None:\n     \"\"\"Переносит приём на другого врача и освобождает старый слот.\"\"\"\n     with connection() as conn:\n         visit = conn.fetchone(\n             \"SELECT slot_id FROM visits WHERE id = %s\", (visit_id,)\n         )\n+\n+        conn.execute(\n+            \"UPDATE slots SET taken = false WHERE id = %s\", (visit[\"slot_id\"],)\n+        )\n+\n+        conn.execute(\n+            \"UPDATE visits SET doctor_id = %s, slot_id = %s WHERE id = %s\",\n+            (doctor_id, slot_id, visit_id),\n+        )\n+\n+        conn.execute(\n+            \"UPDATE slots SET taken = true WHERE id = %s\", (slot_id,)\n+        )\n",
+  "bugs": [
+    {
+      "file": "clinic/schedule.py",
+      "match": "            \"UPDATE slots SET taken = false WHERE id = %s\", (visit[\"slot_id\"],)",
+      "kind": "wrong",
+      "tag": "no-transaction-no-guard",
+      "explain": "Три записи идут подряд без транзакции: connection() в этом проекте только выдаёт соединение, автокоммита в нём нет только на чтении. Между освобождением старого слота и занятием нового состояние базы противоречиво, и любой сбой оставляет его таким навсегда.",
+      "consequence": "Сеть моргнула после первого UPDATE — старый слот свободен, приём висит на нём же, новый слот никто не занял. Регистратура записывает в освободившееся окно вторую собаку, и в девять утра в кабинете двое."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "            \"SELECT slot_id FROM visits WHERE id = %s\", (visit_id,)",
+      "why": "читать старый слот перед переносом обязательно — иначе нечего освобождать"
+    },
+    {
+      "match": "            \"UPDATE slots SET taken = true WHERE id = %s\", (slot_id,)",
+      "why": "занять новый слот здесь правильно, вопрос только в том, чем это всё обёрнуто"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

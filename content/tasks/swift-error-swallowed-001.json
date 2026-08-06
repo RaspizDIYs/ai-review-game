@@ -1,0 +1,32 @@
+{
+  "id": "swift-error-swallowed-001",
+  "stack": "swift",
+  "difficulty": 3,
+  "title": "Кэш снимков в карточке приёма",
+  "prompt": "Складывай снимки с приёма в локальный кэш, чтобы не тянуть их заново",
+  "tests": "Test Suite 'PhotoCacheTests' passed at 2026-06-14 11:02:41.118.\n\t Executed 6 tests, with 0 failures (0 unexpected) in 0.214 (0.219) seconds",
+  "diff": "--- a/Clinic/PhotoCache.swift\n+++ b/Clinic/PhotoCache.swift\n@@ -1,14 +1,36 @@\n import Foundation\n \n struct PhotoCache {\n     let folder: URL\n \n+    /// Кладёт снимок в кэш и говорит, получилось ли.\n+    func store(_ data: Data, for visit: String) -> Bool {\n+        let target = folder.appendingPathComponent(\"\\(visit).jpg\")\n+\n+        try? data.write(to: target, options: .atomic)\n+\n+        return true\n+    }\n+\n+    /// Достаёт снимок из кэша. Нет файла — нет и снимка.\n+    func photo(for visit: String) -> Data? {\n+        let source = folder.appendingPathComponent(\"\\(visit).jpg\")\n+        return try? Data(contentsOf: source)\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "Clinic/PhotoCache.swift",
+      "match": "        try? data.write(to: target, options: .atomic)",
+      "kind": "wrong",
+      "tag": "error-swallowed",
+      "explain": "try? превращает ошибку записи в nil, и этот nil тут же выбрасывается: результат никуда не присваивается. Метод при этом обещает вернуть, получилось ли, — и всегда возвращает true.",
+      "consequence": "На телефоне кончилось место, запись не прошла, store вернул true. Приложение считает снимок закэшированным и больше за ним не ходит: в карточке приёма на месте фотографии пустой прямоугольник, и так до переустановки."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        return try? Data(contentsOf: source)",
+      "why": "вот здесь try? на месте: отсутствующий файл — это не ошибка, а пустой кэш, и тип Optional об этом честно говорит"
+    },
+    {
+      "match": "    func store(_ data: Data, for visit: String) -> Bool {",
+      "why": "возвращать Bool вместо throws — спорно, но для кэша, который можно не заполнить, допустимо"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

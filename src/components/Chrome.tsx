@@ -1,12 +1,11 @@
 import type { ProdState } from '../defects.ts'
-import type { Track } from '../music.ts'
 import type { PullRequest } from '../pr.ts'
 import { plural } from '../stats.ts'
 import type { Outcome } from '../types'
 import { Icon } from '../ui/icons.tsx'
+import { Tip } from '../ui/kit.tsx'
 import { Gauges } from './Gauges.tsx'
 import { RepoName } from './RepoName.tsx'
-import { Volume } from './Volume.tsx'
 
 interface Props {
   accent: string
@@ -17,18 +16,9 @@ interface Props {
   pr: PullRequest | null
   achCount: number
   achTotal: number
-  audio: {
-    sound: boolean
-    music: number
-    musicOn: boolean
-    track: Track | null
-    onSound: () => void
-    onMusic: (volume: number) => void
-    onMusicToggle: () => void
-    onNext: () => void
-    onMute: (muted: boolean) => void
-  }
   onAch: () => void
+  /** Шестерёнка: звук и ввод терминала живут там, а не в шапке. */
+  onSettings: () => void
   /** Шапка забега показывается только внутри раунда. */
   run: {
     /** По одному на сыгранный ход. `cleanup` — ход ушёл на уборку. */
@@ -62,8 +52,8 @@ export function Chrome({
   pr,
   achCount,
   achTotal,
-  audio,
   onAch,
+  onSettings,
   run,
 }: Props) {
   return (
@@ -93,15 +83,25 @@ export function Chrome({
 
         <span className="flex-1" />
 
-        <button
-          onClick={onAch}
-          className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#26262c] bg-[#121216] px-2.5 py-1.5 font-mono text-[11px] text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
-        >
-          <Icon name="award" size={14} />
-          {achCount}/{achTotal}
-        </button>
+        <Tip text={`Ачивки: ${achCount} из ${achTotal}`}>
+          <button
+            onClick={onAch}
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#26262c] bg-[#121216] px-2.5 py-1.5 font-mono text-[11px] text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
+          >
+            <Icon name="award" size={14} />
+            {achCount}/{achTotal}
+          </button>
+        </Tip>
 
-        <Volume accent={accent} {...audio} />
+        <Tip text="Настройки: звук и терминал">
+          <button
+            onClick={onSettings}
+            aria-label="Настройки"
+            className="flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#26262c] bg-[#121216] p-1.5 text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
+          >
+            <Icon name="settings" size={14} />
+          </button>
+        </Tip>
       </div>
 
       {run && (

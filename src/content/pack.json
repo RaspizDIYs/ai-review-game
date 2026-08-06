@@ -288,6 +288,70 @@
     "verified_at": ""
   },
   {
+    "id": "cs-record-collection-001",
+    "stack": "cs",
+    "difficulty": 4,
+    "title": "Черновик записи на приём",
+    "prompt": "Перепиши черновик записи на record — он маленький и его много копируют",
+    "tests": "Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9, Duration: 388 ms",
+    "diff": "--- a/Clinic/Visits/VisitDraft.cs\n+++ b/Clinic/Visits/VisitDraft.cs\n@@ -1,20 +1,38 @@\n namespace Clinic.Visits;\n \n-public sealed class VisitDraft\n-{\n-    public string PetId { get; init; } = \"\";\n-    public DateOnly Day { get; init; }\n-    public IReadOnlyList<string> Services { get; init; } = Array.Empty<string>();\n-}\n+/// <summary>Черновик записи. Короче класса и сравнивается по значению.</summary>\n+public sealed record VisitDraft(string PetId, DateOnly Day, List<string> Services);\n+\n+public static class Drafts\n+{\n+    /// <summary>Переносит черновик на другой день. Исходный не трогаем.</summary>\n+    public static VisitDraft MoveTo(VisitDraft draft, DateOnly day)\n+    {\n+        var moved = draft with { Day = day };\n+        moved.Services.Add(\"перенос\");\n+\n+        return moved;\n+    }\n+}\n",
+    "bugs": [
+      {
+        "file": "Clinic/Visits/VisitDraft.cs",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Record даёт сравнение по значению и копирование через with, но и то и другое поверхностное. List<string> в оба конца едет одной и той же ссылкой: копия делит список с оригиналом, а два одинаковых по содержимому черновика никогда не равны, потому что списки — разные объекты. Прежний класс держал IReadOnlyList, и подменить его было нечем.",
+        "consequence": "Врач переносит черновик на завтра — и в исходном черновике, который остался в корзине у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба черновика выглядят нетронутыми.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "with — штатный способ скопировать запись, и день он подменяет правильно",
+        "line": 11
+      },
+      {
+        "why": "дописать пометку в копию — ровно то, что просили; вопрос только в том, чья это копия",
+        "line": 12
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "cs-secret-in-log-001",
+    "stack": "cs",
+    "difficulty": 3,
+    "title": "Синхронизация с лабораторией",
+    "prompt": "Заведи выгрузку анализов в лабораторию, при отладке хочу видеть, что уходит",
+    "tests": "Passed!  - Failed: 0, Passed: 8, Skipped: 0, Total: 8, Duration: 412 ms",
+    "diff": "--- a/Clinic/Lab/LabSync.cs\n+++ b/Clinic/Lab/LabSync.cs\n@@ -1,20 +1,42 @@\n namespace Clinic.Lab;\n \n public sealed class LabSync\n {\n     private readonly HttpClient _http;\n     private readonly ILogger<LabSync> _log;\n     private readonly LabOptions _options;\n \n     public LabSync(HttpClient http, ILogger<LabSync> log, LabOptions options)\n     {\n         _http = http;\n         _log = log;\n         _options = options;\n     }\n \n+    public async Task<bool> PushAsync(LabOrder order, CancellationToken ct)\n+    {\n+        var url = $\"{_options.BaseUrl}/orders?token={_options.ApiKey}\";\n+        _log.LogInformation(\"Отправляю заказ {OrderId} на {Url}\", order.Id, url);\n+\n+        using var response = await _http.PostAsJsonAsync(url, order, ct);\n+        _log.LogInformation(\"Лаборатория ответила {Status}\", response.StatusCode);\n+\n+        return response.IsSuccessStatusCode;\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "Clinic/Lab/LabSync.cs",
+        "kind": "wrong",
+        "tag": "secret-unmasked-in-log",
+        "explain": "В url уже вклеен ApiKey, и вся строка целиком уезжает в лог на уровне Information. Структурное логирование тут не спасает: ключ не отдельное поле, которое можно замаскировать, а часть значения {Url}.",
+        "consequence": "Ключ доступа к лаборатории оказывается в поиске по логам, в трассировках ошибок и в архиве за полгода — то есть у всех, кому вообще открыт просмотр логов. Ротировать его придётся вручную, а понять, кто успел его прочитать, уже нельзя.",
+        "line": 19
+      }
+    ],
+    "decoys": [
+      {
+        "why": "код ответа в логе полезен и ничего не выдаёт",
+        "line": 22
+      },
+      {
+        "why": "using здесь на месте: ответ освобождается, токен отмены прокинут",
+        "line": 21
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "cs-sync-over-async-001",
     "stack": "cs",
     "difficulty": 4,
@@ -560,6 +624,38 @@
     "verified_at": ""
   },
   {
+    "id": "go-assert-mock-001",
+    "stack": "go",
+    "difficulty": 3,
+    "title": "Тест на текст напоминания",
+    "prompt": "Покрой тестом сборку текста напоминания — там формат менялся уже дважды",
+    "tests": "=== RUN   TestTextForVisit\n--- PASS: TestTextForVisit (0.00s)\nPASS\nok  \tclinic/reminders\t0.104s",
+    "diff": "--- a/reminders/reminders_test.go\n+++ b/reminders/reminders_test.go\n@@ -1,10 +1,36 @@\n package reminders\n \n import (\n\t\"testing\"\n\t\"time\"\n )\n \n+type stubRepo struct {\n+\tvisit Visit\n+}\n+\n+func (s *stubRepo) ByID(string) (Visit, error) { return s.visit, nil }\n+\n+func TestTextForVisit(t *testing.T) {\n+\tat := time.Date(2026, 6, 1, 9, 30, 0, 0, time.UTC)\n+\trepo := &stubRepo{visit: Visit{Pet: \"Барсик\", StartsAt: at}}\n+\tsvc := New(repo)\n+\n+\tgot, err := svc.Text(\"v-1\")\n+\tif err != nil {\n+\t\tt.Fatalf(\"неожиданная ошибка: %v\", err)\n+\t}\n+\n+\twant := text(repo.visit)\n+\tif got != want {\n+\t\tt.Fatalf(\"текст разошёлся: %q, ожидали %q\", got, want)\n+\t}\n+}\n",
+    "bugs": [
+      {
+        "file": "reminders/reminders_test.go",
+        "kind": "wrong",
+        "tag": "test-asserts-the-mock",
+        "explain": "Ожидаемое значение собрано той же функцией, которую тест и проверяет: svc.Text — тонкая обёртка над text. Сравнение всегда сходится, каким бы ни стал формат. Ожидание должно быть написано строкой руками — именно она и фиксирует формат.",
+        "consequence": "Формат меняют в третий раз, «Завтра в 09:30» превращается в «завтра, 9:30» — тест зелёный. Смс уходят владельцам в новом виде, и никто не замечает, пока в клинику не звонят спросить, что это было.",
+        "line": 24
+      }
+    ],
+    "decoys": [
+      {
+        "why": "стаб всегда отдаёт успех, но неудачный поход в базу — предмет отдельного теста",
+        "line": 12
+      },
+      {
+        "why": "проверять err перед сравнением правильно: иначе разошедшийся текст маскировал бы падение",
+        "line": 21
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "go-context-leak-001",
     "stack": "go",
     "difficulty": 3,
@@ -620,6 +716,70 @@
         "line": 16
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "go-httpclient-per-call-001",
+    "stack": "go",
+    "difficulty": 3,
+    "title": "Проверка полиса в страховой",
+    "prompt": "Проверяй полис в страховой перед приёмом, у них обычный REST",
+    "tests": "ok  \tclinic/insurance\t0.284s\nPASS\nok  \tclinic/visits\t0.112s",
+    "diff": "--- a/insurance/client.go\n+++ b/insurance/client.go\n@@ -1,14 +1,38 @@\n package insurance\n \n import (\n \t\"encoding/json\"\n \t\"fmt\"\n \t\"net/http\"\n \t\"time\"\n )\n \n+type Policy struct {\n+\tNumber string `json:\"number\"`\n+\tValid  bool   `json:\"valid\"`\n+}\n+\n+func Check(number string) (Policy, error) {\n+\tclient := &http.Client{Timeout: 5 * time.Second}\n+\n+\tresp, err := client.Get(fmt.Sprintf(\"%s/policies/%s\", baseURL, number))\n+\tif err != nil {\n+\t\treturn Policy{}, err\n+\t}\n+\tdefer resp.Body.Close()\n+\n+\tvar policy Policy\n+\tif err := json.NewDecoder(resp.Body).Decode(&policy); err != nil {\n+\t\treturn Policy{}, err\n+\t}\n+\n+\treturn policy, nil\n+}\n",
+    "bugs": [
+      {
+        "file": "insurance/client.go",
+        "kind": "wrong",
+        "tag": "httpclient-per-call",
+        "explain": "Клиент создаётся внутри функции, то есть на каждую проверку полиса. Свой http.Client — это свой Transport, а значит свой пул соединений: переиспользовать keep-alive между вызовами нечем, и каждый запрос открывает новое TCP-соединение с новым TLS-рукопожатием.",
+        "consequence": "Утренний обход: сто приёмов подряд, сто новых соединений к страховой. Соединения висят в TIME_WAIT, порты на ноде кончаются к обеду, и проверка полиса начинает падать по таймауту — при том что сама страховая работает нормально.",
+        "line": 16
+      }
+    ],
+    "decoys": [
+      {
+        "why": "тело закрывается — это как раз сделано правильно, без него утекали бы соединения",
+        "line": 22
+      },
+      {
+        "why": "номер полиса в этой системе валидируется на входе, склейка в URL безопасна",
+        "line": 18
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "go-json-shape-001",
+    "stack": "go",
+    "difficulty": 3,
+    "title": "Импорт вакцинаций из реестра",
+    "prompt": "Подтягивай отметки о вакцинации из государственного реестра",
+    "tests": "ok  \tclinic/registry\t0.196s\nPASS\nok  \tclinic/pets\t0.088s",
+    "diff": "--- a/registry/vaccines.go\n+++ b/registry/vaccines.go\n@@ -1,16 +1,42 @@\n package registry\n \n import (\n\t\"encoding/json\"\n\t\"time\"\n )\n \n+type Vaccination struct {\n+\tName string    `json:\"name\"`\n+\tDate time.Time `json:\"date\"`\n+}\n+\n+type reply struct {\n+\tItems []Vaccination `json:\"items\"`\n+}\n+\n+func Vaccinations(chip string) ([]Vaccination, error) {\n+\tresp, err := shared.Get(\"/pets/\" + chip + \"/vaccinations\")\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tdefer resp.Body.Close()\n+\n+\tvar data reply\n+\tif err := json.NewDecoder(resp.Body).Decode(&data); err != nil {\n+\t\treturn nil, err\n+\t}\n+\n+\treturn data.Items, nil\n+}\n",
+    "bugs": [
+      {
+        "file": "registry/vaccines.go",
+        "kind": "wrong",
+        "tag": "json-decode-shape",
+        "explain": "Реестр отдаёт вакцинации в поле data, а items у него только в списке клиник. Decode на несовпавшее имя поля не ругается — он молча оставляет срез нулевым, и ошибки не будет.",
+        "consequence": "Функция возвращает пустой список и nil вместо ошибки. В карточке питомца написано «сведений о вакцинации нет» — и врач ставит прививку второй раз за год вместо положенного одного, потому что интерфейс сказал, что первой не было.",
+        "line": 14
+      }
+    ],
+    "decoys": [
+      {
+        "why": "time.Time разбирает RFC 3339, а реестр отдаёт именно его — здесь всё сходится",
+        "line": 10
+      },
+      {
+        "why": "номер чипа проверяется на входе в сервис, склейка в путь безопасна",
+        "line": 18
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -752,6 +912,102 @@
     "verified_at": ""
   },
   {
+    "id": "java-cache-stale-001",
+    "stack": "java",
+    "difficulty": 3,
+    "title": "Справочник пород под автодополнение",
+    "prompt": "Справочник пород дёргается на каждый ввод в форме — закэшируй его",
+    "tests": "Tests run: 7, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  3.902 s",
+    "diff": "--- a/src/main/java/clinic/BreedDirectory.java\n+++ b/src/main/java/clinic/BreedDirectory.java\n@@ -1,20 +1,42 @@\n package clinic;\n \n import java.util.List;\n+import java.util.Map;\n+import java.util.concurrent.ConcurrentHashMap;\n \n public class BreedDirectory {\n     private final BreedRepository repository;\n+    private final Map<String, List<Breed>> cache = new ConcurrentHashMap<>();\n \n     public BreedDirectory(BreedRepository repository) {\n         this.repository = repository;\n     }\n \n     public List<Breed> search(String species) {\n-        return repository.findBySpecies(species);\n+        return cache.computeIfAbsent(species, repository::findBySpecies);\n     }\n+\n+    public void add(Breed breed) {\n+        repository.save(breed);\n+    }\n+\n+    public List<Breed> all() {\n+        return repository.findAll();\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/main/java/clinic/BreedDirectory.java",
+        "kind": "wrong",
+        "tag": "cache-no-invalidation",
+        "explain": "Новая порода уезжает в базу, но кэш о ней не знает и знать не начнёт: ConcurrentHashMap живёт всё время работы приложения, а сбрасывать его тут негде. computeIfAbsent посчитает список один раз и вернёт его навсегда.",
+        "consequence": "Администратор заводит новую породу, открывает карточку — в автодополнении её нет. Он заводит её ещё раз, потом ещё. В базе три одинаковых записи, в подсказках по-прежнему ни одной, и появляются они только после перезапуска сервиса.",
+        "line": 20
+      }
+    ],
+    "decoys": [
+      {
+        "why": "сам по себе computeIfAbsent тут уместен: справочник читают часто, а меняют редко",
+        "line": 16
+      },
+      {
+        "why": "полный список кэш не трогает вовсе — этот метод честно ходит в базу",
+        "line": 24
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "java-default-encoding-001",
+    "stack": "java",
+    "difficulty": 3,
+    "title": "Импорт прайса от поставщика",
+    "prompt": "Заведи импорт прайса кормов — поставщик присылает CSV",
+    "tests": "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  2.774 s",
+    "diff": "--- a/src/main/java/clinic/PriceImport.java\n+++ b/src/main/java/clinic/PriceImport.java\n@@ -1,18 +1,40 @@\n package clinic;\n \n import java.io.BufferedReader;\n import java.io.FileReader;\n import java.math.BigDecimal;\n import java.util.ArrayList;\n import java.util.List;\n \n public class PriceImport {\n \n+    public List<PriceRow> read(String path) throws Exception {\n+        List<PriceRow> rows = new ArrayList<>();\n+\n+        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {\n+            String line;\n+            reader.readLine(); // заголовок\n+\n+            while ((line = reader.readLine()) != null) {\n+                String[] parts = line.split(\";\");\n+                rows.add(new PriceRow(parts[0], parts[1], new BigDecimal(parts[2])));\n+            }\n+        }\n+\n+        return rows;\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/main/java/clinic/PriceImport.java",
+        "kind": "wrong",
+        "tag": "platform-default-encoding",
+        "explain": "FileReader без явной кодировки берёт системную. На машине разработчика это UTF-8, на сервере — та, что назначена локалью JVM. Кодировка самого файла от этого не зависит, а результат чтения зависит целиком.",
+        "consequence": "Прайс приезжает в windows-1251, сервис читает его как UTF-8 — и «Корм для кошек» превращается в кракозябры. Импорт при этом проходит: строки на месте, цены верные, ошибок нет. Замечает это владелец клиники в карточке товара через неделю.",
+        "line": 14
+      }
+    ],
+    "decoys": [
+      {
+        "why": "первую строку и правда надо пропустить — у поставщика в ней названия колонок",
+        "line": 16
+      },
+      {
+        "why": "точка с запятой — родной разделитель этого поставщика, к нему претензий нет",
+        "line": 19
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "java-error-ignored-001",
+    "stack": "java",
+    "difficulty": 3,
+    "title": "Выгрузка карты пациента в архив",
+    "prompt": "Складывай карту пациента в архив при выписке, файл потом отдаём по ссылке",
+    "tests": "Tests run: 6, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  4.118 s",
+    "diff": "--- a/src/main/java/clinic/ArchiveService.java\n+++ b/src/main/java/clinic/ArchiveService.java\n@@ -1,18 +1,38 @@\n package clinic;\n \n import java.io.File;\n import java.nio.file.Files;\n \n public class ArchiveService {\n     private final File root;\n \n     public ArchiveService(File root) {\n         this.root = root;\n     }\n \n+    public String archive(PatientCard card) throws Exception {\n+        File folder = new File(root, card.year());\n+        folder.mkdirs();\n+\n+        File target = new File(folder, card.id() + \".json\");\n+        Files.writeString(target.toPath(), card.toJson());\n+\n+        return target.getName();\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/main/java/clinic/ArchiveService.java",
+        "kind": "wrong",
+        "tag": "error-ignored",
+        "explain": "mkdirs возвращает boolean и не бросает исключение: если каталог создать не удалось — нет прав, кончилось место, путь занят файлом, — метод просто вернёт false, и код пойдёт дальше писать в несуществующую папку.",
+        "consequence": "На проде архив лежит на смонтированном диске, который иногда отваливается. mkdirs молча возвращает false, writeString падает с NoSuchFileException уже в следующей строке — но в логе видно только «не смогли записать файл», и полдня уходит на поиски того, чего нет вовсе: прав на запись.",
+        "line": 15
+      }
+    ],
+    "decoys": [
+      {
+        "why": "имя файла из идентификатора карты — он в этой системе числовой, склейка безопасна",
+        "line": 17
+      },
+      {
+        "why": "writeString как раз бросает исключение при отказе — с ней всё честно",
+        "line": 18
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "java-error-swallowed-001",
     "stack": "java",
     "difficulty": 2,
@@ -812,6 +1068,38 @@
         "line": 23
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "java-record-collection-001",
+    "stack": "java",
+    "difficulty": 4,
+    "title": "Набор услуг в наряде на приём",
+    "prompt": "Заведи наряд на приём — питомец, день и список услуг. Сделай на record, их много копируют",
+    "tests": "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  3.221 s",
+    "diff": "--- a/src/main/java/clinic/WorkOrder.java\n+++ b/src/main/java/clinic/WorkOrder.java\n@@ -1,14 +1,38 @@\n package clinic;\n \n import java.time.LocalDate;\n import java.util.List;\n \n+/** Наряд на приём. На record — короче и сравнивается по значению. */\n+public record WorkOrder(String petId, LocalDate day, List<String> services) {\n+\n+    /** Переносит наряд на другой день. Исходный не трогаем. */\n+    public WorkOrder movedTo(LocalDate other) {\n+        WorkOrder moved = new WorkOrder(petId, other, services);\n+        moved.services().add(\"перенос\");\n+\n+        return moved;\n+    }\n+\n+    public boolean sameAs(WorkOrder other) {\n+        return equals(other);\n+    }\n+}\n",
+    "bugs": [
+      {
+        "file": "src/main/java/clinic/WorkOrder.java",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Record даёт равенство по значению и обещание неизменяемости, но и то и другое поверхностное. List<String> едет в копию той же ссылкой, поэтому копия и оригинал делят один список; а сгенерированный equals сравнивает списки через List.equals — то есть по содержимому, и два наряда с одинаковыми услугами становятся равными, даже если это разные наряды разных клиник.",
+        "consequence": "Врач переносит наряд на завтра — и в исходном, который лежит в очереди у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба наряда выглядят нетронутыми.",
+        "line": 7
+      }
+    ],
+    "decoys": [
+      {
+        "why": "собрать новый наряд из полей старого — ровно то, что просили; вопрос в том, что именно переехало",
+        "line": 11
+      },
+      {
+        "why": "звать сгенерированный equals нормально — на то record и заводили",
+        "line": 18
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -1113,6 +1401,38 @@
     "verified_at": ""
   },
   {
+    "id": "js-error-ignored-001",
+    "stack": "js",
+    "difficulty": 2,
+    "title": "Отмена записи через шлюз",
+    "prompt": "Дай отменять запись — заодно верни деньги, если приём был предоплачен",
+    "tests": "PASS  src/booking.test.ts (4)\n  ✓ помечает запись отменённой\n  ✓ дёргает возврат для предоплаченных\n\nTests  4 passed (4)",
+    "diff": "--- a/src/booking.ts\n+++ b/src/booking.ts\n@@ -1,12 +1,29 @@\n import { db } from './db'\n import { payments } from './payments'\n \n export async function cancelBooking(id: string, reason: string) {\n   const booking = await db.bookings.byId(id)\n+\n+  if (booking.prepaid) {\n+    await payments.refund(booking.paymentId, booking.amount)\n+  }\n+\n   await db.bookings.update(id, { status: 'cancelled', reason })\n+\n+  return { id, refunded: booking.prepaid }\n }\n",
+    "bugs": [
+      {
+        "file": "src/booking.ts",
+        "kind": "wrong",
+        "tag": "error-ignored",
+        "explain": "payments.refund возвращает результат со статусом, а не бросает исключение на отказ банка. Здесь его никто не смотрит: отклонённый возврат неотличим от проведённого.",
+        "consequence": "Банк отклоняет возврат — карта закрыта, лимит, что угодно. Запись всё равно становится отменённой, ответ говорит refunded: true. Владелец видит «деньги вернули», денег нет, и разбираться приходится через месяц по выписке.",
+        "line": 8
+      }
+    ],
+    "decoys": [
+      {
+        "why": "запись может не найтись, но byId в этом проекте бросает сам — проверка была бы лишней",
+        "line": 5
+      },
+      {
+        "why": "возвращать флаг предоплаты нормально: он описывает, что пытались сделать",
+        "line": 13
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "js-floating-promise-001",
     "stack": "js",
     "difficulty": 2,
@@ -1241,6 +1561,38 @@
     "verified_at": ""
   },
   {
+    "id": "js-optional-chain-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Напоминание за сутки до приёма",
+    "prompt": "Шли владельцу смс за сутки до приёма — время и кличку в текст",
+    "tests": "PASS  src/reminders.test.ts (5)\n  ✓ собирает текст напоминания\n  ✓ шлёт на телефон владельца\n  ✓ подставляет кличку\n\nTests  5 passed (5)",
+    "diff": "--- a/src/reminders.ts\n+++ b/src/reminders.ts\n@@ -1,14 +1,34 @@\n import { db } from './db'\n import { sms } from './sms'\n import { atClinic } from './time'\n \n+/** Напоминание за сутки до приёма. Дёргается ночным планировщиком. */\n+export async function remind(visitId: string) {\n+  const visit = await db.visits.byId(visitId)\n+\n+  const phone = visit?.owner?.phone ?? ''\n+  const pet = visit?.pet?.name ?? 'вашего питомца'\n+  const when = atClinic(visit?.startsAt)\n+\n+  await sms.send(phone, `Завтра в ${when} ждём ${pet} в клинике`)\n+\n+  return { visitId, phone }\n+}\n",
+    "bugs": [
+      {
+        "file": "src/reminders.ts",
+        "kind": "wrong",
+        "tag": "optional-chain-hides-absence",
+        "explain": "Цепочка `?.` вместе с `??` превращает три разных случая в один: приёма нет, владелец не привязан, телефон не заполнен — всё это даёт пустую строку, и дальше код идёт как ни в чём не бывало. Раньше на месте этой строки была бы проверка, которая говорит, чего именно не хватило.",
+        "consequence": "Планировщик получает id отменённого приёма, byId возвращает undefined, sms.send уходит на пустой номер и возвращает ok. В отчёте «разослано 340 напоминаний», владельцы ничего не получили, и понять это можно только сверив счёт от оператора.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "вот здесь запасное значение уместно: кличка может быть не заполнена, и текст всё равно осмысленный",
+        "line": 10
+      },
+      {
+        "why": "возвращать телефон, на который ушло сообщение, полезно для журнала рассылки",
+        "line": 15
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "js-order-dependency-001",
     "stack": "js",
     "difficulty": 5,
@@ -1265,6 +1617,38 @@
         "line": 7
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "js-path-traversal-001",
+    "stack": "js",
+    "difficulty": 4,
+    "title": "Отдача снимков из карты",
+    "prompt": "Дай скачивать снимки из карты питомца по имени файла",
+    "tests": "PASS  src/attachments.test.ts (6)\n  ✓ отдаёт существующий снимок\n  ✓ 404 на отсутствующий\n  ✓ режет слеши в имени\n\nTests  6 passed (6)",
+    "diff": "--- a/src/attachments.ts\n+++ b/src/attachments.ts\n@@ -1,15 +1,36 @@\n import { createReadStream } from 'node:fs'\n import { join } from 'node:path'\n import { stat } from 'node:fs/promises'\n \n const STORAGE = '/var/clinic/attachments'\n \n+/** Имя файла приходит из адреса, поэтому слеши из него вырезаем. */\n+function safeName(raw: string): string {\n+  return raw.replaceAll('/', '')\n+}\n+\n+export async function attachment(petId: string, name: string) {\n+  const file = join(STORAGE, petId, safeName(name))\n+\n+  const info = await stat(file).catch(() => null)\n+  if (!info?.isFile()) return null\n+\n+  return createReadStream(file)\n+}\n",
+    "bugs": [
+      {
+        "file": "src/attachments.ts",
+        "kind": "wrong",
+        "tag": "path-traversal",
+        "explain": "Вырезаны только слеши, а точки остались — и вырезаны они один раз: строка «....//» после удаления слешей превращается в «....», а обратный слеш и процентная кодировка сюда вовсе не попадают. Единственная надёжная проверка — резолвить путь и убеждаться, что он остался внутри STORAGE.",
+        "consequence": "Подобранное имя файла рано или поздно выводит за каталог снимков, и клиника начинает отдавать наружу файлы с той же машины: конфиги с паролем к базе, ключи к лаборатории, дампы. В логах это выглядит как обычное скачивание вложения.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "проглоченная тут ошибка stat — это способ вернуть 404, и он честный",
+        "line": 15
+      },
+      {
+        "why": "сам join не виноват: он делает ровно то, что просят, — вопрос к тому, что ему передают",
+        "line": 13
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -1589,6 +1973,38 @@
         "line": 38
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "php-n-plus-one-001",
+    "stack": "php",
+    "difficulty": 2,
+    "title": "Список приёмов за день с владельцами",
+    "prompt": "Выведи список приёмов за день, рядом с каждым — телефон владельца",
+    "tests": "PHPUnit 11.2.0 by Sebastian Bergmann and contributors.\n\n.....                                                     5 / 5 (100%)\n\nOK (5 tests, 9 assertions)",
+    "diff": "--- a/src/Reports/DailyVisits.php\n+++ b/src/Reports/DailyVisits.php\n@@ -1,18 +1,40 @@\n <?php\n \n namespace Clinic\\Reports;\n \n final class DailyVisits\n {\n     public function __construct(private \\PDO $db) {}\n \n+    public function forDay(string $day): array\n+    {\n+        $visits = $this->db\n+            ->prepare('SELECT id, pet_id, owner_id, starts_at FROM visits WHERE day = ?');\n+        $visits->execute([$day]);\n+\n+        $rows = [];\n+        foreach ($visits->fetchAll() as $visit) {\n+            $owner = $this->db->prepare('SELECT phone FROM owners WHERE id = ?');\n+            $owner->execute([$visit['owner_id']]);\n+\n+            $rows[] = $visit + ['phone' => $owner->fetchColumn()];\n+        }\n+\n+        return $rows;\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/Reports/DailyVisits.php",
+        "kind": "wrong",
+        "tag": "n-plus-one",
+        "explain": "На каждый приём уходит отдельный запрос за телефоном владельца — плюс prepare, который тоже делается заново в каждой итерации. Один JOIN или выборка телефонов пачкой по списку id закрыли бы это одним походом в базу.",
+        "consequence": "В тестах день на пять приёмов, и всё летает. В сетевой клинике их четыреста: четыреста первых запросов вместо одного, отчёт открывается двенадцать секунд, а регистратура открывает его каждые пять минут.",
+        "line": 17
+      }
+    ],
+    "decoys": [
+      {
+        "why": "выборка приёмов за день по параметру — ровно то, что просили, и она одна",
+        "line": 12
+      },
+      {
+        "why": "сложение массивов сохраняет строковые ключи, здесь это работает как задумано",
+        "line": 20
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -1920,6 +2336,38 @@
     "verified_at": ""
   },
   {
+    "id": "py-match-case-001",
+    "stack": "py",
+    "difficulty": 4,
+    "title": "Подпись статуса приёма в карточке",
+    "prompt": "Перепиши лесенку if-elif на что-нибудь поприличнее — статусов будет больше",
+    "tests": "=== test session starts ===\ncollected 6 items\n\ntests/test_labels.py ......                           [100%]\n\n=== 6 passed in 0.18s ===",
+    "diff": "--- a/clinic/labels.py\n+++ b/clinic/labels.py\n@@ -1,18 +1,38 @@\n PENDING = \"pending\"\n CANCELLED = \"cancelled\"\n DONE = \"done\"\n \n \n+def label(status: str) -> str:\n+    \"\"\"Человеческая подпись статуса приёма для карточки питомца.\"\"\"\n+    match status:\n+        case \"pending\":\n+            return \"ждёт приёма\"\n+        case \"cancelled\":\n+            return \"отменён\"\n+        case DONE:\n+            return \"приём завершён\"\n+\n+\n+def card(visit: dict) -> dict:\n+    return {\"id\": visit[\"id\"], \"status\": label(visit[\"status\"])}\n",
+    "bugs": [
+      {
+        "file": "clinic/labels.py",
+        "kind": "wrong",
+        "tag": "match-case-catches-everything",
+        "explain": "Голое имя в case — это не сравнение с константой, а захват: такой образец подходит любому значению и просто присваивает его переменной DONE. Со значением сверяют либо литерал, либо имя через точку — `Status.DONE`. Синтаксической ошибки нет только потому, что ветка последняя.",
+        "consequence": "Любой статус, кроме pending и cancelled, подписывается как «приём завершён»: и no_show, и in_progress, и статус, который заведут через месяц. В карточке питомца врач видит, что приём прошёл, хотя собака на него не пришла — и не перезванивает владельцу.",
+        "line": 13
+      }
+    ],
+    "decoys": [
+      {
+        "why": "литеральный образец сравнивается по значению — вот с этой веткой всё честно",
+        "line": 9
+      },
+      {
+        "why": "обращение по ключу без get упало бы на неполном словаре, но обе колонки в схеме обязательные",
+        "line": 18
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "py-mutable-default-001",
     "stack": "py",
     "difficulty": 2,
@@ -1980,6 +2428,38 @@
         "line": 27
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "py-no-transaction-001",
+    "stack": "py",
+    "difficulty": 3,
+    "title": "Перенос приёма на другого врача",
+    "prompt": "Дай переносить приём на другого врача — старый слот освобождай",
+    "tests": "=== test session starts ===\ncollected 5 items\n\ntests/test_schedule.py .....                          [100%]\n\n=== 5 passed in 0.31s ===",
+    "diff": "--- a/clinic/schedule.py\n+++ b/clinic/schedule.py\n@@ -1,16 +1,34 @@\n from clinic.db import connection\n \n \n def move_visit(visit_id: int, doctor_id: int, slot_id: int) -> None:\n     \"\"\"Переносит приём на другого врача и освобождает старый слот.\"\"\"\n     with connection() as conn:\n         visit = conn.fetchone(\n             \"SELECT slot_id FROM visits WHERE id = %s\", (visit_id,)\n         )\n+\n+        conn.execute(\n+            \"UPDATE slots SET taken = false WHERE id = %s\", (visit[\"slot_id\"],)\n+        )\n+\n+        conn.execute(\n+            \"UPDATE visits SET doctor_id = %s, slot_id = %s WHERE id = %s\",\n+            (doctor_id, slot_id, visit_id),\n+        )\n+\n+        conn.execute(\n+            \"UPDATE slots SET taken = true WHERE id = %s\", (slot_id,)\n+        )\n",
+    "bugs": [
+      {
+        "file": "clinic/schedule.py",
+        "kind": "wrong",
+        "tag": "no-transaction-no-guard",
+        "explain": "Три записи идут подряд без транзакции: connection() в этом проекте только выдаёт соединение, автокоммита в нём нет только на чтении. Между освобождением старого слота и занятием нового состояние базы противоречиво, и любой сбой оставляет его таким навсегда.",
+        "consequence": "Сеть моргнула после первого UPDATE — старый слот свободен, приём висит на нём же, новый слот никто не занял. Регистратура записывает в освободившееся окно вторую собаку, и в девять утра в кабинете двое.",
+        "line": 12
+      }
+    ],
+    "decoys": [
+      {
+        "why": "читать старый слот перед переносом обязательно — иначе нечего освобождать",
+        "line": 8
+      },
+      {
+        "why": "занять новый слот здесь правильно, вопрос только в том, чем это всё обёрнуто",
+        "line": 21
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -2156,6 +2636,38 @@
         "line": 22
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "rb-data-define-001",
+    "stack": "rb",
+    "difficulty": 4,
+    "title": "Черновик выписки из карты",
+    "prompt": "Перепиши черновик выписки на Data.define — он маленький, и его копируют на каждый шаг",
+    "tests": "Run options: --seed 41267\n\n# Running:\n\n........\n\nFinished in 0.084213s, 95.0 runs/s, 142.5 assertions/s.\n8 runs, 12 assertions, 0 failures, 0 errors, 0 skips",
+    "diff": "--- a/lib/clinic/discharge_draft.rb\n+++ b/lib/clinic/discharge_draft.rb\n@@ -1,12 +1,34 @@\n module Clinic\n-  class DischargeDraft\n-    attr_reader :pet_id, :day, :notes\n-\n-    def initialize(pet_id:, day:, notes:)\n-      @pet_id = pet_id\n-      @day = day\n-      @notes = notes.freeze\n-    end\n-  end\n+  # Черновик выписки. Короче класса и сравнивается по значению.\n+  DischargeDraft = Data.define(:pet_id, :day, :notes) do\n+    # Переносит черновик на другой день. Исходный не трогаем.\n+    def moved_to(other_day)\n+      moved = with(day: other_day)\n+      moved.notes << \"перенесено с #{day}\"\n+\n+      moved\n+    end\n+  end\n end\n",
+    "bugs": [
+      {
+        "file": "lib/clinic/discharge_draft.rb",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Data замораживает сам объект, но не то, на что он ссылается: массив notes остаётся изменяемым, и with отдаёт копию с той же самой ссылкой. Прежний класс звал freeze на notes — вместе с ним ушла единственная защита от правки на месте.",
+        "consequence": "Черновик переносят на другой день — и в исходном, который врач ещё не отправил, появляется чужая строка «перенесено с …». В выписке, которую увидит владелец, оказывается история чужого переноса, и убрать её можно только руками.",
+        "line": 3
+      }
+    ],
+    "decoys": [
+      {
+        "why": "with — штатный способ скопировать Data, и день он подменяет правильно",
+        "line": 6
+      },
+      {
+        "why": "метод внутри блока Data.define — обычная практика, к самому месту претензий нет",
+        "line": 5
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -2444,6 +2956,38 @@
         "line": 22
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "rs-result-ok-001",
+    "stack": "rs",
+    "difficulty": 3,
+    "title": "Запись приёма в журнал",
+    "prompt": "Сохраняй приём и сразу пиши строку в журнал действий",
+    "tests": "running 7 tests\ntest visits::tests::records_visit ... ok\ntest visits::tests::writes_audit ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; finished in 0.03s",
+    "diff": "--- a/src/visits.rs\n+++ b/src/visits.rs\n@@ -1,16 +1,38 @@\n use crate::audit::Audit;\n use crate::metrics::Metrics;\n use crate::repo::Repo;\n \n pub struct Visits {\n     repo: Repo,\n     audit: Audit,\n     metrics: Metrics,\n }\n \n impl Visits {\n+    /// Сохраняет приём и оставляет след в журнале действий.\n+    pub fn record(&self, visit: &Visit) -> u64 {\n+        let id = self.repo.save(visit).ok().unwrap_or_default();\n+\n+        self.audit.push(&visit.pet_id, id);\n+        self.metrics.inc(\"visits.recorded\");\n+\n+        id\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/visits.rs",
+        "kind": "wrong",
+        "tag": "result-discarded-with-ok",
+        "explain": "ok() выбрасывает ошибку вместе с её текстом, а unwrap_or_default() подставляет вместо неё ноль. Компилятор доволен: Result обработан. На деле отказ базы стал неотличим от успешной записи с идентификатором 0.",
+        "consequence": "База отвалилась на секунду — приём не сохранился, функция вернула 0, журнал получил строку про приём номер ноль, а вызывающий код показал врачу «записано». Приёма нет ни в расписании, ни в отчёте, и всплывает это, когда владелец приходит к закрытой двери.",
+        "line": 14
+      }
+    ],
+    "decoys": [
+      {
+        "why": "счётчик растёт даже на неудаче, но это метрика попыток, и так задумано",
+        "line": 17
+      },
+      {
+        "why": "возвращать один идентификатор вместо целого Result — осознанное упрощение сигнатуры",
+        "line": 13
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -3238,6 +3782,38 @@
         "line": 6
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "swift-error-swallowed-001",
+    "stack": "swift",
+    "difficulty": 3,
+    "title": "Кэш снимков в карточке приёма",
+    "prompt": "Складывай снимки с приёма в локальный кэш, чтобы не тянуть их заново",
+    "tests": "Test Suite 'PhotoCacheTests' passed at 2026-06-14 11:02:41.118.\n\t Executed 6 tests, with 0 failures (0 unexpected) in 0.214 (0.219) seconds",
+    "diff": "--- a/Clinic/PhotoCache.swift\n+++ b/Clinic/PhotoCache.swift\n@@ -1,14 +1,36 @@\n import Foundation\n \n struct PhotoCache {\n     let folder: URL\n \n+    /// Кладёт снимок в кэш и говорит, получилось ли.\n+    func store(_ data: Data, for visit: String) -> Bool {\n+        let target = folder.appendingPathComponent(\"\\(visit).jpg\")\n+\n+        try? data.write(to: target, options: .atomic)\n+\n+        return true\n+    }\n+\n+    /// Достаёт снимок из кэша. Нет файла — нет и снимка.\n+    func photo(for visit: String) -> Data? {\n+        let source = folder.appendingPathComponent(\"\\(visit).jpg\")\n+        return try? Data(contentsOf: source)\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "Clinic/PhotoCache.swift",
+        "kind": "wrong",
+        "tag": "error-swallowed",
+        "explain": "try? превращает ошибку записи в nil, и этот nil тут же выбрасывается: результат никуда не присваивается. Метод при этом обещает вернуть, получилось ли, — и всегда возвращает true.",
+        "consequence": "На телефоне кончилось место, запись не прошла, store вернул true. Приложение считает снимок закэшированным и больше за ним не ходит: в карточке приёма на месте фотографии пустой прямоугольник, и так до переустановки.",
+        "line": 10
+      }
+    ],
+    "decoys": [
+      {
+        "why": "вот здесь try? на месте: отсутствующий файл — это не ошибка, а пустой кэш, и тип Optional об этом честно говорит",
+        "line": 18
+      },
+      {
+        "why": "возвращать Bool вместо throws — спорно, но для кэша, который можно не заполнить, допустимо",
+        "line": 7
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },

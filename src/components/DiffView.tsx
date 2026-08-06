@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { diffStat, parseDiff, isClickable, type DiffLine } from '../diff.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
+import { Tip } from '../ui/kit.tsx'
 
 export type LineState = 'idle' | 'picked' | 'wrong' | 'correct' | 'decoy' | 'missed-bug'
 
@@ -16,6 +17,24 @@ interface Props {
   disabled?: boolean
   /** Промах трясёт панель — это единственная анимация, которая что-то говорит. */
   shake?: boolean
+  /**
+   * Диф развёрнут на весь экран. На телефоне читать код в окошке в треть
+   * экрана невозможно: строки длинные, а вокруг ещё шапка и кнопка отправки.
+   */
+  full?: boolean
+  onFull?: (full: boolean) => void
+  /**
+   * Кнопка в правом нижнем углу панели — там живёт вызов терминала.
+   * Отдельной строкой под дифом она уезжала за нижний край экрана.
+   */
+  corner?: ReactNode
+  /**
+   * Комментарий автора в коде: индекс строки дифа и текст.
+   *
+   * Дописывается в хвост строки, а не отдельной строкой, — иначе поехали бы
+   * номера, а по ним считается всё: попадания, обманки, слежка.
+   */
+  note?: { index: number; text: string } | null
 }
 
 const KIND: Record<DiffLine['kind'], CSSProperties> = {
@@ -63,7 +82,19 @@ function stat(diff: string): string {
   return `+${adds} −${dels}`
 }
 
-export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake }: Props) {
+export function DiffView({
+  diff,
+  tokens,
+  marks,
+  accent,
+  onPick,
+  disabled,
+  shake,
+  full = false,
+  onFull,
+  corner,
+  note = null,
+}: Props) {
   const lines = useMemo(() => parseDiff(diff), [diff])
 
   // Аудитория игры мышь не любит: ↑/↓ ведут по строкам, Enter отмечает.
@@ -110,17 +141,32 @@ export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake 
 
   return (
     <div
-      className={`overflow-hidden rounded-[14px] border border-[#26262c] bg-[#111116] ${shake ? 'shake' : ''}`}
+      className={`relative flex flex-col overflow-hidden border border-[#26262c] bg-[#111116] ${
+        shake ? 'shake' : ''
+      } ${full ? 'fixed inset-0 z-60 rounded-none' : 'rounded-[14px]'}`}
     >
-      <div className="flex items-center gap-2 border-b border-[#1f1f26] bg-[#0e0e12] px-[13px] py-[9px]">
+      <div className="flex shrink-0 items-center gap-2 border-b border-[#1f1f26] bg-[#0e0e12] px-[13px] py-[9px]">
         <span className="text-[#6b6b77]">
           <Icon name="file-code" size={14} />
         </span>
-        <span className="font-mono text-[11px] text-[#8b8b95]">{fileName(diff)}</span>
+        <span className="min-w-0 truncate font-mono text-[11px] text-[#8b8b95]">
+          {fileName(diff)}
+        </span>
         <span className="flex-1" />
-        <span className="rounded-full border border-[#26262c] px-2.5 py-0.5 font-mono text-[11px] text-[#4ade80]">
+        <span className="rounded-full border border-[#26262c] px-2.5 py-0.5 font-mono text-[11px] whitespace-nowrap text-[#4ade80]">
           {stat(diff)}
         </span>
+        {onFull && (
+          <Tip text={full ? 'Свернуть код' : 'Развернуть код на весь экран'} side="bottom">
+            <button
+              onClick={() => onFull(!full)}
+              aria-label={full ? 'Свернуть код' : 'Развернуть код'}
+              className="flex h-[24px] w-[24px] cursor-pointer items-center justify-center rounded-md text-[#6b6b77] transition-colors hover:bg-white/6 hover:text-[#e7e7ea]"
+            >
+              <Icon name={full ? 'minimize' : 'maximize'} size={13} />
+            </button>
+          </Tip>
+        )}
       </div>
 
       <div
@@ -130,7 +176,9 @@ export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake 
         role={disabled ? undefined : 'listbox'}
         aria-multiselectable={disabled ? undefined : true}
         aria-label="Диф. Стрелки — по строкам, Enter — отметить"
-        className="max-w-full overflow-x-auto overscroll-x-contain focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-500"
+        className={`max-w-full overflow-x-auto overscroll-x-contain focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-500 ${
+          full ? 'flex-1 overflow-y-auto' : ''
+        }`}
       >
         <table className="w-full border-collapse font-mono text-[12.5px] leading-[1.85]">
           <tbody>
@@ -175,6 +223,9 @@ export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake 
                           </span>
                         ))
                       : line.text || ' '}
+                    {note?.index === line.index && (
+                      <span className="text-[#6b7280] italic">  {note.text}</span>
+                    )}
                   </td>
                 </tr>
               )
@@ -182,6 +233,8 @@ export function DiffView({ diff, tokens, marks, accent, onPick, disabled, shake 
           </tbody>
         </table>
       </div>
+
+      {corner && <div className="pointer-events-none absolute right-3 bottom-3 z-10">{corner}</div>}
     </div>
   )
 }

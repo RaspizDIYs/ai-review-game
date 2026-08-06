@@ -18,6 +18,8 @@ export type Cue =
   | 'bad'
   | 'stamp'
   | 'win'
+  /** Стук клавиши в терминале. Отдельный тумблер, см. `setTypingEnabled`. */
+  | 'key'
 
 const N = {
   F3: 174.6,
@@ -76,14 +78,23 @@ const SEQ: Record<Cue, Note[]> = {
     [N.C6, 0.27, 0.5, 0.085],
     [N.G6, 0.36, 0.6, 0.05],
   ],
+  // Короткий сухой щелчок: печать идёт потоком, и всё длиннее 60 мс
+  // превращается в кашу из наложенных хвостов.
+  key: [[N.D5, 0, 0.045, 0.032, 'square']],
 }
 
 let ctx: AudioContext | null = null
 let bus: GainNode | null = null
 let enabled = true
+let typing = true
 
 export function setSoundEnabled(on: boolean): void {
   enabled = on
+}
+
+/** Стук клавиш живёт отдельно от щелчков интерфейса — их выключают порознь. */
+export function setTypingEnabled(on: boolean): void {
+  typing = on
 }
 
 function audio(): AudioContext | null {
@@ -144,7 +155,7 @@ function note(ac: AudioContext, out: GainNode, n: Note): void {
 
 /** Звук никогда не должен мешать играть — любая ошибка глотается молча. */
 export function beep(cue: Cue): void {
-  if (!enabled) return
+  if (cue === 'key' ? !typing : !enabled) return
 
   try {
     const ac = audio()

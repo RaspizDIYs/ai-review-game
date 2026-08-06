@@ -1,0 +1,32 @@
+{
+  "id": "py-match-case-001",
+  "stack": "py",
+  "difficulty": 4,
+  "title": "Подпись статуса приёма в карточке",
+  "prompt": "Перепиши лесенку if-elif на что-нибудь поприличнее — статусов будет больше",
+  "tests": "=== test session starts ===\ncollected 6 items\n\ntests/test_labels.py ......                           [100%]\n\n=== 6 passed in 0.18s ===",
+  "diff": "--- a/clinic/labels.py\n+++ b/clinic/labels.py\n@@ -1,18 +1,38 @@\n PENDING = \"pending\"\n CANCELLED = \"cancelled\"\n DONE = \"done\"\n \n \n+def label(status: str) -> str:\n+    \"\"\"Человеческая подпись статуса приёма для карточки питомца.\"\"\"\n+    match status:\n+        case \"pending\":\n+            return \"ждёт приёма\"\n+        case \"cancelled\":\n+            return \"отменён\"\n+        case DONE:\n+            return \"приём завершён\"\n+\n+\n+def card(visit: dict) -> dict:\n+    return {\"id\": visit[\"id\"], \"status\": label(visit[\"status\"])}\n",
+  "bugs": [
+    {
+      "file": "clinic/labels.py",
+      "match": "        case DONE:",
+      "kind": "wrong",
+      "tag": "match-case-catches-everything",
+      "explain": "Голое имя в case — это не сравнение с константой, а захват: такой образец подходит любому значению и просто присваивает его переменной DONE. Со значением сверяют либо литерал, либо имя через точку — `Status.DONE`. Синтаксической ошибки нет только потому, что ветка последняя.",
+      "consequence": "Любой статус, кроме pending и cancelled, подписывается как «приём завершён»: и no_show, и in_progress, и статус, который заведут через месяц. В карточке питомца врач видит, что приём прошёл, хотя собака на него не пришла — и не перезванивает владельцу."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        case \"pending\":",
+      "why": "литеральный образец сравнивается по значению — вот с этой веткой всё честно"
+    },
+    {
+      "match": "    return {\"id\": visit[\"id\"], \"status\": label(visit[\"status\"])}",
+      "why": "обращение по ключу без get упало бы на неполном словаре, но обе колонки в схеме обязательные"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

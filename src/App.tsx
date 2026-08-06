@@ -6,7 +6,6 @@ import type { Outcome, Stack, Task } from './types'
 import { accuracy, roundDuration, roundScore } from './scoring.ts'
 import {
   ENDLESS_LIVES,
-  hits,
   isRunOver,
   MAX_ATTEMPTS,
   resolveSubmit,
@@ -41,7 +40,16 @@ import { trackRound, trackSeries } from './analytics.ts'
 import { loadStats, type Stats } from './stats.ts'
 import { loadTokens } from './tokens.ts'
 import { reasonOptions, WRONG_REASON_FACTOR, type ReasonOption } from './reason.ts'
-import { AGENTS, authorOf, briefLine, type AgentSlug } from './agents.ts'
+import {
+  AGENTS,
+  AGENT_SLUGS,
+  authorOf,
+  briefLine,
+  castOf,
+  handwritingOf,
+  type AgentSlug,
+} from './agents.ts'
+import { codeNote } from './note.ts'
 import { replyTo } from './replies.ts'
 import {
   caught as watchCaught,
@@ -54,18 +62,20 @@ import {
   ACHIEVEMENTS,
   achievement,
   derivedUnlocks,
+  dossierUnlocks,
   ownedCount,
   roundUnlocks,
   runUnlocks,
+  shiftUnlocks,
 } from './achievements.ts'
-import { beep, setSoundEnabled } from './sound.ts'
+import { beep, setSoundEnabled, setTypingEnabled } from './sound.ts'
 import {
   armMusic,
-  DEFAULT_MUSIC,
   nextTrack,
   onMusicTrack,
   setMusicEnabled,
   setMusicVolume,
+  setPlaylist,
   type Track,
 } from './music.ts'
 import { normalizeRepo, PR_BASE, pullRequest } from './pr.ts'
@@ -100,7 +110,9 @@ import { Setup } from './components/Setup.tsx'
 import { ShiftEnd } from './components/ShiftEnd.tsx'
 import { Reason } from './components/Reason.tsx'
 import { Reply } from './components/Reply.tsx'
+import { RepoSetup } from './components/RepoSetup.tsx'
 import { Review } from './components/Review.tsx'
+import { Settings as SettingsPanel } from './components/Settings.tsx'
 import { Terminal } from './components/Terminal.tsx'
 import { Tick } from './components/Tick.tsx'
 import { Rules } from './components/Rules.tsx'
@@ -132,6 +144,9 @@ type Screen =
   | 'shift-end'
   | 'ach'
 type Mode = 'daily' | 'endless' | 'set' | 'shift'
+
+/** Экраны вне игры: на них играет заглавная тема. */
+const MENU_SCREENS: Screen[] = ['home', 'rules', 'setup', 'ach']
 
 /** Языки, по которым в паке вообще что-то есть, — на них и настраивается подборка. */
 const PLAYABLE = STACKS.filter((s) => POOL.some((t) => t.stack === s))
@@ -237,12 +252,34 @@ export default function App() {
   const [fired, setFired] = useState<Defect[]>([])
   /** Чиним свой мёрдж: тот же диф, но размечаем его заново и без таймера. */
   const [repairing, setRepairing] = useState<{ pr: number; task: Task } | null>(null)
+  /**
+   * Черновик правок: PR → строки, которые игрок в нём отметил.
+   *
+   * Отметки не отправляются сразу. Раньше отправлялись — и получалась
+   * мясорубка: открыл PR, ткнул строку, сразу получил невидимый пересчёт
+   * здоровья, вернулся, ткнул другую — и так до конца игры на одном PR.
+   * Теперь разметка живёт черновиком, её видно в списке, её можно менять,
+   * а считается всё разом на «работать дальше».
+   */
+  const [drafts, setDrafts] = useState<Map<number, number[]>>(new Map())
   /** Сколько раз лазили в каждый PR — единственное, что игра о починке помнит. */
   const [tried, setTried] = useState<Map<number, number>>(new Map())
   /** Чиним на упавшем проде посреди смены или спокойно между сменами. */
   const [urgent, setUrgent] = useState(false)
   /** Плановая сверка каждые четыре хода: смотрим на прод и работаем дальше. */
   const [checkpoint, setCheckpoint] = useState(false)
+  /**
+   * На каком ходу сверку уже показали.
+   *
+   * Без этого авария на четвёртом ходу съедала сверку: игрок уходил чинить
+   * с экрана инцидента, а возврат вёл сразу в новый ход. Теперь сверка
+   * привязана к номеру хода, а не к тому, каким путём до него дошли, —
+   * и по кругу ходить всё равно не даёт.
+   */
+  const [checkedAt, setCheckedAt] = useState(-1)
+
+  /** Настройки: модалка поверх любого экрана. */
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   /** Терминал: открыт ли и что в нём напечатано. */
   const [termOpen, setTermOpen] = useState(false)
@@ -289,12 +326,39 @@ export default function App() {
   }, [])
 
   useEffect(() => setSoundEnabled(profile.sound), [profile.sound])
+  useEffect(() => setTypingEnabled(profile.typing), [profile.typing])
 
   const [track, setTrack] = useState<Track | null>(null)
   useEffect(() => onMusicTrack(setTrack), [])
   useEffect(() => armMusic(), [])
   useEffect(() => setMusicVolume(profile.music), [profile.music])
   useEffect(() => setMusicEnabled(profile.musicOn), [profile.musicOn])
+  // Главный экран звучит заглавной темой и только ею, режимы — перетасованным
+  // мешком остального. Плейлист переключается по экрану, а не по кнопке
+  // «начать»: выйти из смены на главную — это тоже вернуться к теме.
+  useEffect(() => setPlaylist(MENU_SCREENS.includes(screen) ? 'menu' : 'game'), [screen])
+
+  /**
+   * Награды за смену. Отдельным эффектом, а не в момент хода: у смены нет
+   * «конца серии», в который можно было бы всё посчитать, — она заканчивается
+   * из четырёх разных мест.
+   */
+  useEffect(() => {
+    if (screen !== 'shift-end' || !shift) return
+    unlock(
+      shiftUnlocks({
+        alive: finishShift(shift).verdict === 'alive',
+        finished: isShiftOver(shift),
+        crashes: shift.log.filter((e) => e.kind === 'incident').length,
+        cured:
+          shift.log.some((e) => e.kind === 'incident') &&
+          shift.log.some((e) => e.kind === 'repair' && e.result === 'cured'),
+        day: shift.day,
+      }),
+      profile,
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen])
 
   const endlessSeed = useRef('')
   const played = getDaily(today)
@@ -342,6 +406,19 @@ export default function App() {
 
   const options = useMemo(() => reasonOptions(task, POOL, REASONS), [task])
 
+  /**
+   * Кто сегодня на смене. Челлендж, бесконечный и подборка набираются по
+   * языкам — смена набирается по характерам: за двенадцать ходов один и тот же
+   * почерк должен попасться несколько раз, иначе собранное досье не окупается.
+   */
+  const hands = useMemo(
+    () => (shift ? handwritingOf(castOf(`day:${shift.day}`)) : null),
+    // Только от номера дня: смена агентов меняется вместе с рабочим днём,
+    // а не на каждый тик прода.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shift?.day],
+  )
+
   // Пул-реквест раунда: имя репозитория — из настроек игрока, заголовок и
   // ветка — из самой задачи, номер растёт по ходу серии.
   /**
@@ -374,6 +451,16 @@ export default function App() {
   const prTask = repairing?.task ?? task
   const pr = useMemo(() => pullRequest(prTask, prNumber, repo), [prTask, prNumber, repo])
 
+  /**
+   * Комментарий автора в коде. Бесплатная зацепка про характер: он не
+   * показывает на подлянку, но звучит так, как думает тот, кто её сделал.
+   */
+  const authorNote = useMemo(
+    () => codeNote(prTask, agent, `${prNumber}`),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [prTask.id, agent.slug, prNumber],
+  )
+
   function keep(next: Profile) {
     setProfile(next)
     saveProfile(next)
@@ -404,8 +491,8 @@ export default function App() {
 
     // В смене тост не всплывает: «Первый улов» появляется ровно тогда, когда
     // игрок угадал, и выдаёт ответ. Ачивка засчитана, показать её успеем
-    // в разборе.
-    if (mode === 'shift') return
+    // в разборе — там смена уже кончилась и выдавать нечего.
+    if (mode === 'shift' && screen !== 'shift-end') return
 
     setTimeout(() => {
       setToast(fresh[0])
@@ -574,8 +661,16 @@ export default function App() {
    * Терминал. Живёт только в смене: `/grab-evidence` тратит ход, а `/deploy
    * --dry-run` спрашивает у прода — ни того, ни другого нет ни в челлендже,
    * ни в подборке.
+   *
+   * В починке он тоже есть. Раньше не было — и получался хардмод в самом
+   * неподходящем месте: авария прилетает до сверки, чинить надо вслепую,
+   * а единственный инструмент диагностики отбирают. Слежку там не поставить
+   * (платить нечем — ходы не идут), остальное работает.
    */
-  const hasTerminal = mode === 'shift' && shift !== null && !repairing
+  const hasTerminal = mode === 'shift' && shift !== null
+
+  /** Терминал развёрнут на весь экран — на телефоне это единственный режим. */
+  const [termFull, setTermFull] = useState(false)
 
   function openTerminal() {
     beep('tap')
@@ -586,6 +681,7 @@ export default function App() {
   /** Стереть след прошлого хода: терминал не помнит чужой PR. */
   function resetTerminal() {
     setTermOpen(false)
+    setTermFull(false)
     setTermLines([])
     setBlamed(false)
     setWatching([])
@@ -595,14 +691,16 @@ export default function App() {
     if (!shift) return
 
     const result = runTerminal(input, {
-      task,
-      pr: shift.pr,
+      task: prTask,
+      pr: prNumber,
       author: agent,
       dossier: profile.dossier,
       selected,
       watching,
       probes: shift.probes,
       blamed,
+      // Слежка платит ходом смены, а в починке ходы не идут.
+      canWatch: repairing === null,
     })
 
     setTermLines((prev) => [...prev, { tone: 'in', text: `$ ${input}` }, ...result.lines])
@@ -615,18 +713,19 @@ export default function App() {
         setShift(spent)
         saveShift(spent)
       }
+      // История поднимается раз за ход — иначе весь профиль агента
+      // открывается за один раунд и собирать становится нечего.
+      if (effect.kind === 'blamed') setBlamed(true)
       if (effect.kind === 'dossier') {
-        // История поднимается раз за ход — иначе весь профиль агента
-        // открывается за один раунд и собирать становится нечего.
-        setBlamed(true)
         const known = AGENTS[effect.agent].known.length
-        keep({
-          ...profile,
-          dossier: {
-            ...profile.dossier,
-            [effect.agent]: Math.min(known, (profile.dossier[effect.agent] ?? 0) + 1),
-          },
-        })
+        const dossier = {
+          ...profile.dossier,
+          [effect.agent]: Math.min(known, (profile.dossier[effect.agent] ?? 0) + 1),
+        }
+        const full = Object.fromEntries(
+          AGENT_SLUGS.map((slug) => [slug, AGENTS[slug].known.length]),
+        )
+        unlock(dossierUnlocks(dossier, full), { ...profile, dossier })
       }
       if (effect.kind === 'watch') releaseToLogging(effect.lines)
     }
@@ -682,13 +781,9 @@ export default function App() {
       ...report(returning, back.lines),
     ])
     setTermOpen(true)
-    // Лог сел на подлянку — терминал сам подсвечивает диапазон. За это
-    // и платили ходом: теперь точно известно, что удалять.
-    if (back.hit) {
-      setSelected(
-        returning.bugs.filter((bug) => back.lines.some((l) => hits(bug, l))).map((b) => b.line),
-      )
-    }
+    // Строки за игрока не отмечаем, даже если лог сел на подлянку. Раньше
+    // отмечали — и слежка становилась не наблюдением, а покупкой ответа:
+    // повесил лог на полфайла, получил готовую разметку.
     setScreen('review')
     return true
   }
@@ -700,40 +795,55 @@ export default function App() {
   }
 
   /**
-   * Починка своими руками: игрок заново разметил собственный мёрдж.
-   * Второй попытки здесь нет — вслепую она означала бы «промазал, попробуй ещё».
+   * Сохранить разметку PR и вернуться к списку.
+   *
+   * Ничего не считает и ничего не ломает. Пересчёт — один, на выходе
+   * из починки: игрок должен иметь право передумать, не платя за каждую
+   * версию здоровьем прода.
    */
-  function submitRepair() {
-    if (!repairing || !shift) return
-
-    // Посмотрел и не тронул — значит, не тронул. Без этого «открыть и уйти»
-    // стоило бы сломанного PR, и осторожный разбор превращался бы в рулетку:
-    // прочитать код, ничего не найти и за это получить новую мину.
-    if (selected.length === 0) {
-      beep('tap')
-      setRepairing(null)
-      resetRound()
-      setScreen('repair')
-      return
-    }
-
-    const result = resolveSubmit(repairing.task, selected, MAX_ATTEMPTS - 1)
-    if (result.kind !== 'finish') return
+  function saveDraft() {
+    if (!repairing) return
 
     beep('stamp')
-    const turn = repairShift(shift, repairing.pr, repairing.task, result.outcome)
-    setShift(turn.shift)
-    saveShift(turn.shift)
-    setTried((prev) => new Map(prev).set(repairing.pr, (prev.get(repairing.pr) ?? 0) + 1))
+    setDrafts((prev) => {
+      const next = new Map(prev)
+      if (selected.length === 0) next.delete(repairing.pr)
+      else next.set(repairing.pr, [...selected].sort((a, b) => a - b))
+      return next
+    })
     setRepairing(null)
     resetRound()
+    resetTerminal()
+    setScreen('repair')
+  }
 
-    if (turn.fired.length > 0) {
-      setFired(turn.fired)
-      setScreen('incident')
-      return
+  /**
+   * Выкатить все черновики разом.
+   *
+   * Порядок — по номеру PR, чтобы результат не зависел от того, в каком
+   * порядке игрок их открывал. Каждая правка идёт через тот же разбор
+   * отправки, что и обычное ревью: чинить и ревьюить — одно действие.
+   */
+  function applyDrafts(current: Shift): { shift: Shift; fired: Defect[] } {
+    let live = current
+    const blown: Defect[] = []
+
+    for (const [pr, lines] of [...drafts].sort((a, b) => a[0] - b[0])) {
+      const event = merged(current, current.turns).find((e) => e.kind === 'merged' && e.pr === pr)
+      const found = event && 'task' in event ? POOL.find((t) => t.id === event.task) : undefined
+      if (!found || lines.length === 0) continue
+
+      const result = resolveSubmit(found, lines, MAX_ATTEMPTS - 1)
+      if (result.kind !== 'finish') continue
+
+      const turn = repairShift(live, pr, found, result.outcome)
+      live = turn.shift
+      blown.push(...turn.fired)
+      setTried((prev) => new Map(prev).set(pr, (prev.get(pr) ?? 0) + 1))
     }
-    setScreen(finishShift(turn.shift).verdict === 'alive' ? 'repair' : 'shift-end')
+
+    setDrafts(new Map())
+    return { shift: live, fired: blown }
   }
 
   function startRepair(pr: number, taskId: string) {
@@ -750,6 +860,9 @@ export default function App() {
     }
 
     resetRound()
+    // Черновик этого PR возвращается на экран: игрок пришёл его править,
+    // а не размечать с нуля.
+    setSelected(drafts.get(pr) ?? [])
     // Плюс от прошлой уборки гасим: пока игрок чинит, здоровье изменится,
     // и висящий рядом «+5» станет неправдой.
     setHealed(null)
@@ -771,7 +884,7 @@ export default function App() {
     if (screen !== 'review') return
     if (selected.length > 0) sayReply(`${task.id}:${attempts}:${selected.join(',')}`)
     if (repairing) {
-      submitRepair()
+      saveDraft()
       return
     }
 
@@ -955,8 +1068,13 @@ export default function App() {
 
     // Каждые четыре хода игрока выпускают посмотреть на прод. Правды там нет:
     // здоровье, отклик и список своих мёрджей — и всё.
-    if (isCheckpoint(current)) {
+    //
+    // Сверка привязана к номеру хода, а не к пути, которым до него дошли:
+    // авария ровно на четвёртом ходу больше её не съедает, а повторно
+    // на том же ходу она не открывается.
+    if (isCheckpoint(current) && checkedAt !== current.turn) {
       beep('toggle')
+      setCheckedAt(current.turn)
       setUrgent(false)
       setCheckpoint(true)
       setScreen('repair')
@@ -977,7 +1095,15 @@ export default function App() {
     if (resumeWatched(current)) return
 
     resetTerminal()
-    setTask(pickShift(shiftPool, endlessSeed.current, i, history.slice(-5).map((h) => h.task.id)))
+    setTask(
+      pickShift(
+        shiftPool,
+        endlessSeed.current,
+        i,
+        history.slice(-5).map((h) => h.task.id),
+        hands,
+      ),
+    )
     setScreen('briefing')
   }
 
@@ -985,8 +1111,16 @@ export default function App() {
   function doCleanup() {
     if (!shift || shift.cleanups <= 0) return
 
-    beep('toggle')
     const turn = cleanupTurn(shift)
+    // Разгребать было нечего — заряд остался, и сказать об этом надо словами,
+    // иначе кнопка выглядит сломанной.
+    if (!turn.done) {
+      beep('bad')
+      setHealed(0)
+      return
+    }
+
+    beep('toggle')
     setShift(turn.shift)
     saveShift(turn.shift)
     // Плюс здоровья показываем цифрой: без неё кнопка выглядит мёртвой.
@@ -1090,30 +1224,65 @@ export default function App() {
     else setScreen(finishShift(shift).verdict === 'alive' ? 'repair' : 'shift-end')
   }
 
-  /** Чинить прямо сейчас: прод лежит, время и попытки не считаются. */
+  /**
+   * Чинить прямо сейчас: прод лежит, время и попытки не считаются.
+   * Список аварий не сбрасываем — с экрана починки к нему можно вернуться.
+   */
   function repairNow() {
     beep('tap')
-    setFired([])
     setHealed(null)
     setUrgent(true)
     setScreen('repair')
   }
 
-  /** Выйти из разбора: посреди смены — к следующему ходу, после неё — на новую. */
+  /** Вернуться из починки к разбору аварии: раньше это был выход без выхода. */
+  function backToIncident() {
+    beep('tap')
+    setUrgent(false)
+    setScreen('incident')
+  }
+
+  /**
+   * Выйти из разбора. Здесь и только здесь считаются черновики правок:
+   * игрок сказал «хватит», значит правки уезжают в прод разом.
+   */
   function leaveRepair() {
-    if ((!urgent && !checkpoint) || !shift) {
+    if (!shift) {
       startShift(true)
       return
     }
 
     beep('tap')
-    setUrgent(false)
-    setCheckpoint(false)
+    const applied = applyDrafts(shift)
+    setShift(applied.shift)
+    saveShift(applied.shift)
     setHealed(null)
-    // Из сверки и с упавшего прода возвращаемся в тот же ход, а не в новый
-    // чекпойнт — иначе игрок ходил бы по кругу.
-    if (isShiftOver(shift)) setScreen('shift-end')
-    else advanceTurn(shift)
+    setCheckpoint(false)
+    setUrgent(false)
+
+    // Правки могли добить прод — или, наоборот, дотикать соседнюю мину.
+    if (applied.fired.length > 0) {
+      setFired(applied.fired)
+      setScreen('incident')
+      return
+    }
+
+    if (finishShift(applied.shift).verdict !== 'alive') {
+      setScreen('shift-end')
+      return
+    }
+
+    // Смена доиграна — это разбор завалов, отсюда путь только на новую.
+    if (isShiftOver(applied.shift)) {
+      startShift(true)
+      return
+    }
+
+    setFired([])
+    // Через nextTurn, а не сразу в новый ход: если сверка на этом ходу ещё
+    // не показывалась, её очередь именно сейчас. Повторно она не откроется —
+    // за этим следит `checkedAt`.
+    nextTurn(applied.shift)
   }
 
   /** Настройка появляется под режим, а не висит колонкой на главной. */
@@ -1156,41 +1325,14 @@ export default function App() {
         pr={inRun ? pr : null}
         achCount={ownedCount(profile.unlocked)}
         achTotal={ACHIEVEMENTS.length}
-        audio={{
-          sound: profile.sound,
-          music: profile.music,
-          musicOn: profile.musicOn,
-          track,
-          onSound: () => {
-            const on = !profile.sound
-            setSoundEnabled(on)
-            keep({ ...profile, sound: on })
-            if (on) setTimeout(() => beep('toggle'), 30)
-          },
-          // Ползунок дёргается непрерывно — в localStorage пишем то же, что
-          // видит игрок: значений мало, и терять их на перезагрузке обиднее.
-          onMusic: (music: number) => keep({ ...profile, music, musicOn: music > 0 }),
-          onMusicToggle: () => keep({ ...profile, musicOn: !profile.musicOn }),
-          onNext: () => {
-            beep('tap')
-            nextTrack()
-          },
-          onMute: (m: boolean) => {
-            setSoundEnabled(!m)
-            keep({
-              ...profile,
-              sound: !m,
-              musicOn: !m,
-              // Включить звук при нулевом ползунке — это тишина и недоумение.
-              music: m || profile.music > 0 ? profile.music : DEFAULT_MUSIC,
-            })
-            if (!m) setTimeout(() => beep('toggle'), 30)
-          },
-        }}
         onAch={() => {
           beep('tap')
           setPrevScreen(screen)
           setScreen('ach')
+        }}
+        onSettings={() => {
+          beep('tap')
+          setSettingsOpen(true)
         }}
         run={
           inRun
@@ -1227,6 +1369,56 @@ export default function App() {
             : null
         }
       />
+
+      {/* Имя репозитория спрашивают один раз в жизни и до всего остального:
+          это начало игры, а не пункт настроек. */}
+      {!profile.repoAsked && (
+        <RepoSetup
+          accent={accent}
+          onDone={(next) => {
+            beep('start')
+            keep({ ...profile, repo: next, repoAsked: true })
+          }}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsPanel
+          accent={accent}
+          sound={profile.sound}
+          typing={profile.typing}
+          music={profile.music}
+          musicOn={profile.musicOn}
+          track={track}
+          termInput={profile.termInput}
+          onSound={(on) => {
+            setSoundEnabled(on)
+            keep({ ...profile, sound: on })
+            if (on) setTimeout(() => beep('toggle'), 30)
+          }}
+          onTyping={(on) => {
+            setTypingEnabled(on)
+            keep({ ...profile, typing: on })
+            if (on) setTimeout(() => beep('key'), 30)
+          }}
+          // Ползунок дёргается непрерывно — в localStorage пишем то же, что
+          // видит игрок: значений мало, и терять их на перезагрузке обиднее.
+          onMusic={(music) => keep({ ...profile, music })}
+          onMusicToggle={(on) => keep({ ...profile, musicOn: on })}
+          onNextTrack={() => {
+            beep('tap')
+            nextTrack()
+          }}
+          onTermInput={(termInput) => {
+            beep('toggle')
+            keep({ ...profile, termInput })
+          }}
+          onClose={() => {
+            beep('tap')
+            setSettingsOpen(false)
+          }}
+        />
+      )}
 
       {toastAchievement && <Toast achievement={toastAchievement} accent={accent} />}
       {reply && !toastAchievement && (
@@ -1377,17 +1569,28 @@ export default function App() {
             attempts={attempts}
             shake={shake}
             stopwatch={mode === 'shift' && !repairing ? stopwatch : null}
+            note={authorNote}
             probes={hasTerminal ? shift.probes : null}
             onTerminal={hasTerminal ? openTerminal : null}
+            terminalFull={termFull}
             terminal={
               hasTerminal && termOpen ? (
                 <Terminal
                   host={normalizeRepo(profile.repo).split('/')[0]}
                   lines={termLines}
                   accent={accent}
+                  probes={shift.probes}
+                  input={profile.termInput}
+                  canWatch={repairing === null}
+                  full={termFull}
+                  onFull={(next) => {
+                    beep('tap')
+                    setTermFull(next)
+                  }}
                   onRun={terminalRun}
                   onClose={() => {
                     beep('tap')
+                    setTermFull(false)
                     setTermOpen(false)
                   }}
                 />
@@ -1437,6 +1640,7 @@ export default function App() {
             delta={shift.delta}
             // Мина, которая уже падала на прошлом ходу, падает не впервые.
             again={shift.log.filter((e) => e.kind === 'incident' && e.pr === fired[0].pr).length > 1}
+            total={fired.length}
             accent={accent}
             onRepair={repairNow}
             onNext={afterIncident}
@@ -1462,7 +1666,8 @@ export default function App() {
             diffs={DIFFS}
             fixed={fixedPrs}
             tried={tried}
-            health={shift.prod.health}
+            drafts={drafts}
+            prod={{ ...shift.prod, delta: shift.delta, state: prodState(shift.defects) }}
             healed={healed}
             accent={accent}
             urgent={urgent}
@@ -1480,6 +1685,8 @@ export default function App() {
             onPick={startRepair}
             onCleanup={doCleanup}
             onDone={leaveRepair}
+            onBackToIncident={fired.length > 0 ? backToIncident : null}
+            onExit={goHome}
           />
         )}
 

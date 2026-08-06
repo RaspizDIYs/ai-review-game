@@ -122,6 +122,11 @@ body {
   from { opacity: 0; transform: translateY(-16px) scale(.94) }
   to { opacity: 1; transform: none }
 }
+/* Реплика ИИ приезжает снизу справа — оттуда, где она и висит. */
+@keyframes replyIn {
+  from { opacity: 0; transform: translateY(14px) scale(.94) }
+  to { opacity: 1; transform: none }
+}
 @keyframes flameFlicker { 0%,100% { transform: scale(1) } 50% { transform: scale(1.14) } }
 @keyframes blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
 

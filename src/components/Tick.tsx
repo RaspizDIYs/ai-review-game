@@ -37,6 +37,7 @@ const COLOR: Record<TerminalLine['tone'], string> = {
   bad: '#fca5a5',
   code: '#9ecbff',
   dossier: '#8b8b95',
+  art: '#3f7d63',
 }
 
 export function Tick({ pr, lines, hit, delta, incidents, accent, onBack }: Props) {

@@ -1,0 +1,32 @@
+{
+  "id": "js-error-ignored-001",
+  "stack": "js",
+  "difficulty": 2,
+  "title": "Отмена записи через шлюз",
+  "prompt": "Дай отменять запись — заодно верни деньги, если приём был предоплачен",
+  "tests": "PASS  src/booking.test.ts (4)\n  ✓ помечает запись отменённой\n  ✓ дёргает возврат для предоплаченных\n\nTests  4 passed (4)",
+  "diff": "--- a/src/booking.ts\n+++ b/src/booking.ts\n@@ -1,12 +1,29 @@\n import { db } from './db'\n import { payments } from './payments'\n \n export async function cancelBooking(id: string, reason: string) {\n   const booking = await db.bookings.byId(id)\n+\n+  if (booking.prepaid) {\n+    await payments.refund(booking.paymentId, booking.amount)\n+  }\n+\n   await db.bookings.update(id, { status: 'cancelled', reason })\n+\n+  return { id, refunded: booking.prepaid }\n }\n",
+  "bugs": [
+    {
+      "file": "src/booking.ts",
+      "match": "    await payments.refund(booking.paymentId, booking.amount)",
+      "kind": "wrong",
+      "tag": "error-ignored",
+      "explain": "payments.refund возвращает результат со статусом, а не бросает исключение на отказ банка. Здесь его никто не смотрит: отклонённый возврат неотличим от проведённого.",
+      "consequence": "Банк отклоняет возврат — карта закрыта, лимит, что угодно. Запись всё равно становится отменённой, ответ говорит refunded: true. Владелец видит «деньги вернули», денег нет, и разбираться приходится через месяц по выписке."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  const booking = await db.bookings.byId(id)",
+      "why": "запись может не найтись, но byId в этом проекте бросает сам — проверка была бы лишней"
+    },
+    {
+      "match": "  return { id, refunded: booking.prepaid }",
+      "why": "возвращать флаг предоплаты нормально: он описывает, что пытались сделать"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

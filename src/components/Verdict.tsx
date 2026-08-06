@@ -152,9 +152,17 @@ export function Verdict({
   const full = coverage ? coverage.found === coverage.total && coverage.extras === 0 : true
   const coverColor = full ? '#34d399' : '#fbbf24'
 
-  return (
-    <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-6">
-      <div className="relative overflow-hidden rounded-2xl border border-[#26262c] bg-[#111116] px-[22px] pt-[22px] pb-12">
+  /**
+   * Порядок экрана: сначала разбор, потом итог, потом кнопка дальше.
+   *
+   * Раньше итог стоял сверху — и это было неудобно ровно там, где важнее
+   * всего: игрок дочитывал объяснение внизу экрана, а «Следующий PR» ждал
+   * его ещё ниже, зато «Уехало в прод» с очками — далеко вверху, куда
+   * возвращаться незачем. Теперь читаешь сверху вниз и заканчиваешь
+   * на кнопке.
+   */
+  const summary = (
+    <div className="relative overflow-hidden rounded-2xl border border-[#26262c] bg-[#111116] px-[22px] pt-[22px] pb-12">
         <div
           className="pointer-events-none absolute inset-x-[-20%] top-[-60%] h-[180px]"
           style={{ background: `radial-gradient(closest-side, ${head.color}22, transparent)` }}
@@ -220,21 +228,12 @@ export function Verdict({
         >
           {head.stamp}
         </div>
-      </div>
+    </div>
+  )
 
-      {share && (
-        <p className="text-sm text-[#6b6b77]">
-          {task.clean
-            ? `Здесь не попались ${share.found}% игроков.`
-            : `Эту подлянку находят ${share.found}% игроков.`}
-          {share.n < THIN_SAMPLE && (
-            <span className="text-[#4a4a54]">
-              {' '}
-              Пока сыграли всего {share.n} {plural(share.n, 'человек', 'человека', 'человек')}.
-            </span>
-          )}
-        </p>
-      )}
+  return (
+    <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-4 px-[18px] pt-6">
+      <DiffView diff={task.diff} tokens={tokens} marks={marks} accent={head.color} disabled />
 
       {reason && !reason.right && (
         <div className="rounded-[14px] border border-[rgba(251,191,36,.28)] bg-[rgba(245,158,11,.06)] p-4">
@@ -253,8 +252,6 @@ export function Verdict({
           </p>
         </div>
       )}
-
-      <DiffView diff={task.diff} tokens={tokens} marks={marks} accent={head.color} disabled />
 
       {task.bugs.map((bug) => (
         <div
@@ -311,6 +308,23 @@ export function Verdict({
           </ul>
         </div>
       )}
+
+      {share && (
+        <p className="text-sm text-[#6b6b77]">
+          {task.clean
+            ? `Здесь не попались ${share.found}% игроков.`
+            : `Эту подлянку находят ${share.found}% игроков.`}
+          {share.n < THIN_SAMPLE && (
+            <span className="text-[#4a4a54]">
+              {' '}
+              Пока сыграли всего {share.n} {plural(share.n, 'человек', 'человека', 'человек')}.
+            </span>
+          )}
+        </p>
+      )}
+
+      {summary}
+
 
       <Button accent={head.color} onClick={onNext} iconAfter="arrow-right" autoFocus>
         {nextLabel ?? (hasNext ? 'Следующий PR' : 'Завершить проверку')}

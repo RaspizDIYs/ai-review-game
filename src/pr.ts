@@ -12,7 +12,7 @@
 
 import type { Task } from './types'
 
-export const DEFAULT_REPO = 'raspiz/vet-crm'
+export const DEFAULT_REPO = 'raspizdiys/ai-review-game'
 /** Номер первого PR за сессию — дальше по одному на раунд. */
 export const PR_BASE = 1408
 const MAX_REPO = 40

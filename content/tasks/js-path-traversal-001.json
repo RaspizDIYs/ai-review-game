@@ -1,0 +1,32 @@
+{
+  "id": "js-path-traversal-001",
+  "stack": "js",
+  "difficulty": 4,
+  "title": "Отдача снимков из карты",
+  "prompt": "Дай скачивать снимки из карты питомца по имени файла",
+  "tests": "PASS  src/attachments.test.ts (6)\n  ✓ отдаёт существующий снимок\n  ✓ 404 на отсутствующий\n  ✓ режет слеши в имени\n\nTests  6 passed (6)",
+  "diff": "--- a/src/attachments.ts\n+++ b/src/attachments.ts\n@@ -1,15 +1,36 @@\n import { createReadStream } from 'node:fs'\n import { join } from 'node:path'\n import { stat } from 'node:fs/promises'\n \n const STORAGE = '/var/clinic/attachments'\n \n+/** Имя файла приходит из адреса, поэтому слеши из него вырезаем. */\n+function safeName(raw: string): string {\n+  return raw.replaceAll('/', '')\n+}\n+\n+export async function attachment(petId: string, name: string) {\n+  const file = join(STORAGE, petId, safeName(name))\n+\n+  const info = await stat(file).catch(() => null)\n+  if (!info?.isFile()) return null\n+\n+  return createReadStream(file)\n+}\n",
+  "bugs": [
+    {
+      "file": "src/attachments.ts",
+      "match": "  return raw.replaceAll('/', '')",
+      "kind": "wrong",
+      "tag": "path-traversal",
+      "explain": "Вырезаны только слеши, а точки остались — и вырезаны они один раз: строка «....//» после удаления слешей превращается в «....», а обратный слеш и процентная кодировка сюда вовсе не попадают. Единственная надёжная проверка — резолвить путь и убеждаться, что он остался внутри STORAGE.",
+      "consequence": "Подобранное имя файла рано или поздно выводит за каталог снимков, и клиника начинает отдавать наружу файлы с той же машины: конфиги с паролем к базе, ключи к лаборатории, дампы. В логах это выглядит как обычное скачивание вложения."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "  const info = await stat(file).catch(() => null)",
+      "why": "проглоченная тут ошибка stat — это способ вернуть 404, и он честный"
+    },
+    {
+      "match": "  const file = join(STORAGE, petId, safeName(name))",
+      "why": "сам join не виноват: он делает ровно то, что просят, — вопрос к тому, что ему передают"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

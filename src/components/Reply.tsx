@@ -5,6 +5,11 @@
  * или нет. Именно поэтому плашку можно показывать даже в слепой смене:
  * информации в ней ровно ноль, а смеха достаточно.
  *
+ * Живёт в правом нижнем углу и выглядит репликой в чате, а не системным
+ * сообщением. Сверху по центру она перекрывала шапку раунда — шкалы прода,
+ * счётчик ходов и заголовок PR, то есть ровно то, на что игрок смотрит
+ * сразу после отправки.
+ *
  * См. заметку «Дополнительные идеи - Ревью за ии», часть 1.
  */
 
@@ -28,12 +33,13 @@ export function Reply({
 
   return (
     <div
-      className="fixed top-[74px] left-1/2 z-60 w-[min(440px,calc(100vw-32px))] -translate-x-1/2"
-      style={{ animation: 'toastIn .4s cubic-bezier(.2,1.3,.4,1) both' }}
+      className="pointer-events-none fixed right-4 bottom-4 z-60 w-[min(380px,calc(100vw-32px))]"
+      style={{ animation: 'replyIn .4s cubic-bezier(.2,1.3,.4,1) both' }}
       role="status"
     >
       <div
-        className="flex items-center gap-3 rounded-xl px-4 py-3"
+        // Хвостик у нижнего правого угла — это реплика, а не уведомление.
+        className="flex items-center gap-3 rounded-xl rounded-br-sm px-4 py-3"
         style={{
           border: `1px solid ${color}66`,
           background: `linear-gradient(180deg, ${color}1f, #141420)`,
@@ -41,7 +47,7 @@ export function Reply({
         }}
       >
         <AgentAvatar
-          slug={anonymous ? 'unknown' : agent.slug}
+          slug={anonymous ? null : agent.slug}
           name={anonymous ? '?' : name}
           color={color}
           size={38}

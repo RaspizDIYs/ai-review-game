@@ -5,9 +5,66 @@
  * агента раунда, и все кнопки обязаны перекрашиваться вместе с ним.
  */
 
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useId, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon, type IconName } from './icons.tsx'
 import { mix } from './color.ts'
+
+/**
+ * Подсказка в стиле игры вместо системного `title`.
+ *
+ * Браузерная всплывашка появляется через секунду, рисуется шрифтом системы
+ * и выглядит как чужая деталь на приборной панели. Здесь — та же рамка
+ * и та же моноширинная типографика, что и на остальных экранах.
+ *
+ * Открывается и по наведению, и по фокусу с клавиатуры; `aria-describedby`
+ * связывает её с элементом, поэтому скринридер читает подсказку так же,
+ * как читал бы `title`.
+ */
+export function Tip({
+  text,
+  children,
+  side = 'bottom',
+  className = '',
+}: {
+  text: string
+  children: ReactNode
+  /** Куда раскрывается пузырь. Внизу шапки места нет — там `top`. */
+  side?: 'top' | 'bottom'
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+
+  return (
+    <span
+      className={`relative inline-flex ${className}`}
+      onPointerEnter={() => setOpen(true)}
+      onPointerLeave={() => setOpen(false)}
+      onFocusCapture={() => setOpen(true)}
+      onBlurCapture={() => setOpen(false)}
+      aria-describedby={open ? id : undefined}
+    >
+      {children}
+      <span
+        id={id}
+        role="tooltip"
+        // Пузырь не должен ловить курсор: иначе он сам себя удерживает
+        // открытым, когда мышь доезжает до его края.
+        className={`pointer-events-none absolute left-1/2 z-70 w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-[#33333d] bg-[#15151b] px-2.5 py-1.5 text-center font-mono text-[11px] leading-[1.45] whitespace-pre-line text-[#d8d8dd] transition-[opacity,transform] duration-150 ${
+          side === 'top' ? 'bottom-[calc(100%+7px)]' : 'top-[calc(100%+7px)]'
+        }`}
+        style={{
+          opacity: open ? 1 : 0,
+          transform: `translateX(-50%) translateY(${open ? 0 : side === 'top' ? 4 : -4}px)`,
+          boxShadow: '0 10px 26px rgba(0,0,0,.6)',
+          visibility: open ? 'visible' : 'hidden',
+        }}
+      >
+        {text}
+      </span>
+    </span>
+  )
+}
 
 type Variant = 'primary' | 'secondary' | 'ghost'
 
@@ -118,6 +175,10 @@ export function Kicker({
 /**
  * Портрет агента. Картинка кладётся в `public/agents/<slug>.png`; пока её нет —
  * рисуется монограмма в цвет агента. Игра не должна ждать художника.
+ *
+ * `slug: null` — автор скрыт (смена): портрета нет не потому, что файл
+ * не нашёлся, а потому, что его и не должно быть. Запрос в этом случае
+ * не уходит вовсе: 404 на каждый ход — это шум в консоли и в сети.
  */
 export function AgentAvatar({
   slug,
@@ -127,7 +188,7 @@ export function AgentAvatar({
   className = '',
   style,
 }: {
-  slug: string
+  slug: string | null
   name: string
   color: string
   size: number
@@ -135,6 +196,7 @@ export function AgentAvatar({
   style?: CSSProperties
 }) {
   const [failed, setFailed] = useState(false)
+  const hidden = slug === null
 
   return (
     <span
@@ -148,7 +210,7 @@ export function AgentAvatar({
         ...style,
       }}
     >
-      {failed ? (
+      {hidden || failed ? (
         <span
           className="font-display font-bold"
           style={{ color, fontSize: size * 0.4, letterSpacing: '-.02em' }}

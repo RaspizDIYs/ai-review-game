@@ -241,12 +241,25 @@ test('уборка лечит и убирает самый лёгкий дефе
   assert.equal(after.log.at(-1)?.kind, 'cleanup')
 })
 
-test('уборка в чистом проде — профилактика, заряд тратится', () => {
-  const s = cleanup(start()).shift
+test('в чистом проде уборка заряд не тратит', () => {
+  // Раньше тратила: игрок платил зарядом за услугу, которую ему не оказали,
+  // и из трёх уборок до дела доходили две.
+  const turn = cleanup(start())
 
-  assert.equal(s.cleanups, CLEANUPS - 1)
-  const last = s.log.at(-1)
-  assert.ok(last?.kind === 'cleanup' && last.task === null && last.pr === null)
+  assert.equal(turn.done, false)
+  assert.equal(turn.shift.cleanups, CLEANUPS)
+  assert.equal(turn.shift.prod.health, start().prod.health)
+  assert.equal(turn.shift.log.length, 0)
+})
+
+test('упавшая мина уборкой не лечится и заряд не съедает', () => {
+  // Известный дефект уборка не берёт — его ищут руками. Списывать за это
+  // заряд значит наказывать за нажатие кнопки, которая ничего не умеет.
+  const s = withDefects([{ ...mine({ pr: 1409, weight: 2, fuse: 1 }), known: true }], 70)
+  const turn = cleanup(s)
+
+  assert.equal(turn.done, false)
+  assert.equal(turn.shift.cleanups, s.cleanups)
 })
 
 test('уборка называет PR, который закрыла', () => {

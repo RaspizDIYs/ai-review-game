@@ -1,23 +1,30 @@
 /**
  * Терминал — детективный инструмент ревьюера.
  *
- * Он не говорит, кто убийца. Он даёт зацепки: кто писал этот код, какой у
- * автора почерк ошибок, в какой части решения «деформация», выдержит ли прод
- * задуманное удаление. Дальше игрок думает сам — в этом и разница между
- * «нашёл строку = молодец» и расследованием.
+ * Он не говорит, кто убийца, и не показывает пальцем на строку. Он даёт
+ * зацепки: чем известен автор, на что не похожа форма решения, выдержит ли
+ * прод задуманное удаление, что видно в логах. Дальше игрок думает сам —
+ * в этом и разница между «нашёл строку = молодец» и расследованием.
+ *
+ * **Ни одна команда не называет номер строки и не цитирует из неё имён.**
+ * Это правило важнее удобства: как только терминал произносит `dayOf`,
+ * задача превращается в поиск слова по дифу, а из двух подходящих строк
+ * вторая закрывается со второй попытки бесплатно. Проверено на живой игре —
+ * см. заметку «Добавить игре вариативности».
  *
  * Здесь только разбор команд и текст ответа: ни состояния, ни экрана.
  * Всё, что меняет игру, уезжает наружу списком `effects` — по той же причине,
  * по которой из компонента вынесены `round.ts` и `shift.ts`.
  *
- * Два ограничения держат всю механику, и оба не про удобство:
+ * Три ограничения держат всю механику, и ни одно не про удобство:
  *
- * - **заряды.** Запросов на смену шесть, и они не восстанавливаются. Таймера
- *   в смене нет, поэтому бесплатная подсказка означала бы «вычерпать терминал
- *   первым же ходом»;
- * - **один `/git-blame` за ход.** Досье собирается по строке за вызов, и без
- *   этого правила весь профиль агента открывался бы за один раунд —
- *   расследование кончалось бы, не начавшись.
+ * - **заряды.** Платных запросов на смену четыре, и они не восстанавливаются;
+ * - **один `/git-blame` за ход.** Он бесплатный — но досье открывается
+ *   по строке за вызов, и без этого правила профиль агента собирался бы
+ *   за один раунд;
+ * - **слежка стоит ход.** `/grab-evidence` — единственная команда, которая
+ *   не подсказывает, а покупает наблюдение, и платить за него нечем, кроме
+ *   собственного хода.
  *
  * См. заметку «Дополнительные идеи - Ревью за ии», части 3 и 4.
  */
@@ -30,7 +37,7 @@ import { hits } from './round.ts'
 import type { Task } from './types'
 
 /** Тон строки — от него зависит только цвет в терминале. */
-export type Tone = 'in' | 'out' | 'muted' | 'good' | 'bad' | 'code' | 'dossier'
+export type Tone = 'in' | 'out' | 'muted' | 'good' | 'bad' | 'code' | 'dossier' | 'art'
 
 export interface TerminalLine {
   tone: Tone
@@ -46,6 +53,8 @@ export type Effect =
   | { kind: 'probe' }
   /** Открыть игроку ещё одну строку досье на агента. */
   | { kind: 'dossier'; agent: AgentSlug }
+  /** Историю за этот ход подняли: второй раз нельзя, но и не стоит заряда. */
+  | { kind: 'blamed' }
   /** Повесить лог на строки и отпустить PR на логирование: ход кончается. */
   | { kind: 'watch'; lines: number[] }
   /** Очистить экран. Ничего не стоит и ничего не меняет. */
@@ -71,7 +80,15 @@ export interface TerminalContext {
   probes: number
   /** Историю на этом ходу уже смотрели: `/git-blame` доступен раз за ход. */
   blamed: boolean
+  /**
+   * Слежка вообще возможна. Во время починки — нет: она платит ходом смены,
+   * а починка ходов не тратит, и платить за наблюдение стало бы нечем.
+   */
+  canWatch: boolean
 }
+
+/** Сколько строк максимум берёт под наблюдение одна слежка. */
+export const WATCH_LIMIT = 4
 
 function out(text: string): TerminalLine {
   return { tone: 'out', text }
@@ -108,19 +125,6 @@ export function botName(agent: Agent, task: Task, pr: number): string {
   return `${agent.name}_v${(fnv1a(`ver:${agent.slug}:${task.id}:${pr}`) % 4) + 1}`
 }
 
-/** Файл, который правили, — из заголовка дифа. */
-function fileOf(task: Task): string {
-  const head = task.diff.split('\n').find((l) => l.startsWith('+++ '))
-  return head ? head.replace(/^\+\+\+ b\//, '') : 'файл'
-}
-
-/** Символ из шапки ханка: `@@ … @@ namespace clinic {`. Есть не у всех задач. */
-function symbolOf(task: Task): string | null {
-  const head = task.diff.split('\n').find((l) => l.startsWith('@@'))
-  const tail = head?.replace(/^@@[^@]*@@\s*/, '').trim()
-  return tail ? tail.replace(/[{:]\s*$/, '').trim() : null
-}
-
 /** Строки новой версии файла, по номерам. */
 function sourceLines(task: Task): Map<number, string> {
   const map = new Map<number, string>()
@@ -130,59 +134,30 @@ function sourceLines(task: Task): Map<number, string> {
   return map
 }
 
-/**
- * Объявления, по которым терминал понимает, «в чём» деформация. Порядок
- * важен: сначала то, что называет вещь по имени, потом общие конструкции.
- */
-const DECLARATIONS: RegExp[] = [
-  /(?:export\s+)?(?:async\s+)?function\s+(\w+)/,
-  /\bdef\s+(\w+)/,
-  /\bclass\s+(\w+)/,
-  /\bfunc\s+(?:\([^)]*\)\s*)?(\w+)/,
-  /\bfn\s+(\w+)/,
-  /\bsub\s+(\w+)/,
-  /(?:const|let|var)\s+(\w+)\s*[:=]/,
-  /(?:public|private|protected|internal|static|void)\s+[\w<>[\],\s]*?(\w+)\s*\(/,
-  /^\s*(\w+)\s*\(\)\s*\{/,
-  /(?:CREATE|ALTER)\s+(?:OR\s+REPLACE\s+)?(?:TABLE|VIEW|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)/i,
-  /\b(?:FROM|UPDATE|INSERT\s+INTO)\s+([a-z_][\w.]*)/i,
-  /^\s*(\w[\w-]*):\s*$/,
+/** Заставка терминала. Дешёвый способ сказать «это не браузер, это консоль». */
+const BANNER = [
+  '  ___   _____      ____  _____ _   _ _____ _______        __',
+  ' / _ \\ |_   _|    |  _ \\| ____| | | |_   _| ____\\ \\      / /',
+  '| |_| |  | |______| |_) |  _| | | | | | | |  _|  \\ \\ /\\ / / ',
+  '|  _  |  | |______|  _ <| |___| |_| | | | | |___  \\ V  V /  ',
+  '|_| |_|  |_|      |_| \\_\\_____|\\___/  |_| |_____|  \\_/\\_/   ',
 ]
-
-/**
- * В чём деформация: ближайшее объявление выше подозрительной строки.
- *
- * Это и есть ответ терминала — «в расчёте страниц», «в работе с visits».
- * Номера строк он не называет **никогда**: район в семь строк, который тут
- * был раньше, — это фактически адрес, и команда решала задачу за игрока.
- */
-export function enclosing(task: Task, line: number): string {
-  const source = sourceLines(task)
-
-  for (let n = line; n >= Math.min(...source.keys()); n--) {
-    const text = source.get(n)
-    if (!text) continue
-
-    for (const rule of DECLARATIONS) {
-      const found = rule.exec(text)
-      if (found?.[1]) return found[1]
-    }
-  }
-
-  return symbolOf(task) ?? fileOf(task)
-}
 
 const HELP: TerminalLine[] = [
   out('Доступные команды:'),
   muted('  /help                        список команд'),
-  muted('  /git-blame <строка>          кто написал строку и чем известен'),
-  muted('  /compare-with-blueprint      сравнить с эталоном из базы'),
+  muted('  /git-blame <строка>          чем известен автор этой строки'),
+  muted('  /compare-with-blueprint      на что не похожа форма решения'),
   muted('  /deploy --dry-run            прогнать удаление отмеченных строк'),
-  muted('  /grab-evidence --on-line N   повесить лог на строку и отпустить PR'),
+  muted('  /grab-evidence --on-line N   повесить лог и отпустить PR на прогон'),
   muted('  /clear                       очистить экран'),
   { tone: 'muted', text: '' },
-  muted('Первые три тратят запрос: их на смену шесть, и они не восстанавливаются.'),
-  muted('История доступна раз за ход. Слежка тратит не запрос, а весь ход.'),
+  muted('Строк в слежке может быть несколько — через запятую:'),
+  muted(`  /grab-evidence --on-line 8,9,12    (до ${WATCH_LIMIT} строк за раз)`),
+  { tone: 'muted', text: '' },
+  muted('Заряд тратят /compare-with-blueprint и /deploy --dry-run.'),
+  muted('История бесплатна, но доступна раз за ход. Слежка тратит весь ход.'),
+  muted('Номеров строк терминал не называет никогда — ищешь всё равно ты.'),
 ]
 
 /** Разбор `--on-line 15 16` и `--on-line=15,16` — оба варианта живые. */
@@ -195,12 +170,21 @@ function numbers(rest: string): number[] {
   return [...seen].sort((a, b) => a - b)
 }
 
+/**
+ * История строки.
+ *
+ * Имени автора здесь нет — есть его почерк, по строке за вызов. Игрок сам
+ * решает, чей это почерк, и сверяется с досье, которое собирал прошлые смены.
+ * Когда собраны все известные проблемы агента, профиль раскрывается целиком
+ * и вместе с именем: расследование должно чем-то заканчиваться.
+ *
+ * Бесплатна и доступна раз за ход. Платить за неё нечем — она не сужает круг
+ * строк, а только рассказывает про автора.
+ */
 function blame(rest: string, ctx: TerminalContext): TerminalResult {
   const [line] = numbers(rest)
   if (!line) return refuse('нужен номер строки: /git-blame 21')
 
-  // Один запрос истории за ход. Иначе профиль агента собирается за один
-  // раунд, и «постепенно» из постановки не работает вовсе.
   if (ctx.blamed) {
     return refuse(
       'история за этот ход уже поднята',
@@ -218,45 +202,142 @@ function blame(rest: string, ctx: TerminalContext): TerminalResult {
   }
 
   const { author } = ctx
-  const bot = botName(author, ctx.task, ctx.pr)
   const opened = ctx.dossier[author.slug] ?? 0
   // Досье открывается по строке за вызов: сразу весь характер — это ответ,
   // а не зацепка. Первая команда всегда что-то даёт, иначе она бесполезна.
   const show = Math.min(author.known.length, opened + 1)
+  const complete = show >= author.known.length
+
+  // Пока профиль не собран, автор — безымянный `ai[bot]`: имя выдало бы
+  // всё сразу, а собирают тут именно имя.
+  const signature = complete ? botName(author, ctx.task, ctx.pr) : 'ai[bot]'
 
   return {
     lines: [
       { tone: 'code', text: `${String(line).padStart(3)} ${text}` },
-      muted(`${commitHash(ctx.task, ctx.pr)} (${bot}  ${commitDate(ctx.task, ctx.pr)}  ${line})`),
-      { tone: 'dossier', text: `${bot} · ИИ-агент` },
-      { tone: 'dossier', text: `Специализация: ${author.work}` },
-      { tone: 'dossier', text: 'Известные проблемы:' },
-      ...author.known.slice(0, show).map((k): TerminalLine => ({ tone: 'dossier', text: `  — ${k}` })),
-      ...(show < author.known.length
-        ? [muted(`  … профиль собран на ${show} из ${author.known.length}`)]
-        : [muted('  … профиль собран полностью')]),
-      { tone: 'out', text: `${author.name}: ${ownLine(author, `${ctx.task.id}:${line}`)}` },
+      muted(`${commitHash(ctx.task, ctx.pr)} (${signature}  ${commitDate(ctx.task, ctx.pr)})`),
+      ...(complete
+        ? [
+            { tone: 'good' as const, text: `Профиль собран: ${author.name} · ${author.ru}` },
+            { tone: 'dossier' as const, text: `Характер: ${author.trait}` },
+            { tone: 'dossier' as const, text: `Специализация: ${author.work}` },
+          ]
+        : [{ tone: 'dossier' as const, text: 'Автор строки известен вот чем:' }]),
+      ...author.known
+        .slice(0, show)
+        .map((k): TerminalLine => ({ tone: 'dossier', text: `  — ${k}` })),
+      complete
+        ? muted('  … профиль собран полностью')
+        : muted(`  … собрано ${show} из ${author.known.length}`),
+      ...(complete
+        ? [{ tone: 'out' as const, text: `${author.name}: ${ownLine(author, `${ctx.task.id}:${line}`)}` }]
+        : []),
     ],
-    effects: [{ kind: 'probe' }, { kind: 'dossier', agent: author.slug }],
+    effects: [{ kind: 'blamed' }, { kind: 'dossier', agent: author.slug }],
   }
 }
 
-/** Место, около которого терминал видит «деформацию». */
-function suspect(task: Task): number {
-  return task.bugs[0]?.line ?? task.decoys[0]?.line ?? 1
-}
-
-const SHAPES = [
-  'Архитектура деформирована',
-  'Плотность отклонений выше нормы',
-  'Контур эталона не сходится',
-  'Форма решения поплыла',
+/**
+ * Семьи подлянок для сверки с эталоном.
+ *
+ * Эталон не помнит строк — он помнит, как обычно устроено правильное решение.
+ * Поэтому ответ команды всегда про **род** расхождения, а не про место: она
+ * говорит, чего в этой форме не хватает или что в ней лишнее.
+ *
+ * Порядок важен: первое совпадение по подстроке тега и выигрывает, поэтому
+ * узкие семьи стоят выше общих.
+ */
+const FAMILIES: { match: RegExp; shape: string; note: string }[] = [
+  {
+    match: /secret|credential|injection|traversal|token|port-published|select-star/,
+    shape: 'Контур доверия разомкнут',
+    note: 'Эталон нигде не пускает чужое туда, где его читают как своё. Здесь такая граница есть не везде.',
+  },
+  {
+    match: /error|panic|unwrap|rescue|swallow|healthcheck|assert|mock/,
+    shape: 'Ветка неудачи отсутствует',
+    note: 'В эталоне у каждого шага есть исход «не получилось». В этом решении такой исход некому заметить.',
+  },
+  {
+    match: /datetime|utc|local|dateformat|timezone/,
+    shape: 'Ось времени смещена',
+    note: 'Эталон всюду считает время от одной точки отсчёта. Здесь их, похоже, две.',
+  },
+  {
+    match: /money|decimal|division|overflow|float|cast/,
+    shape: 'Числовая форма поплыла',
+    note: 'Эталон бережёт точность там, где её нельзя терять. В этом решении она где-то теряется по дороге.',
+  },
+  {
+    match: /off-by-one|index|boundary|range|slice|pagination|glob/,
+    shape: 'Границы диапазона не сходятся',
+    note: 'Эталон одинаково обращается с краями набора. Здесь один из краёв живёт по своим правилам.',
+  },
+  {
+    match: /async|promise|thread|blocking|context-leak|main-thread|stale/,
+    shape: 'Порядок событий не гарантирован',
+    note: 'Эталон дожидается того, что запустил. Здесь есть шаг, который никто не ждёт.',
+  },
+  {
+    match: /cache|n-plus-one|httpclient|cleanup|cycle|dangling|generator|retain/,
+    shape: 'Жизненный цикл не замкнут',
+    note: 'В эталоне у всего, что заводят, есть момент, когда это отпускают. Здесь такой момент найден не для всего.',
+  },
+  {
+    match: /mutat|shared|mutable|default-arg|class-attribute|constant|props/,
+    shape: 'Владение данными размыто',
+    note: 'Эталон не даёт двум местам править одно и то же. Здесь общее состояние досталось сразу нескольким.',
+  },
+  {
+    match: /clone|merge|decode-shape|reference-equality|symbol-string|rename|dependency/,
+    shape: 'Форма данных меняется по дороге',
+    note: 'Эталон держит одну форму от входа до выхода. Здесь на полпути она становится другой.',
+  },
+  {
+    match: /join|group-by|not-in|transaction|where|migration|backfill|null/,
+    shape: 'Множество отобрано не тем правилом',
+    note: 'Эталон отбирает ровно то, о чём просили. Здесь набор получается шире или уже, чем задумано.',
+  },
+  {
+    match: /docker|image|ci-|lockfile|cache-key|deploy-trigger|container|dev-mode/,
+    shape: 'Окружение собрано не воспроизводимо',
+    note: 'Эталон получает один и тот же результат при каждой сборке. Здесь результат зависит от того, когда собирали.',
+  },
+  {
+    match: /rm-with|cd-unchecked|pipefail|unquoted|force-push|rebase|reset-hard|commit-everything/,
+    shape: 'Шаг необратим и ничем не прикрыт',
+    note: 'Эталон проверяет почву перед тем, как что-то стереть. Здесь проверка пропущена.',
+  },
+  {
+    match: /encoding|comparison|normalization|falsy|signed/,
+    shape: 'Сравнение опирается на неявное правило',
+    note: 'Эталон сравнивает то, что сравнимо. Здесь два разных значения где-то считаются одним.',
+  },
 ]
 
+const GENERIC = {
+  shape: 'Форма решения поплыла',
+  note: 'Эталон устроен иначе, но чем именно — база сформулировать не смогла. Читай сам.',
+}
+
+/** Род расхождения по тегу подлянки. Ни имён, ни строк — только форма. */
+export function family(tag: string): { shape: string; note: string } {
+  return FAMILIES.find((f) => f.match.test(tag)) ?? GENERIC
+}
+
+/**
+ * Сверка с эталоном.
+ *
+ * Раньше команда печатала имя функции из подозрительной строки — то есть
+ * буквально ключевое слово для поиска по дифу. Теперь она описывает род
+ * расхождения человеческим языком: «ветка неудачи отсутствует», «границы
+ * диапазона не сходятся». Это сужает то, что искать, но не то, где искать,
+ * и никуда не годится как подстановка в Ctrl+F.
+ */
 function blueprint(ctx: TerminalContext): TerminalResult {
   const { task } = ctx
-  const where = enclosing(task, suspect(task))
-  const shape = SHAPES[fnv1a(`shape:${task.id}`) % SHAPES.length]
+  const tag = task.bugs[0]?.tag ?? ''
+  const { shape, note } = family(tag)
 
   // График бессмысленно рисовать по номерам строк — их команда не называет.
   // Это шкала расхождения с эталоном: «сильно поплыло» против «чуть-чуть».
@@ -266,9 +347,10 @@ function blueprint(ctx: TerminalContext): TerminalResult {
   return {
     lines: [
       out('Сверяю с эталоном из базы…'),
-      { tone: 'bad', text: `${shape}: ${where}` },
+      { tone: 'bad', text: `${shape}.` },
       { tone: 'code', text: `расхождение [${bar}] ${drift}%` },
       { tone: 'muted', text: '' },
+      out(note),
       muted('Эталон помнит форму решения, а не строки: где именно — он не знает.'),
     ],
     effects: [{ kind: 'probe' }],
@@ -325,6 +407,13 @@ function deploy(ctx: TerminalContext): TerminalResult {
 }
 
 function grab(rest: string, ctx: TerminalContext): TerminalResult {
+  if (!ctx.canWatch) {
+    return refuse(
+      'наблюдение отсюда не поставить',
+      'Прогон под логами стоит хода смены, а тут ходы не идут. Смотри своими глазами.',
+    )
+  }
+
   if (ctx.watching.length > 0) {
     return refuse(
       'слежка уже поставлена',
@@ -333,7 +422,21 @@ function grab(rest: string, ctx: TerminalContext): TerminalResult {
   }
 
   const lines = numbers(rest)
-  if (lines.length === 0) return refuse('нужен номер строки: /grab-evidence --on-line 16')
+  if (lines.length === 0) {
+    return refuse(
+      'нужен номер строки: /grab-evidence --on-line 16',
+      `Можно сразу несколько через запятую: --on-line 8,9,12 — до ${WATCH_LIMIT} строк.`,
+    )
+  }
+
+  // Без потолка слежка вырождается в «повесить лог на весь файл»: ход
+  // потрачен, зато гипотезы не было вовсе. Четыре строки — это ещё гипотеза.
+  if (lines.length > WATCH_LIMIT) {
+    return refuse(
+      `столько строк сразу не залогировать: ${lines.length} из ${WATCH_LIMIT}`,
+      'Прогон под наблюдением стоит хода — под него выбирают участок, а не файл.',
+    )
+  }
 
   const source = sourceLines(ctx.task)
   const missing = lines.filter((line) => !source.has(line))
@@ -344,7 +447,7 @@ function grab(rest: string, ctx: TerminalContext): TerminalResult {
   return {
     lines: [
       out(`Лог повешен на строки ${lines.join(', ')}.`),
-      muted('PR уходит на логирование, а не в прод. Ход потрачен.'),
+      muted('PR уходит на прогон под наблюдением, а не в прод. Ход потрачен.'),
     ],
     effects: [{ kind: 'watch', lines }],
   }
@@ -353,13 +456,15 @@ function grab(rest: string, ctx: TerminalContext): TerminalResult {
 /** Приветствие при открытии терминала. */
 export function greeting(repo: string): TerminalLine[] {
   return [
-    out(`Добро пожаловать в ${repo} Terminal v1.2.0`),
+    ...BANNER.map((text): TerminalLine => ({ tone: 'art', text })),
+    { tone: 'muted', text: '' },
+    out(`${repo} Terminal v1.2.0 — инструмент ревьюера`),
     muted("Введи 'help' для списка команд."),
   ]
 }
 
 /** Тратит ли команда заряд — это же показывает подсказка у поля ввода. */
-const COSTLY = ['git-blame', 'blame', 'compare-with-blueprint', 'compare', 'deploy']
+const COSTLY = ['compare-with-blueprint', 'compare', 'deploy']
 
 /**
  * Выполнить строку. Ведущий слэш необязателен: в заметке команды записаны
@@ -378,7 +483,7 @@ export function run(input: string, ctx: TerminalContext): TerminalResult {
   if (ctx.probes <= 0 && COSTLY.includes(command)) {
     return refuse(
       'запросов на эту смену не осталось',
-      'Терминал отвечает шесть раз за смену. Дальше — своими глазами.',
+      'Платные запросы кончились. История и слежка ещё работают.',
     )
   }
 
@@ -406,36 +511,52 @@ export function run(input: string, ctx: TerminalContext): TerminalResult {
   }
 }
 
+/** Симптомы белого шума — их печатает лог, когда наблюдение ничего не поймало. */
+const QUIET = [
+  'вызовов за прогон: в пределах ожидаемого',
+  'значения на выходе совпали с входными ожиданиями',
+  'ветка исполнена, исключений не зафиксировано',
+  'аллокации стабильны, задержка в норме',
+]
+
 /**
  * Оперативный отчёт по слежке — приходит после виртуального тика прода.
  *
- * Угадал — терминал отдаёт точную улику и подсвечивает диапазон строк.
- * Не угадал — «белый шум»: аномалий не обнаружено. Здоровье прода в обоих
- * случаях страдает меньше, чем от обычного пропуска: PR лежал на логировании,
- * а не в проде.
+ * Что он **не** делает: не называет строку с подлянкой и не подсвечивает
+ * диапазон. Раньше делал — и слежка превращалась в «повесь лог на полфайла,
+ * получи адрес». Теперь она покупает другое: если наблюдение задело подлянку,
+ * лог показывает, **чем именно это кончится в проде** (последствие из задачи).
+ * Знать род аварии полезно, найти строку по нему всё равно надо самому.
+ *
+ * Здоровье прода в обоих случаях страдает меньше, чем от обычного пропуска:
+ * PR лежал под наблюдением, а не в бою.
  */
 export function report(task: Task, watched: readonly number[]): TerminalLine[] {
-  const caught = task.bugs.filter((bug) => watched.some((line) => hits(bug, line)))
+  const caughtBugs = task.bugs.filter((bug) => watched.some((line) => hits(bug, line)))
   const list = [...watched].sort((a, b) => a - b)
 
-  if (caught.length === 0) {
+  const trace = list.map(
+    (n): TerminalLine => muted(`  · участок #${n}: ${QUIET[fnv1a(`q:${task.id}:${n}`) % QUIET.length]}`),
+  )
+
+  if (caughtBugs.length === 0) {
     return [
-      { tone: 'out', text: '[LOG-CAPTURE] Логирование завершено.' },
-      muted(
-        `Строки ${list.map((n) => String(n).padStart(2, '0')).join(', ')}: аномалий не обнаружено.`,
-      ),
-      muted('Система работала штатно в контролируемой среде.'),
+      { tone: 'out', text: '[LOG-CAPTURE] Прогон под наблюдением завершён.' },
+      ...trace,
+      muted('Отклонений не зафиксировано. Система работала штатно.'),
+      muted('Наблюдение не доказывает, что здесь чисто, — только что здесь тихо.'),
     ]
   }
 
-  const from = Math.min(...caught.map((b) => b.line))
-  const to = Math.max(...caught.map((b) => b.line))
-
   return [
-    { tone: 'bad', text: `[LOG-CAPTURE] Строка ${from} зафиксировала аномалию!` },
-    { tone: 'out', text: caught[0].consequence },
-    { tone: 'good', text: `Диапазон подтверждён: строки ${from}–${to}.` },
-    muted('Здоровье прода не пострадало: код был на логировании.'),
+    { tone: 'bad', text: '[LOG-CAPTURE] Наблюдение зафиксировало отклонение.' },
+    ...trace,
+    { tone: 'muted', text: '' },
+    out('Чем это кончится, если выпустить как есть:'),
+    ...caughtBugs.map((bug): TerminalLine => ({ tone: 'bad', text: `  ${bug.consequence}` })),
+    { tone: 'muted', text: '' },
+    muted('Где именно это происходит, лог не знает: он видит поведение, а не причину.'),
+    muted('Здоровье прода не пострадало: код был под наблюдением.'),
   ]
 }
 
