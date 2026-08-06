@@ -81,6 +81,11 @@ export interface TerminalContext {
   /** Историю на этом ходу уже смотрели: `/blame` доступен раз за ход. */
   blamed: boolean
   /**
+   * Про кого на этой смене уже узнали новое. Досье растёт не быстрее строки
+   * за смену на агента — иначе он собирается целиком за один рабочий день.
+   */
+  learned: readonly string[]
+  /**
    * Слежка вообще возможна. Во время починки — нет: она платит ходом смены,
    * а починка ходов не тратит, и платить за наблюдение стало бы нечем.
    */
@@ -207,9 +212,18 @@ function blame(ctx: TerminalContext): TerminalResult {
 
   const { author, task } = ctx
   const opened = ctx.dossier[author.slug] ?? 0
-  // Досье открывается по строке за вызов: сразу весь характер — это ответ,
-  // а не зацепка. Первая команда всегда что-то даёт, иначе она бесполезна.
-  const show = Math.min(author.known.length, opened + 1)
+
+  /*
+    Досье открывается по строке за вызов — и не быстрее строки за смену
+    на агента. Второе ограничение важнее первого: без него агент, который
+    за двенадцать ходов попался четырежды, собирался целиком за один
+    рабочий день, и «постепенно» из постановки не работало вовсе.
+
+    Упёрлись в потолок — команда всё равно отвечает: она рассказывает
+    то, что уже известно. Не даёт нового, а не отказывает.
+  */
+  const capped = ctx.learned.includes(author.slug)
+  const show = capped ? opened : Math.min(author.known.length, opened + 1)
   const complete = show >= author.known.length
 
   // Пока профиль не собран, автор — безымянный `ai[bot]`: имя выдало бы
@@ -237,12 +251,17 @@ function blame(ctx: TerminalContext): TerminalResult {
         .map((k): TerminalLine => ({ tone: 'dossier', text: `  — ${k}` })),
       complete
         ? muted('  … профиль собран полностью')
-        : muted(`  … собрано ${show} из ${author.known.length}`),
+        : muted(
+            `  … собрано ${show} из ${author.known.length}` +
+              (capped ? ' · новое об этом авторе — в следующую смену' : ''),
+          ),
       ...(complete
         ? [{ tone: 'out' as const, text: `${author.name}: ${ownLine(author, task.id)}` }]
         : []),
     ],
-    effects: [{ kind: 'blamed' }, { kind: 'dossier', agent: author.slug }],
+    effects: capped
+      ? [{ kind: 'blamed' }]
+      : [{ kind: 'blamed' }, { kind: 'dossier', agent: author.slug }],
   }
 }
 

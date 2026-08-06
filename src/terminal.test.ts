@@ -31,6 +31,7 @@ function ctx(over: Partial<TerminalContext> = {}): TerminalContext {
     watching: [],
     probes: PROBES,
     blamed: false,
+    learned: [],
     canWatch: true,
     ...over,
   }
@@ -310,4 +311,31 @@ test('прежние длинные имена всё ещё понимаютс�
   ]) {
     assert.deepEqual(text(DIRTY, old), text(DIRTY, short), `${old} разошлась с ${short}`)
   }
+})
+
+test('за смену про одного агента узнают одну строку', () => {
+  // Без потолка агент, попавшийся за двенадцать ходов четыре раза,
+  // собирался целиком за один рабочий день — и детектив кончался в первую же
+  // смену. Ровно на это жаловались после живой игры.
+  const said = text(DIRTY, 'blame', {
+    dossier: { commander: 1 },
+    learned: ['commander'],
+  })
+
+  const lines = said.split('\n').filter((l) => l.startsWith('  — ')).length
+  assert.equal(lines, 1, 'потолок не удержал: строк стало больше')
+  assert.ok(said.includes('в следующую смену'))
+})
+
+test('упёршийся в потолок blame всё равно отвечает, но не даёт нового', () => {
+  const result = run('blame', ctx({ dossier: { commander: 2 }, learned: ['commander'] }))
+
+  // Ход он по-прежнему занимает — иначе им можно долбить бесконечно.
+  assert.deepEqual(result.effects, [{ kind: 'blamed' }])
+  assert.ok(result.lines.length > 3, 'команда замолчала вместо того, чтобы рассказать известное')
+})
+
+test('потолок на одного агента не мешает узнать про другого', () => {
+  const result = run('blame', ctx({ author: AGENTS.oracle, learned: ['commander'] }))
+  assert.deepEqual(result.effects, [{ kind: 'blamed' }, { kind: 'dossier', agent: 'oracle' }])
 })

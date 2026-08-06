@@ -89,6 +89,7 @@ import {
   isCheckpoint,
   isShiftOver,
   merged,
+  learn as learnShift,
   probe as probeShift,
   repair as repairShift,
   restore as restoreShift,
@@ -726,6 +727,7 @@ export default function App() {
       watching,
       probes: shift.probes,
       blamed,
+      learned: shift.learned,
       // Слежка платит ходом смены, а в починке ходы не идут.
       canWatch: repairing === null,
     })
@@ -753,6 +755,12 @@ export default function App() {
           AGENT_SLUGS.map((slug) => [slug, AGENTS[slug].known.length]),
         )
         unlock(dossierUnlocks(dossier, full), { ...profile, dossier })
+
+        // Потолок: про одного агента за смену узнают одну строку. Пишем это
+        // в саму смену — переживает перезагрузку вкладки вместе с ней.
+        const marked = learnShift(shift, effect.agent)
+        setShift(marked)
+        saveShift(marked)
       }
       if (effect.kind === 'watch') releaseToLogging(effect.lines)
     }
