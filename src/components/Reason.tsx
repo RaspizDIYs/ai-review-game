@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useLead } from '../lead.ts'
 import type { ReasonOption } from '../reason.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
@@ -28,6 +29,10 @@ export function Reason({ task, tokens, accent, picks, options, onAnswer }: Props
     first.current?.focus({ preventScroll: true })
   }, [task.id])
 
+  // Вопрос — то, ради чего экран открылся, и он ниже дифа. Если он оказался
+  // за сгибом, экран доводит до него сам: листать руками игрок не должен.
+  const lead = useLead<HTMLDivElement>()
+
   const marks = new Map<number, LineState>(picks.map((line) => [line, 'correct' as const]))
 
   return (
@@ -48,9 +53,10 @@ export function Reason({ task, tokens, accent, picks, options, onAnswer }: Props
 
       <DiffView diff={task.diff} tokens={tokens} marks={marks} accent={accent} disabled />
 
-      <Kicker>что здесь не так</Kicker>
+      <div ref={lead} className="flex flex-col gap-4">
+        <Kicker>что здесь не так</Kicker>
 
-      <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-2.5">
         {options.map((option, i) => (
           <li key={option.tag}>
             <button
@@ -67,9 +73,10 @@ export function Reason({ task, tokens, accent, picks, options, onAnswer }: Props
               </span>
               {option.text}
             </button>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }

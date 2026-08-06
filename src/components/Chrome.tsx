@@ -57,7 +57,12 @@ export function Chrome({
   run,
 }: Props) {
   return (
-    <div className="sticky top-0 z-40 border-b border-[#1f1f26] bg-[#0a0a0ce8] backdrop-blur-[10px]">
+    // id — чтобы реплика ИИ могла встать ровно под шапкой: на телефоне
+    // это единственное место, где она никого не перекрывает.
+    <div
+      id="chrome"
+      className="sticky top-0 z-40 border-b border-[#1f1f26] bg-[#0a0a0ce8] backdrop-blur-[10px]"
+    >
       <div className="mx-auto flex max-w-[900px] items-center gap-3 px-[18px] py-2.5">
         <span style={{ color: accent }}>
           <Icon name="git-pull-request" size={16} />

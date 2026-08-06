@@ -21,9 +21,20 @@
   --color-text-faint: #5c5c66;
 }
 
-html, body, #root { height: 100%; }
-/* Диф скроллится внутри своей рамки, страница — никогда. */
-html, body { overflow-x: hidden; }
+/*
+  Прокручивается страница целиком, и прокручивает её ровно один элемент — html.
+
+  Раньше высота 100% висела на всех троих, а `overflow-x: hidden` стоял
+  и на html, и на body. У body от этого `overflow-y` становился `auto`,
+  и он превращался во второй контейнер прокрутки внутри первого: страница
+  ездила не тем элементом, `window.scrollY` всегда показывал ноль, а любая
+  попытка увести игрока к нужному месту программно молча ничего не делала.
+
+  Теперь у body и #root потолка высоты нет — они растут по содержимому,
+  а горизонтальную прокрутку режет только корень.
+*/
+html { height: 100%; overflow-x: hidden; }
+body, #root { min-height: 100%; }
 
 body {
   margin: 0;
@@ -122,9 +133,15 @@ body {
   from { opacity: 0; transform: translateY(-16px) scale(.94) }
   to { opacity: 1; transform: none }
 }
-/* Реплика ИИ приезжает снизу справа — оттуда, где она и висит. */
-@keyframes replyIn {
-  from { opacity: 0; transform: translateY(14px) scale(.94) }
+/* Реплика ИИ. В правом поле она выезжает сбоку и центрирована по -50%,
+   под шапкой — просто опускается сверху. Кадры разные, потому что
+   вертикальный сдвиг у них разный, и смешивать его нельзя. */
+@keyframes replyAside {
+  from { opacity: 0; transform: translateY(-50%) translateX(28px) scale(.96) }
+  to { opacity: 1; transform: translateY(-50%) }
+}
+@keyframes replyUnder {
+  from { opacity: 0; transform: translateY(-12px) scale(.97) }
   to { opacity: 1; transform: none }
 }
 @keyframes flameFlicker { 0%,100% { transform: scale(1) } 50% { transform: scale(1.14) } }
