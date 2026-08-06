@@ -19,10 +19,10 @@
  * Три ограничения держат всю механику, и ни одно не про удобство:
  *
  * - **заряды.** Платных запросов на смену четыре, и они не восстанавливаются;
- * - **один `/git-blame` за ход.** Он бесплатный — но досье открывается
+ * - **один `/blame` за ход.** Он бесплатный — но досье открывается
  *   по строке за вызов, и без этого правила профиль агента собирался бы
  *   за один раунд;
- * - **слежка стоит ход.** `/grab-evidence` — единственная команда, которая
+ * - **слежка стоит ход.** `/log` — единственная команда, которая
  *   не подсказывает, а покупает наблюдение, и платить за него нечем, кроме
  *   собственного хода.
  *
@@ -31,7 +31,7 @@
 
 import type { Agent, AgentSlug } from './agents.ts'
 import { fnv1a } from './daily.ts'
-import { parseDiff } from './diff.ts'
+import { diffStat, parseDiff } from './diff.ts'
 import { ownLine } from './replies.ts'
 import { hits } from './round.ts'
 import type { Task } from './types'
@@ -72,13 +72,13 @@ export interface TerminalContext {
   author: Agent
   /** Сколько строк досье уже открыто по каждому агенту. */
   dossier: Readonly<Record<string, number>>
-  /** Что игрок отметил в дифе прямо сейчас — это и проверяет `--dry-run`. */
+  /** Что игрок отметил в дифе прямо сейчас — это и проверяет `/deploy`. */
   selected: readonly number[]
   /** Слежка уже стоит: второй раз за ход её не ставят. */
   watching: readonly number[]
   /** Сколько запросов к терминалу осталось на смену. */
   probes: number
-  /** Историю на этом ходу уже смотрели: `/git-blame` доступен раз за ход. */
+  /** Историю на этом ходу уже смотрели: `/blame` доступен раз за ход. */
   blamed: boolean
   /**
    * Слежка вообще возможна. Во время починки — нет: она платит ходом смены,
@@ -125,6 +125,12 @@ export function botName(agent: Agent, task: Task, pr: number): string {
   return `${agent.name}_v${(fnv1a(`ver:${agent.slug}:${task.id}:${pr}`) % 4) + 1}`
 }
 
+/** Файл, который правили, — из заголовка дифа. */
+function fileOf(task: Task): string {
+  const head = task.diff.split('\n').find((l) => l.startsWith('+++ '))
+  return head ? head.replace(/^\+\+\+ b\//, '') : 'файл'
+}
+
 /** Строки новой версии файла, по номерам. */
 function sourceLines(task: Task): Map<number, string> {
   const map = new Map<number, string>()
@@ -145,18 +151,18 @@ const BANNER = [
 
 const HELP: TerminalLine[] = [
   out('Доступные команды:'),
-  muted('  /help                        список команд'),
-  muted('  /git-blame <строка>          чем известен автор этой строки'),
-  muted('  /compare-with-blueprint      на что не похожа форма решения'),
-  muted('  /deploy --dry-run            прогнать удаление отмеченных строк'),
-  muted('  /grab-evidence --on-line N   повесить лог и отпустить PR на прогон'),
-  muted('  /clear                       очистить экран'),
+  muted('  /help            список команд'),
+  muted('  /blame           кто написал этот PR и чем известен'),
+  muted('  /check           на что не похожа форма решения'),
+  muted('  /deploy          прогнать удаление отмеченных строк'),
+  muted('  /log N           повесить лог и отпустить PR на прогон'),
+  muted('  /clear           очистить экран'),
   { tone: 'muted', text: '' },
-  muted('Строк в слежке может быть несколько — через запятую:'),
-  muted(`  /grab-evidence --on-line 8,9,12    (до ${WATCH_LIMIT} строк за раз)`),
+  muted('Строк в логе может быть несколько — через запятую:'),
+  muted(`  /log 8,9,12      (до ${WATCH_LIMIT} строк за раз)`),
   { tone: 'muted', text: '' },
-  muted('Заряд тратят /compare-with-blueprint и /deploy --dry-run.'),
-  muted('История бесплатна, но доступна раз за ход. Слежка тратит весь ход.'),
+  muted('Заряд тратят /check и /deploy.'),
+  muted('/blame бесплатен, но доступен раз за ход. /log тратит весь ход.'),
   muted('Номеров строк терминал не называет никогда — ищешь всё равно ты.'),
 ]
 
@@ -171,7 +177,12 @@ function numbers(rest: string): number[] {
 }
 
 /**
- * История строки.
+ * История правки: кто написал этот PR.
+ *
+ * **Номер строки команда не спрашивает.** Спрашивала — и это было враньём:
+ * весь пул-реквест пишет один агент, поэтому какую строку ни назови, ответ
+ * один и тот же. Аргумент выглядел выбором, не будучи им, и первым делом
+ * учил игрока, что выбор здесь ничего не решает.
  *
  * Имени автора здесь нет — есть его почерк, по строке за вызов. Игрок сам
  * решает, чей это почерк, и сверяется с досье, которое собирал прошлые смены.
@@ -181,10 +192,7 @@ function numbers(rest: string): number[] {
  * Бесплатна и доступна раз за ход. Платить за неё нечем — она не сужает круг
  * строк, а только рассказывает про автора.
  */
-function blame(rest: string, ctx: TerminalContext): TerminalResult {
-  const [line] = numbers(rest)
-  if (!line) return refuse('нужен номер строки: /git-blame 21')
-
+function blame(ctx: TerminalContext): TerminalResult {
   if (ctx.blamed) {
     return refuse(
       'история за этот ход уже поднята',
@@ -192,16 +200,7 @@ function blame(rest: string, ctx: TerminalContext): TerminalResult {
     )
   }
 
-  const source = sourceLines(ctx.task)
-  const text = source.get(line)
-  if (text === undefined) {
-    return refuse(
-      `строки ${line} в новой версии файла нет`,
-      'Удалённые строки истории не имеют — их автор уже никто.',
-    )
-  }
-
-  const { author } = ctx
+  const { author, task } = ctx
   const opened = ctx.dossier[author.slug] ?? 0
   // Досье открывается по строке за вызов: сразу весь характер — это ответ,
   // а не зацепка. Первая команда всегда что-то даёт, иначе она бесполезна.
@@ -210,19 +209,24 @@ function blame(rest: string, ctx: TerminalContext): TerminalResult {
 
   // Пока профиль не собран, автор — безымянный `ai[bot]`: имя выдало бы
   // всё сразу, а собирают тут именно имя.
-  const signature = complete ? botName(author, ctx.task, ctx.pr) : 'ai[bot]'
+  const signature = complete ? botName(author, task, ctx.pr) : 'ai[bot]'
+  const { adds, dels } = diffStat(task.diff)
 
   return {
     lines: [
-      { tone: 'code', text: `${String(line).padStart(3)} ${text}` },
-      muted(`${commitHash(ctx.task, ctx.pr)} (${signature}  ${commitDate(ctx.task, ctx.pr)})`),
+      out(`Поднимаю историю ${fileOf(task)}…`),
+      muted(
+        `${commitHash(task, ctx.pr)}  ${signature}  ${commitDate(task, ctx.pr)}  (+${adds} −${dels})`,
+      ),
+      muted('Все строки правки — одного автора. Отдельной истории у них нет.'),
+      { tone: 'muted', text: '' },
       ...(complete
         ? [
             { tone: 'good' as const, text: `Профиль собран: ${author.name} · ${author.ru}` },
             { tone: 'dossier' as const, text: `Характер: ${author.trait}` },
             { tone: 'dossier' as const, text: `Специализация: ${author.work}` },
           ]
-        : [{ tone: 'dossier' as const, text: 'Автор строки известен вот чем:' }]),
+        : [{ tone: 'dossier' as const, text: 'Автор правки известен вот чем:' }]),
       ...author.known
         .slice(0, show)
         .map((k): TerminalLine => ({ tone: 'dossier', text: `  — ${k}` })),
@@ -230,7 +234,7 @@ function blame(rest: string, ctx: TerminalContext): TerminalResult {
         ? muted('  … профиль собран полностью')
         : muted(`  … собрано ${show} из ${author.known.length}`),
       ...(complete
-        ? [{ tone: 'out' as const, text: `${author.name}: ${ownLine(author, `${ctx.task.id}:${line}`)}` }]
+        ? [{ tone: 'out' as const, text: `${author.name}: ${ownLine(author, task.id)}` }]
         : []),
     ],
     effects: [{ kind: 'blamed' }, { kind: 'dossier', agent: author.slug }],
@@ -424,8 +428,8 @@ function grab(rest: string, ctx: TerminalContext): TerminalResult {
   const lines = numbers(rest)
   if (lines.length === 0) {
     return refuse(
-      'нужен номер строки: /grab-evidence --on-line 16',
-      `Можно сразу несколько через запятую: --on-line 8,9,12 — до ${WATCH_LIMIT} строк.`,
+      'нужен номер строки: /log 16',
+      `Можно сразу несколько через запятую: /log 8,9,12 — до ${WATCH_LIMIT} строк.`,
     )
   }
 
@@ -463,8 +467,27 @@ export function greeting(repo: string): TerminalLine[] {
   ]
 }
 
-/** Тратит ли команда заряд — это же показывает подсказка у поля ввода. */
-const COSTLY = ['compare-with-blueprint', 'compare', 'deploy']
+/**
+ * Как называется команда на самом деле.
+ *
+ * Имена короткие и все в одном стиле — одно слово, четыре-шесть букв.
+ * Раньше были `compare-with-blueprint` и `grab-evidence --on-line`: набирать
+ * такое на телефоне невозможно, а читать вслух стыдно. Длинные варианты
+ * остались псевдонимами: они записаны в старых заметках, и ломать их незачем.
+ */
+const ALIASES: Record<string, string> = {
+  '?': 'help',
+  'git-blame': 'blame',
+  'compare-with-blueprint': 'check',
+  compare: 'check',
+  blueprint: 'check',
+  'grab-evidence': 'log',
+  grab: 'log',
+  watch: 'log',
+}
+
+/** Тратит ли команда заряд — это же показывает значок на кнопке. */
+const COSTLY = ['check', 'deploy']
 
 /**
  * Выполнить строку. Ведущий слэш необязателен: в заметке команды записаны
@@ -475,7 +498,8 @@ export function run(input: string, ctx: TerminalContext): TerminalResult {
   if (trimmed === '') return { lines: [], effects: [] }
 
   const [head, ...rest] = trimmed.replace(/^\//, '').split(/\s+/)
-  const command = head.toLowerCase()
+  const typed = head.toLowerCase()
+  const command = ALIASES[typed] ?? typed
   const tail = rest.join(' ')
 
   // Заряды кончились — отказ до разбора аргументов: терминал не должен
@@ -483,31 +507,25 @@ export function run(input: string, ctx: TerminalContext): TerminalResult {
   if (ctx.probes <= 0 && COSTLY.includes(command)) {
     return refuse(
       'запросов на эту смену не осталось',
-      'Платные запросы кончились. История и слежка ещё работают.',
+      'Платные запросы кончились. /blame и /log ещё работают.',
     )
   }
 
   switch (command) {
     case 'help':
-    case '?':
       return { lines: HELP, effects: [] }
-    case 'git-blame':
     case 'blame':
-      return blame(tail, ctx)
-    case 'compare-with-blueprint':
-    case 'compare':
+      return blame(ctx)
+    case 'check':
       return blueprint(ctx)
     case 'deploy':
-      return tail.includes('--dry-run')
-        ? deploy(ctx)
-        : refuse('выкатывать прод отсюда нельзя', 'Есть только /deploy --dry-run — пробная выкладка.')
-    case 'grab-evidence':
-    case 'grab':
+      return deploy(ctx)
+    case 'log':
       return grab(tail, ctx)
     case 'clear':
       return { lines: [], effects: [{ kind: 'clear' }] }
     default:
-      return refuse(`команда не найдена: ${command}`, "Введи 'help' — покажу, что умею.")
+      return refuse(`команда не найдена: ${typed}`, "Введи 'help' — покажу, что умею.")
   }
 }
 

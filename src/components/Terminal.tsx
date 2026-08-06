@@ -4,13 +4,13 @@
  * Разбор команд живёт в `terminal.ts` — здесь только ввод, вывод и то, чтобы
  * панель не мешала смотреть диф.
  *
- * Способов ввода два, и выбирает игрок (шестерёнка → терминал). Печатать
- * `/compare-with-blueprint` большим пальцем на телефоне — наказание, а на
- * клавиатуре кнопки только отнимают место. Поэтому не «как удобнее нам»,
- * а настройка.
+ * Способов ввода два, и выбирает игрок (шестерёнка → терминал): на телефоне
+ * удобнее кнопки, на клавиатуре они только отнимают место. Поэтому не «как
+ * удобнее нам», а настройка.
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { beep } from '../sound.ts'
 import type { TermInput } from '../storage.ts'
 import { PROBES } from '../shift.ts'
@@ -47,38 +47,55 @@ const COLOR: Record<Tone, string> = {
   art: '#3f7d63',
 }
 
-/** Кнопки быстрого ввода. `arg` — команда просит номер строки. */
-const COMMANDS: { label: string; command: string; hint: string; costly: boolean; arg?: boolean }[] =
-  [
-    { label: 'help', command: 'help', hint: 'список команд', costly: false },
-    {
-      label: 'git-blame',
-      command: 'git-blame',
-      hint: 'чем известен автор строки\nраз за ход, бесплатно',
-      costly: false,
-      arg: true,
-    },
-    {
-      label: 'blueprint',
-      command: 'compare-with-blueprint',
-      hint: 'на что не похожа форма решения\nтратит заряд',
-      costly: true,
-    },
-    {
-      label: 'dry-run',
-      command: 'deploy --dry-run',
-      hint: 'прогнать удаление отмеченных строк\nтратит заряд',
-      costly: true,
-    },
-    {
-      label: 'grab-evidence',
-      command: 'grab-evidence --on-line',
-      hint: 'повесить лог и отпустить PR на прогон\nстоит целого хода',
-      costly: false,
-      arg: true,
-    },
-    { label: 'clear', command: 'clear', hint: 'очистить экран', costly: false },
-  ]
+/**
+ * Чем команда платит. Три валюты, и различать их важнее, чем экономить место:
+ * заряд кончится к середине смены, а ход не вернуть вовсе.
+ */
+type Cost = 'free' | 'probe' | 'turn'
+
+const COST: Record<Cost, { mark: string; color: string; label: string }> = {
+  free: { mark: '·', color: '#6b7d73', label: 'бесплатно' },
+  probe: { mark: '◆', color: '#c9a227', label: 'тратит заряд' },
+  turn: { mark: '■', color: '#f87171', label: 'тратит ход' },
+}
+
+/**
+ * Кнопки быстрого ввода.
+ *
+ * Подпись кнопки — ровно то, что ушло бы в поле ввода: нажал `/check` —
+ * в истории команд появится `/check`. Имена короткие и все одной длины,
+ * чтобы их можно было набрать одним пальцем и запомнить с первого раза;
+ * прежние `compare-with-blueprint` и `grab-evidence --on-line` терминал
+ * по-прежнему понимает, но нигде не показывает.
+ *
+ * `arg` — команда просит номер строки: такая кнопка не отправляет, а
+ * подставляет команду в поле. Номер за игрока не угадывают.
+ */
+const COMMANDS: { command: string; hint: string; cost: Cost; arg?: boolean }[] = [
+  { command: 'help', hint: 'список команд', cost: 'free' },
+  {
+    command: 'blame',
+    hint: 'кто написал этот PR и чем известен\nодин раз за ход',
+    cost: 'free',
+  },
+  {
+    command: 'check',
+    hint: 'сверить с эталоном из базы\nна что не похожа форма решения',
+    cost: 'probe',
+  },
+  {
+    command: 'deploy',
+    hint: 'пробная выкладка отмеченных строк\nпокажет, каким станет прод',
+    cost: 'probe',
+  },
+  {
+    command: 'log',
+    hint: 'повесить лог на строки и отпустить PR на прогон\nрешение по нему всё равно за тобой',
+    cost: 'turn',
+    arg: true,
+  },
+  { command: 'clear', hint: 'очистить экран', cost: 'free' },
+]
 
 export function Terminal({
   host,
@@ -126,14 +143,33 @@ export function Terminal({
     field.current?.focus()
   }
 
+  /**
+   * Узкий экран. Считаем в JS, а не классами: от того, во весь экран панель
+   * или нет, зависит не только вёрстка, но и портал — а медиазапрос из CSS
+   * реакту не виден.
+   */
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const sync = () => setNarrow(mq.matches)
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  // На телефоне терминал всегда во весь экран: панель в треть экрана,
+  // из которой видно четыре строки лога, — это не инструмент.
+  const fullscreen = full || narrow
+
   const typed = mode !== 'buttons'
   const buttons = mode !== 'type'
-  const available = COMMANDS.filter((c) => canWatch || !c.command.startsWith('grab-evidence'))
+  const available = COMMANDS.filter((c) => canWatch || c.command !== 'log')
 
-  return (
+  const panel = (
     <div
       className={`flex flex-col overflow-hidden border bg-[#0b0f0c] ${
-        full ? 'fixed inset-0 z-70 rounded-none' : 'h-[min(62vh,460px)] w-full rounded-2xl'
+        fullscreen ? 'fixed inset-0 z-70' : 'h-full w-full rounded-2xl'
       }`}
       style={{ borderColor: `${accent}3d`, boxShadow: `0 18px 40px #00000066, 0 0 0 1px #ffffff08` }}
     >
@@ -162,15 +198,19 @@ export function Terminal({
           </span>
         </Tip>
 
-        <Tip text={full ? 'Свернуть панель' : 'Развернуть на весь экран'} side="bottom">
-          <button
-            onClick={() => onFull(!full)}
-            aria-label={full ? 'Свернуть терминал' : 'Развернуть терминал'}
-            className="flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-md text-[#7a7a86] hover:bg-[#18211d] hover:text-[#d8d8dd]"
-          >
-            <Icon name={full ? 'minimize' : 'maximize'} size={14} />
-          </button>
-        </Tip>
+        {/* На узком экране терминал и так во весь экран — разворачивать
+            нечего, и кнопка, которая ничего не меняет, только сбивает с толку. */}
+        {!narrow && (
+          <Tip text={full ? 'Свернуть панель' : 'Развернуть на весь экран'} side="bottom">
+            <button
+              onClick={() => onFull(!full)}
+              aria-label={full ? 'Свернуть терминал' : 'Развернуть терминал'}
+              className="flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-md text-[#7a7a86] hover:bg-[#18211d] hover:text-[#d8d8dd]"
+            >
+              <Icon name={full ? 'minimize' : 'maximize'} size={14} />
+            </button>
+          </Tip>
+        )}
 
         <Tip text="Закрыть терминал" side="bottom">
           <button
@@ -206,27 +246,42 @@ export function Terminal({
       </div>
 
       {buttons && (
-        <div className="flex flex-wrap gap-1.5 border-t border-[#1b2620] bg-[#0c1310] px-3 py-2.5">
-          {available.map((c) => {
-            const spent = c.costly && probes <= 0
-            return (
-              <Tip key={c.command} text={c.hint} side="top">
-                <button
-                  onClick={() => press(c.command, c.arg === true)}
-                  disabled={spent}
-                  className="cursor-pointer rounded-lg border px-2.5 py-1.5 font-mono text-[11px] transition-colors disabled:cursor-default disabled:opacity-40"
-                  style={{
-                    borderColor: c.costly ? `${accent}4d` : '#233029',
-                    color: c.costly ? accent : '#9aa8a0',
-                    background: c.costly ? `${accent}12` : '#111a16',
-                  }}
-                >
-                  /{c.label}
-                  {c.arg && <span className="opacity-60"> N</span>}
-                </button>
-              </Tip>
-            )
-          })}
+        <div className="shrink-0 border-t border-[#1b2620] bg-[#0c1310] px-3 py-2.5">
+          {/* Кнопки одного роста и одного цвета: команды различаются не
+              оформлением, а ценой — её и показывает значок слева. */}
+          <div className="flex flex-wrap gap-1.5">
+            {available.map((c) => {
+              const cost = COST[c.cost]
+              const spent = c.cost === 'probe' && probes <= 0
+
+              return (
+                <Tip key={c.command} text={`${c.hint}\n${cost.label}`} side="top">
+                  <button
+                    onClick={() => press(c.command, c.arg === true)}
+                    disabled={spent}
+                    className="flex h-[30px] cursor-pointer items-center gap-1.5 rounded-lg border border-[#233029] bg-[#111a16] px-2.5 font-mono text-[11px] text-[#9aa8a0] transition-colors hover:border-[#33463c] hover:text-[#d8d8dd] disabled:cursor-default disabled:opacity-35 disabled:hover:border-[#233029] disabled:hover:text-[#9aa8a0]"
+                  >
+                    <span aria-hidden style={{ color: cost.color }}>
+                      {cost.mark}
+                    </span>
+                    <span className="whitespace-nowrap">
+                      /{c.command}
+                      {c.arg && <span className="opacity-50"> N</span>}
+                    </span>
+                  </button>
+                </Tip>
+              )
+            })}
+          </div>
+
+          <p className="m-0 mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-[#5d6b63]">
+            {(['free', 'probe', 'turn'] as const).map((kind) => (
+              <span key={kind} className="whitespace-nowrap">
+                <span style={{ color: COST[kind].color }}>{COST[kind].mark}</span>{' '}
+                {COST[kind].label}
+              </span>
+            ))}
+          </p>
         </div>
       )}
 
@@ -278,4 +333,8 @@ export function Terminal({
       )}
     </div>
   )
+
+  // Во весь экран — порталом в body: иначе панель остаётся внутри стека
+  // экрана и уезжает под липкую шапку, какой бы z-index ей ни поставить.
+  return fullscreen ? createPortal(panel, document.body) : panel
 }

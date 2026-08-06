@@ -131,8 +131,18 @@ body {
 @keyframes blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
 
 /* Экраны въезжают, а не появляются: смена экрана — событие, а не перерисовка. */
-.screen-in { animation: scrIn .42s cubic-bezier(.2,.8,.2,1) both; }
-.shake { animation: shake .4s cubic-bezier(.36,.07,.19,.97) both; }
+/*
+  fill-mode здесь backwards, а не both, и это не косметика.
+  При `both` конечный кадр остаётся приклеенным к элементу навсегда, и хотя
+  в нём написано `transform: none`, вычисленным значением становится
+  `matrix(1,0,0,1,0,0)`, а `filter: none` — `blur(0px)`. И то, и другое —
+  «не none», то есть элемент до конца жизни служит containing block для
+  любого `position: fixed` внутри: развёрнутый во весь экран диф вставал
+  под шапку и занимал четверть экрана. При `backwards` кадр применяется
+  только до старта, а после анимации элемент снова чист.
+*/
+.screen-in { animation: scrIn .42s cubic-bezier(.2,.8,.2,1) backwards; }
+.shake { animation: shake .4s cubic-bezier(.36,.07,.19,.97) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .screen-in, .shake, [style*="animation"] { animation: none !important; }

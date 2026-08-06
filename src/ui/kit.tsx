@@ -5,9 +5,21 @@
  * агента раунда, и все кнопки обязаны перекрашиваться вместе с ним.
  */
 
-import { useId, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { Icon, type IconName } from './icons.tsx'
 import { mix } from './color.ts'
+
+/** Отступ пузыря от элемента и от края экрана. */
+const GAP = 7
+const EDGE = 8
 
 /**
  * Подсказка в стиле игры вместо системного `title`.
@@ -16,9 +28,16 @@ import { mix } from './color.ts'
  * и выглядит как чужая деталь на приборной панели. Здесь — та же рамка
  * и та же моноширинная типографика, что и на остальных экранах.
  *
- * Открывается и по наведению, и по фокусу с клавиатуры; `aria-describedby`
- * связывает её с элементом, поэтому скринридер читает подсказку так же,
- * как читал бы `title`.
+ * **Пузырь живёт в портале, а не рядом с кнопкой.** Иначе его режет первый же
+ * родитель с `overflow: hidden` — а это половина экранов игры: панель
+ * терминала, блок дифа, шапка. Подсказки у кнопок команд уезжали под рамку
+ * терминала и читались наполовину.
+ *
+ * Позиция считается по месту элемента на экране и прижимается к краям окна,
+ * поэтому у крайней правой кнопки пузырь просто съезжает влево, а не вылезает
+ * за экран. Открывается и по наведению, и по фокусу с клавиатуры;
+ * `aria-describedby` связывает его с элементом, поэтому скринридер читает
+ * подсказку так же, как читал бы `title`.
  */
 export function Tip({
   text,
@@ -28,40 +47,77 @@ export function Tip({
 }: {
   text: string
   children: ReactNode
-  /** Куда раскрывается пузырь. Внизу шапки места нет — там `top`. */
+  /** Куда раскрывается пузырь. Не помещается — сам перевернётся. */
   side?: 'top' | 'bottom'
   className?: string
 }) {
-  const [open, setOpen] = useState(false)
+  const [anchor, setAnchor] = useState<DOMRect | null>(null)
+  const [at, setAt] = useState<{ left: number; top: number } | null>(null)
+  const host = useRef<HTMLSpanElement>(null)
+  const bubble = useRef<HTMLSpanElement>(null)
   const id = useId()
+
+  function show() {
+    const rect = host.current?.getBoundingClientRect()
+    if (rect) setAnchor(rect)
+  }
+
+  function hide() {
+    setAnchor(null)
+    setAt(null)
+  }
+
+  // Размер пузыря известен только после отрисовки — поэтому позиция считается
+  // здесь, а до этого он стоит за экраном и не мигает в углу.
+  useLayoutEffect(() => {
+    if (!anchor || !bubble.current) return
+
+    const { offsetWidth: w, offsetHeight: h } = bubble.current
+    const left = Math.min(
+      Math.max(anchor.left + anchor.width / 2 - w / 2, EDGE),
+      Math.max(EDGE, window.innerWidth - w - EDGE),
+    )
+
+    const above = anchor.top - h - GAP
+    const below = anchor.bottom + GAP
+    const fitsAbove = above >= EDGE
+    const fitsBelow = below + h <= window.innerHeight - EDGE
+
+    const top = side === 'top' ? (fitsAbove ? above : below) : fitsBelow ? below : above
+    setAt({ left, top })
+  }, [anchor, side, text])
 
   return (
     <span
+      ref={host}
       className={`relative inline-flex ${className}`}
-      onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
-      onFocusCapture={() => setOpen(true)}
-      onBlurCapture={() => setOpen(false)}
-      aria-describedby={open ? id : undefined}
+      onPointerEnter={show}
+      onPointerLeave={hide}
+      onFocusCapture={show}
+      onBlurCapture={hide}
+      aria-describedby={anchor ? id : undefined}
     >
       {children}
-      <span
-        id={id}
-        role="tooltip"
-        // Пузырь не должен ловить курсор: иначе он сам себя удерживает
-        // открытым, когда мышь доезжает до его края.
-        className={`pointer-events-none absolute left-1/2 z-70 w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-[#33333d] bg-[#15151b] px-2.5 py-1.5 text-center font-mono text-[11px] leading-[1.45] whitespace-pre-line text-[#d8d8dd] transition-[opacity,transform] duration-150 ${
-          side === 'top' ? 'bottom-[calc(100%+7px)]' : 'top-[calc(100%+7px)]'
-        }`}
-        style={{
-          opacity: open ? 1 : 0,
-          transform: `translateX(-50%) translateY(${open ? 0 : side === 'top' ? 4 : -4}px)`,
-          boxShadow: '0 10px 26px rgba(0,0,0,.6)',
-          visibility: open ? 'visible' : 'hidden',
-        }}
-      >
-        {text}
-      </span>
+      {anchor !== null &&
+        createPortal(
+          <span
+            ref={bubble}
+            id={id}
+            role="tooltip"
+            // Пузырь не ловит курсор: иначе он сам себя удерживает открытым,
+            // когда мышь доезжает до его края.
+            className="pointer-events-none fixed z-100 w-max max-w-[min(260px,calc(100vw-16px))] rounded-lg border border-[#33333d] bg-[#15151b] px-2.5 py-1.5 text-center font-mono text-[11px] leading-[1.45] whitespace-pre-line text-[#d8d8dd]"
+            style={{
+              left: at?.left ?? 0,
+              top: at?.top ?? 0,
+              opacity: at ? 1 : 0,
+              boxShadow: '0 10px 26px rgba(0,0,0,.6)',
+            }}
+          >
+            {text}
+          </span>,
+          document.body,
+        )}
     </span>
   )
 }

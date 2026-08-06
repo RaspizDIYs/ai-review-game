@@ -157,7 +157,17 @@ export function Review({
         </span>
       </div>
 
-      <div className="flex flex-col items-start gap-3.5 lg:flex-row">
+      {/*
+        Диф и терминал — одна строка одинаковой высоты, а не две колонки,
+        которые разъезжаются. Ширина терминала резиновая: на 1024px он
+        не должен отъедать у кода две трети, на 1600px — торчать узкой
+        полоской. На телефоне колонки нет вовсе: терминал там во весь экран.
+      */}
+      <div
+        className={`flex flex-col items-stretch gap-3.5 lg:flex-row ${
+          terminal ? 'lg:h-[min(64vh,520px)]' : ''
+        }`}
+      >
         <div className="w-full min-w-0 flex-1">
           <DiffView
             diff={task.diff}
@@ -167,6 +177,7 @@ export function Review({
             onPick={onPick}
             shake={shake}
             note={note}
+            fill={!!terminal}
             full={full}
             onFull={setFull}
             corner={
@@ -198,7 +209,13 @@ export function Review({
           />
         </div>
 
-        {terminal && <div className="w-full shrink-0 lg:w-[440px]">{terminal}</div>}
+        {/* display:contents — чтобы на телефоне обёртка не оставляла после
+            себя пустую строку: сам терминал там позиционируется поверх. */}
+        {terminal && (
+          <div className="contents lg:block lg:w-[clamp(340px,34vw,460px)] lg:shrink-0">
+            {terminal}
+          </div>
+        )}
       </div>
 
       <Button
