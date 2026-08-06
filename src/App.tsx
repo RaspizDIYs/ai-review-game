@@ -259,6 +259,8 @@ export default function App() {
    * которая наступает строго каждые четыре хода.
    */
   const [alerts, setAlerts] = useState<Defect[]>([])
+  /** Сколько мин рвануло на последнем тике слежки — только для его экрана. */
+  const [tickFired, setTickFired] = useState(0)
   /** Чиним свой мёрдж: тот же диф, но размечаем его заново и без таймера. */
   const [repairing, setRepairing] = useState<{ pr: number; task: Task } | null>(null)
   /**
@@ -528,6 +530,27 @@ export default function App() {
     }, 700)
   }
 
+  /**
+   * Запомнить, что рвануло, до ближайшей паузы.
+   *
+   * По одной записи на PR, а не по одной на срабатывание. Опознанная мина
+   * роняет прод каждый ход, пока её не починят: за четыре хода до паузы
+   * она успевала попасть в список четырежды, и игрок видел один и тот же
+   * лог четыре раза подряд. Сколько раз она падала, помнит сам дефект
+   * (`crashes`) — этого достаточно, чтобы сказать «падает не впервые».
+   */
+  function rememberAlerts(fired: readonly Defect[]) {
+    setAlerts((prev) => {
+      const next = [...prev]
+      for (const defect of fired) {
+        const at = next.findIndex((d) => d.pr === defect.pr)
+        if (at >= 0) next[at] = defect
+        else next.push(defect)
+      }
+      return next
+    })
+  }
+
   const finish = useCallback(
     (result: Pending, reasonRight: boolean | null) => {
       const base = accuracy(result.outcome, result.attempt, result.coverage)
@@ -563,7 +586,7 @@ export default function App() {
         const turn = shiftReview(shift, task, result.outcome, elapsed.current)
         setShift(turn.shift)
         // Рвануло — запомнили и пошли дальше: разбор будет в паузе.
-        if (turn.fired.length > 0) setAlerts((prev) => [...prev, ...turn.fired])
+        if (turn.fired.length > 0) rememberAlerts(turn.fired)
         saveShift(turn.shift)
 
         // Смена играется вслепую: вердикта нет. Единственное, что игрок
@@ -735,13 +758,14 @@ export default function App() {
     setTermLines((prev) => [...prev, { tone: 'in', text: `$ ${input}` }, ...result.lines])
     beep('tap')
 
+    // Смену копим в одной переменной и записываем один раз: два эффекта,
+    // каждый со своим `setShift(...)` от одного и того же исходного значения,
+    // затирали бы друг друга.
+    let live = shift
+
     for (const effect of result.effects) {
       if (effect.kind === 'clear') setTermLines([])
-      if (effect.kind === 'probe') {
-        const spent = probeShift(shift)
-        setShift(spent)
-        saveShift(spent)
-      }
+      if (effect.kind === 'probe') live = probeShift(live)
       // История поднимается раз за ход — иначе весь профиль агента
       // открывается за один раунд и собирать становится нечего.
       if (effect.kind === 'blamed') setBlamed(true)
@@ -758,11 +782,14 @@ export default function App() {
 
         // Потолок: про одного агента за смену узнают одну строку. Пишем это
         // в саму смену — переживает перезагрузку вкладки вместе с ней.
-        const marked = learnShift(shift, effect.agent)
-        setShift(marked)
-        saveShift(marked)
+        live = learnShift(live, effect.agent)
       }
       if (effect.kind === 'watch') releaseToLogging(effect.lines)
+    }
+
+    if (live !== shift) {
+      setShift(live)
+      saveShift(live)
     }
   }
 
@@ -780,9 +807,12 @@ export default function App() {
 
     const turn = watchTurn(shift, task, lines, watchCaught(task, lines), elapsed.current)
     setShift(turn.shift)
-    if (turn.fired.length > 0) setAlerts((prev) => [...prev, ...turn.fired])
+    if (turn.fired.length > 0) rememberAlerts(turn.fired)
     saveShift(turn.shift)
     setWatching(lines)
+    // На экране тика говорим только про то, что рвануло на этом же тике,
+    // а не про всё накопленное с прошлой паузы.
+    setTickFired(turn.fired.length)
 
     beep('stamp')
     setScreen('tick')
@@ -795,7 +825,10 @@ export default function App() {
   function backFromTick() {
     if (!shift) return
     beep('tap')
-    if (!resumeWatched(shift)) nextTurn(shift)
+    // Через nextTurn, а не сразу к отложенному PR: слежка потратила ход,
+    // и если этот ход был четвёртым, сверка с продом положена именно сейчас.
+    // Раньше возврат шёл мимо неё — и `/log` на нужном ходу отменял сверку.
+    nextTurn(shift)
   }
 
   /**
@@ -864,6 +897,11 @@ export default function App() {
     const blown: Defect[] = []
 
     for (const [pr, lines] of [...drafts].sort((a, b) => a[0] - b[0])) {
+      // PR, закрытый уборкой уже после того, как игрок его разметил, чинить
+      // нечем: `repair` не найдёт мины и посчитает это «полез в чистый код»,
+      // то есть накажет новой миной за собственную же уборку.
+      if (fixedPrs.has(pr)) continue
+
       const event = merged(current, current.turns).find((e) => e.kind === 'merged' && e.pr === pr)
       const found = event && 'task' in event ? POOL.find((t) => t.id === event.task) : undefined
       if (!found || lines.length === 0) continue
@@ -1087,6 +1125,12 @@ export default function App() {
     resetRun()
     resetTerminal()
     setCheckpoint(false)
+    // Всё, что помнило прошлую смену, обнуляется здесь. Особенно `checkedAt`:
+    // с ним сверка привязана к номеру хода, и незакрытая четвёрка прошлой
+    // смены съедала первую же сверку следующей.
+    setCheckedAt(-1)
+    setDrafts(new Map())
+    setTried(new Map())
     // Через advanceTurn, а не напрямую: у продолженной смены мог остаться PR
     // на логировании, и его надо вернуть игроку, а не подменить новым.
     advanceTurn(next)
@@ -1640,7 +1684,7 @@ export default function App() {
             lines={report(task, shift.pending.lines)}
             hit={shift.pending.hit}
             delta={shift.delta}
-            incidents={alerts.length}
+            incidents={tickFired}
             accent={accent}
             onBack={backFromTick}
           />
@@ -1660,12 +1704,12 @@ export default function App() {
             alerts={alerts.map((defect) => ({
               defect,
               log: logFor(defect, INCIDENTS),
-              // Мина, которая падала и раньше, падает не впервые.
-              again:
-                shift.log.filter((e) => e.kind === 'incident' && e.pr === defect.pr).length > 1,
+              // Сколько раз она уже роняла прод, помнит сама мина.
+              again: defect.crashes > 1,
             }))}
             // Прод горит, пока в нём есть опознанная и непочиненная авария.
             urgent={shift.defects.some((d) => d.known)}
+            final={isShiftOver(shift)}
             checkpoint={
               checkpoint
                 ? {
