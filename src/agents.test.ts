@@ -178,3 +178,26 @@ test('комментарий в коде не меняется при перер
   const task = PACK.find((t) => t.bugs.length > 0)!
   assert.deepEqual(codeNote(task, AGENTS.oracle, '1408'), codeNote(task, AGENTS.oracle, '1408'))
 })
+
+test('почерк каждого агента живёт больше чем на паре языков', () => {
+  // Характер агента не привязан к стеку: «глушит ошибку» бывает и в Swift,
+  // и в Go, и в C#. Если у кого-то почерк собрался в двух языках, он снова
+  // стал подписью к языку — а смена набирается именно по характерам.
+  const stacksOf = new Map<string, Set<string>>()
+  for (const task of PACK) {
+    for (const bug of task.bugs) {
+      if (!stacksOf.has(bug.tag)) stacksOf.set(bug.tag, new Set())
+      stacksOf.get(bug.tag)!.add(task.stack)
+    }
+  }
+
+  for (const slug of AGENT_SLUGS) {
+    const stacks = new Set(
+      AGENTS[slug].handwriting.flatMap((tag) => [...(stacksOf.get(tag) ?? [])]),
+    )
+    assert.ok(
+      stacks.size >= 6,
+      `${slug}: почерк встречается всего в ${stacks.size} языках (${[...stacks].join(', ')})`,
+    )
+  }
+})

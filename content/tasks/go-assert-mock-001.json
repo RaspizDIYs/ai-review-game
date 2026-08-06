@@ -1,0 +1,32 @@
+{
+  "id": "go-assert-mock-001",
+  "stack": "go",
+  "difficulty": 3,
+  "title": "Тест на текст напоминания",
+  "prompt": "Покрой тестом сборку текста напоминания — там формат менялся уже дважды",
+  "tests": "=== RUN   TestTextForVisit\n--- PASS: TestTextForVisit (0.00s)\nPASS\nok  \tclinic/reminders\t0.104s",
+  "diff": "--- a/reminders/reminders_test.go\n+++ b/reminders/reminders_test.go\n@@ -1,10 +1,36 @@\n package reminders\n \n import (\n\t\"testing\"\n\t\"time\"\n )\n \n+type stubRepo struct {\n+\tvisit Visit\n+}\n+\n+func (s *stubRepo) ByID(string) (Visit, error) { return s.visit, nil }\n+\n+func TestTextForVisit(t *testing.T) {\n+\tat := time.Date(2026, 6, 1, 9, 30, 0, 0, time.UTC)\n+\trepo := &stubRepo{visit: Visit{Pet: \"Барсик\", StartsAt: at}}\n+\tsvc := New(repo)\n+\n+\tgot, err := svc.Text(\"v-1\")\n+\tif err != nil {\n+\t\tt.Fatalf(\"неожиданная ошибка: %v\", err)\n+\t}\n+\n+\twant := text(repo.visit)\n+\tif got != want {\n+\t\tt.Fatalf(\"текст разошёлся: %q, ожидали %q\", got, want)\n+\t}\n+}\n",
+  "bugs": [
+    {
+      "file": "reminders/reminders_test.go",
+      "match": "\twant := text(repo.visit)",
+      "kind": "wrong",
+      "tag": "test-asserts-the-mock",
+      "explain": "Ожидаемое значение собрано той же функцией, которую тест и проверяет: svc.Text — тонкая обёртка над text. Сравнение всегда сходится, каким бы ни стал формат. Ожидание должно быть написано строкой руками — именно она и фиксирует формат.",
+      "consequence": "Формат меняют в третий раз, «Завтра в 09:30» превращается в «завтра, 9:30» — тест зелёный. Смс уходят владельцам в новом виде, и никто не замечает, пока в клинику не звонят спросить, что это было."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "func (s *stubRepo) ByID(string) (Visit, error) { return s.visit, nil }",
+      "why": "стаб всегда отдаёт успех, но неудачный поход в базу — предмет отдельного теста"
+    },
+    {
+      "match": "\t\tt.Fatalf(\"неожиданная ошибка: %v\", err)",
+      "why": "проверять err перед сравнением правильно: иначе разошедшийся текст маскировал бы падение"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

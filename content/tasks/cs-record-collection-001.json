@@ -1,0 +1,32 @@
+{
+  "id": "cs-record-collection-001",
+  "stack": "cs",
+  "difficulty": 4,
+  "title": "Черновик записи на приём",
+  "prompt": "Перепиши черновик записи на record — он маленький и его много копируют",
+  "tests": "Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9, Duration: 388 ms",
+  "diff": "--- a/Clinic/Visits/VisitDraft.cs\n+++ b/Clinic/Visits/VisitDraft.cs\n@@ -1,20 +1,38 @@\n namespace Clinic.Visits;\n \n-public sealed class VisitDraft\n-{\n-    public string PetId { get; init; } = \"\";\n-    public DateOnly Day { get; init; }\n-    public IReadOnlyList<string> Services { get; init; } = Array.Empty<string>();\n-}\n+/// <summary>Черновик записи. Короче класса и сравнивается по значению.</summary>\n+public sealed record VisitDraft(string PetId, DateOnly Day, List<string> Services);\n+\n+public static class Drafts\n+{\n+    /// <summary>Переносит черновик на другой день. Исходный не трогаем.</summary>\n+    public static VisitDraft MoveTo(VisitDraft draft, DateOnly day)\n+    {\n+        var moved = draft with { Day = day };\n+        moved.Services.Add(\"перенос\");\n+\n+        return moved;\n+    }\n+}\n",
+  "bugs": [
+    {
+      "file": "Clinic/Visits/VisitDraft.cs",
+      "match": "public sealed record VisitDraft(string PetId, DateOnly Day, List<string> Services);",
+      "kind": "wrong",
+      "tag": "record-shares-collection",
+      "explain": "Record даёт сравнение по значению и копирование через with, но и то и другое поверхностное. List<string> в оба конца едет одной и той же ссылкой: копия делит список с оригиналом, а два одинаковых по содержимому черновика никогда не равны, потому что списки — разные объекты. Прежний класс держал IReadOnlyList, и подменить его было нечем.",
+      "consequence": "Врач переносит черновик на завтра — и в исходном черновике, который остался в корзине у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба черновика выглядят нетронутыми."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        var moved = draft with { Day = day };",
+      "why": "with — штатный способ скопировать запись, и день он подменяет правильно"
+    },
+    {
+      "match": "        moved.Services.Add(\"перенос\");",
+      "why": "дописать пометку в копию — ровно то, что просили; вопрос только в том, чья это копия"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

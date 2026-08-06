@@ -1,0 +1,32 @@
+{
+  "id": "rs-result-ok-001",
+  "stack": "rs",
+  "difficulty": 3,
+  "title": "Запись приёма в журнал",
+  "prompt": "Сохраняй приём и сразу пиши строку в журнал действий",
+  "tests": "running 7 tests\ntest visits::tests::records_visit ... ok\ntest visits::tests::writes_audit ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; finished in 0.03s",
+  "diff": "--- a/src/visits.rs\n+++ b/src/visits.rs\n@@ -1,16 +1,38 @@\n use crate::audit::Audit;\n use crate::metrics::Metrics;\n use crate::repo::Repo;\n \n pub struct Visits {\n     repo: Repo,\n     audit: Audit,\n     metrics: Metrics,\n }\n \n impl Visits {\n+    /// Сохраняет приём и оставляет след в журнале действий.\n+    pub fn record(&self, visit: &Visit) -> u64 {\n+        let id = self.repo.save(visit).ok().unwrap_or_default();\n+\n+        self.audit.push(&visit.pet_id, id);\n+        self.metrics.inc(\"visits.recorded\");\n+\n+        id\n+    }\n }\n",
+  "bugs": [
+    {
+      "file": "src/visits.rs",
+      "match": "        let id = self.repo.save(visit).ok().unwrap_or_default();",
+      "kind": "wrong",
+      "tag": "result-discarded-with-ok",
+      "explain": "ok() выбрасывает ошибку вместе с её текстом, а unwrap_or_default() подставляет вместо неё ноль. Компилятор доволен: Result обработан. На деле отказ базы стал неотличим от успешной записи с идентификатором 0.",
+      "consequence": "База отвалилась на секунду — приём не сохранился, функция вернула 0, журнал получил строку про приём номер ноль, а вызывающий код показал врачу «записано». Приёма нет ни в расписании, ни в отчёте, и всплывает это, когда владелец приходит к закрытой двери."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        self.metrics.inc(\"visits.recorded\");",
+      "why": "счётчик растёт даже на неудаче, но это метрика попыток, и так задумано"
+    },
+    {
+      "match": "    pub fn record(&self, visit: &Visit) -> u64 {",
+      "why": "возвращать один идентификатор вместо целого Result — осознанное упрощение сигнатуры"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

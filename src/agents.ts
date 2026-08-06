@@ -335,6 +335,7 @@ export const AGENTS: Record<AgentSlug, Agent> = {
       'test-asserts-the-mock',
       'assert-without-expectation',
       'wrapped-error-compare',
+      'result-discarded-with-ok',
     ],
     known: [
       'Глушит ошибку и идёт дальше как ни в чём не бывало',
@@ -370,6 +371,9 @@ export const AGENTS: Record<AgentSlug, Agent> = {
       'cache-key-ignores-lockfile',
       'container-data-not-persisted',
       'deploy-trigger-mismatch',
+      'optional-chain-hides-absence',
+      'match-case-catches-everything',
+      'record-shares-collection',
     ],
     known: [
       'Берёт последнюю версию всего и не закрепляет ни одну',

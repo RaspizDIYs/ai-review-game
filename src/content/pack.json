@@ -288,6 +288,38 @@
     "verified_at": ""
   },
   {
+    "id": "cs-record-collection-001",
+    "stack": "cs",
+    "difficulty": 4,
+    "title": "Черновик записи на приём",
+    "prompt": "Перепиши черновик записи на record — он маленький и его много копируют",
+    "tests": "Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9, Duration: 388 ms",
+    "diff": "--- a/Clinic/Visits/VisitDraft.cs\n+++ b/Clinic/Visits/VisitDraft.cs\n@@ -1,20 +1,38 @@\n namespace Clinic.Visits;\n \n-public sealed class VisitDraft\n-{\n-    public string PetId { get; init; } = \"\";\n-    public DateOnly Day { get; init; }\n-    public IReadOnlyList<string> Services { get; init; } = Array.Empty<string>();\n-}\n+/// <summary>Черновик записи. Короче класса и сравнивается по значению.</summary>\n+public sealed record VisitDraft(string PetId, DateOnly Day, List<string> Services);\n+\n+public static class Drafts\n+{\n+    /// <summary>Переносит черновик на другой день. Исходный не трогаем.</summary>\n+    public static VisitDraft MoveTo(VisitDraft draft, DateOnly day)\n+    {\n+        var moved = draft with { Day = day };\n+        moved.Services.Add(\"перенос\");\n+\n+        return moved;\n+    }\n+}\n",
+    "bugs": [
+      {
+        "file": "Clinic/Visits/VisitDraft.cs",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Record даёт сравнение по значению и копирование через with, но и то и другое поверхностное. List<string> в оба конца едет одной и той же ссылкой: копия делит список с оригиналом, а два одинаковых по содержимому черновика никогда не равны, потому что списки — разные объекты. Прежний класс держал IReadOnlyList, и подменить его было нечем.",
+        "consequence": "Врач переносит черновик на завтра — и в исходном черновике, который остался в корзине у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба черновика выглядят нетронутыми.",
+        "line": 4
+      }
+    ],
+    "decoys": [
+      {
+        "why": "with — штатный способ скопировать запись, и день он подменяет правильно",
+        "line": 11
+      },
+      {
+        "why": "дописать пометку в копию — ровно то, что просили; вопрос только в том, чья это копия",
+        "line": 12
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "cs-secret-in-log-001",
     "stack": "cs",
     "difficulty": 3,
@@ -588,6 +620,38 @@
         "line": 7
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "go-assert-mock-001",
+    "stack": "go",
+    "difficulty": 3,
+    "title": "Тест на текст напоминания",
+    "prompt": "Покрой тестом сборку текста напоминания — там формат менялся уже дважды",
+    "tests": "=== RUN   TestTextForVisit\n--- PASS: TestTextForVisit (0.00s)\nPASS\nok  \tclinic/reminders\t0.104s",
+    "diff": "--- a/reminders/reminders_test.go\n+++ b/reminders/reminders_test.go\n@@ -1,10 +1,36 @@\n package reminders\n \n import (\n\t\"testing\"\n\t\"time\"\n )\n \n+type stubRepo struct {\n+\tvisit Visit\n+}\n+\n+func (s *stubRepo) ByID(string) (Visit, error) { return s.visit, nil }\n+\n+func TestTextForVisit(t *testing.T) {\n+\tat := time.Date(2026, 6, 1, 9, 30, 0, 0, time.UTC)\n+\trepo := &stubRepo{visit: Visit{Pet: \"Барсик\", StartsAt: at}}\n+\tsvc := New(repo)\n+\n+\tgot, err := svc.Text(\"v-1\")\n+\tif err != nil {\n+\t\tt.Fatalf(\"неожиданная ошибка: %v\", err)\n+\t}\n+\n+\twant := text(repo.visit)\n+\tif got != want {\n+\t\tt.Fatalf(\"текст разошёлся: %q, ожидали %q\", got, want)\n+\t}\n+}\n",
+    "bugs": [
+      {
+        "file": "reminders/reminders_test.go",
+        "kind": "wrong",
+        "tag": "test-asserts-the-mock",
+        "explain": "Ожидаемое значение собрано той же функцией, которую тест и проверяет: svc.Text — тонкая обёртка над text. Сравнение всегда сходится, каким бы ни стал формат. Ожидание должно быть написано строкой руками — именно она и фиксирует формат.",
+        "consequence": "Формат меняют в третий раз, «Завтра в 09:30» превращается в «завтра, 9:30» — тест зелёный. Смс уходят владельцам в новом виде, и никто не замечает, пока в клинику не звонят спросить, что это было.",
+        "line": 24
+      }
+    ],
+    "decoys": [
+      {
+        "why": "стаб всегда отдаёт успех, но неудачный поход в базу — предмет отдельного теста",
+        "line": 12
+      },
+      {
+        "why": "проверять err перед сравнением правильно: иначе разошедшийся текст маскировал бы падение",
+        "line": 21
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -1004,6 +1068,38 @@
         "line": 23
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "java-record-collection-001",
+    "stack": "java",
+    "difficulty": 4,
+    "title": "Набор услуг в наряде на приём",
+    "prompt": "Заведи наряд на приём — питомец, день и список услуг. Сделай на record, их много копируют",
+    "tests": "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  3.221 s",
+    "diff": "--- a/src/main/java/clinic/WorkOrder.java\n+++ b/src/main/java/clinic/WorkOrder.java\n@@ -1,14 +1,38 @@\n package clinic;\n \n import java.time.LocalDate;\n import java.util.List;\n \n+/** Наряд на приём. На record — короче и сравнивается по значению. */\n+public record WorkOrder(String petId, LocalDate day, List<String> services) {\n+\n+    /** Переносит наряд на другой день. Исходный не трогаем. */\n+    public WorkOrder movedTo(LocalDate other) {\n+        WorkOrder moved = new WorkOrder(petId, other, services);\n+        moved.services().add(\"перенос\");\n+\n+        return moved;\n+    }\n+\n+    public boolean sameAs(WorkOrder other) {\n+        return equals(other);\n+    }\n+}\n",
+    "bugs": [
+      {
+        "file": "src/main/java/clinic/WorkOrder.java",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Record даёт равенство по значению и обещание неизменяемости, но и то и другое поверхностное. List<String> едет в копию той же ссылкой, поэтому копия и оригинал делят один список; а сгенерированный equals сравнивает списки через List.equals — то есть по содержимому, и два наряда с одинаковыми услугами становятся равными, даже если это разные наряды разных клиник.",
+        "consequence": "Врач переносит наряд на завтра — и в исходном, который лежит в очереди у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба наряда выглядят нетронутыми.",
+        "line": 7
+      }
+    ],
+    "decoys": [
+      {
+        "why": "собрать новый наряд из полей старого — ровно то, что просили; вопрос в том, что именно переехало",
+        "line": 11
+      },
+      {
+        "why": "звать сгенерированный equals нормально — на то record и заводили",
+        "line": 18
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -1461,6 +1557,38 @@
         "line": 21
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "js-optional-chain-001",
+    "stack": "js",
+    "difficulty": 3,
+    "title": "Напоминание за сутки до приёма",
+    "prompt": "Шли владельцу смс за сутки до приёма — время и кличку в текст",
+    "tests": "PASS  src/reminders.test.ts (5)\n  ✓ собирает текст напоминания\n  ✓ шлёт на телефон владельца\n  ✓ подставляет кличку\n\nTests  5 passed (5)",
+    "diff": "--- a/src/reminders.ts\n+++ b/src/reminders.ts\n@@ -1,14 +1,34 @@\n import { db } from './db'\n import { sms } from './sms'\n import { atClinic } from './time'\n \n+/** Напоминание за сутки до приёма. Дёргается ночным планировщиком. */\n+export async function remind(visitId: string) {\n+  const visit = await db.visits.byId(visitId)\n+\n+  const phone = visit?.owner?.phone ?? ''\n+  const pet = visit?.pet?.name ?? 'вашего питомца'\n+  const when = atClinic(visit?.startsAt)\n+\n+  await sms.send(phone, `Завтра в ${when} ждём ${pet} в клинике`)\n+\n+  return { visitId, phone }\n+}\n",
+    "bugs": [
+      {
+        "file": "src/reminders.ts",
+        "kind": "wrong",
+        "tag": "optional-chain-hides-absence",
+        "explain": "Цепочка `?.` вместе с `??` превращает три разных случая в один: приёма нет, владелец не привязан, телефон не заполнен — всё это даёт пустую строку, и дальше код идёт как ни в чём не бывало. Раньше на месте этой строки была бы проверка, которая говорит, чего именно не хватило.",
+        "consequence": "Планировщик получает id отменённого приёма, byId возвращает undefined, sms.send уходит на пустой номер и возвращает ok. В отчёте «разослано 340 напоминаний», владельцы ничего не получили, и понять это можно только сверив счёт от оператора.",
+        "line": 9
+      }
+    ],
+    "decoys": [
+      {
+        "why": "вот здесь запасное значение уместно: кличка может быть не заполнена, и текст всё равно осмысленный",
+        "line": 10
+      },
+      {
+        "why": "возвращать телефон, на который ушло сообщение, полезно для журнала рассылки",
+        "line": 15
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -2208,6 +2336,38 @@
     "verified_at": ""
   },
   {
+    "id": "py-match-case-001",
+    "stack": "py",
+    "difficulty": 4,
+    "title": "Подпись статуса приёма в карточке",
+    "prompt": "Перепиши лесенку if-elif на что-нибудь поприличнее — статусов будет больше",
+    "tests": "=== test session starts ===\ncollected 6 items\n\ntests/test_labels.py ......                           [100%]\n\n=== 6 passed in 0.18s ===",
+    "diff": "--- a/clinic/labels.py\n+++ b/clinic/labels.py\n@@ -1,18 +1,38 @@\n PENDING = \"pending\"\n CANCELLED = \"cancelled\"\n DONE = \"done\"\n \n \n+def label(status: str) -> str:\n+    \"\"\"Человеческая подпись статуса приёма для карточки питомца.\"\"\"\n+    match status:\n+        case \"pending\":\n+            return \"ждёт приёма\"\n+        case \"cancelled\":\n+            return \"отменён\"\n+        case DONE:\n+            return \"приём завершён\"\n+\n+\n+def card(visit: dict) -> dict:\n+    return {\"id\": visit[\"id\"], \"status\": label(visit[\"status\"])}\n",
+    "bugs": [
+      {
+        "file": "clinic/labels.py",
+        "kind": "wrong",
+        "tag": "match-case-catches-everything",
+        "explain": "Голое имя в case — это не сравнение с константой, а захват: такой образец подходит любому значению и просто присваивает его переменной DONE. Со значением сверяют либо литерал, либо имя через точку — `Status.DONE`. Синтаксической ошибки нет только потому, что ветка последняя.",
+        "consequence": "Любой статус, кроме pending и cancelled, подписывается как «приём завершён»: и no_show, и in_progress, и статус, который заведут через месяц. В карточке питомца врач видит, что приём прошёл, хотя собака на него не пришла — и не перезванивает владельцу.",
+        "line": 13
+      }
+    ],
+    "decoys": [
+      {
+        "why": "литеральный образец сравнивается по значению — вот с этой веткой всё честно",
+        "line": 9
+      },
+      {
+        "why": "обращение по ключу без get упало бы на неполном словаре, но обе колонки в схеме обязательные",
+        "line": 18
+      }
+    ],
+    "clean": false,
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
     "id": "py-mutable-default-001",
     "stack": "py",
     "difficulty": 2,
@@ -2476,6 +2636,38 @@
         "line": 22
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "rb-data-define-001",
+    "stack": "rb",
+    "difficulty": 4,
+    "title": "Черновик выписки из карты",
+    "prompt": "Перепиши черновик выписки на Data.define — он маленький, и его копируют на каждый шаг",
+    "tests": "Run options: --seed 41267\n\n# Running:\n\n........\n\nFinished in 0.084213s, 95.0 runs/s, 142.5 assertions/s.\n8 runs, 12 assertions, 0 failures, 0 errors, 0 skips",
+    "diff": "--- a/lib/clinic/discharge_draft.rb\n+++ b/lib/clinic/discharge_draft.rb\n@@ -1,12 +1,34 @@\n module Clinic\n-  class DischargeDraft\n-    attr_reader :pet_id, :day, :notes\n-\n-    def initialize(pet_id:, day:, notes:)\n-      @pet_id = pet_id\n-      @day = day\n-      @notes = notes.freeze\n-    end\n-  end\n+  # Черновик выписки. Короче класса и сравнивается по значению.\n+  DischargeDraft = Data.define(:pet_id, :day, :notes) do\n+    # Переносит черновик на другой день. Исходный не трогаем.\n+    def moved_to(other_day)\n+      moved = with(day: other_day)\n+      moved.notes << \"перенесено с #{day}\"\n+\n+      moved\n+    end\n+  end\n end\n",
+    "bugs": [
+      {
+        "file": "lib/clinic/discharge_draft.rb",
+        "kind": "wrong",
+        "tag": "record-shares-collection",
+        "explain": "Data замораживает сам объект, но не то, на что он ссылается: массив notes остаётся изменяемым, и with отдаёт копию с той же самой ссылкой. Прежний класс звал freeze на notes — вместе с ним ушла единственная защита от правки на месте.",
+        "consequence": "Черновик переносят на другой день — и в исходном, который врач ещё не отправил, появляется чужая строка «перенесено с …». В выписке, которую увидит владелец, оказывается история чужого переноса, и убрать её можно только руками.",
+        "line": 3
+      }
+    ],
+    "decoys": [
+      {
+        "why": "with — штатный способ скопировать Data, и день он подменяет правильно",
+        "line": 6
+      },
+      {
+        "why": "метод внутри блока Data.define — обычная практика, к самому месту претензий нет",
+        "line": 5
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -2764,6 +2956,38 @@
         "line": 22
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "rs-result-ok-001",
+    "stack": "rs",
+    "difficulty": 3,
+    "title": "Запись приёма в журнал",
+    "prompt": "Сохраняй приём и сразу пиши строку в журнал действий",
+    "tests": "running 7 tests\ntest visits::tests::records_visit ... ok\ntest visits::tests::writes_audit ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; finished in 0.03s",
+    "diff": "--- a/src/visits.rs\n+++ b/src/visits.rs\n@@ -1,16 +1,38 @@\n use crate::audit::Audit;\n use crate::metrics::Metrics;\n use crate::repo::Repo;\n \n pub struct Visits {\n     repo: Repo,\n     audit: Audit,\n     metrics: Metrics,\n }\n \n impl Visits {\n+    /// Сохраняет приём и оставляет след в журнале действий.\n+    pub fn record(&self, visit: &Visit) -> u64 {\n+        let id = self.repo.save(visit).ok().unwrap_or_default();\n+\n+        self.audit.push(&visit.pet_id, id);\n+        self.metrics.inc(\"visits.recorded\");\n+\n+        id\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "src/visits.rs",
+        "kind": "wrong",
+        "tag": "result-discarded-with-ok",
+        "explain": "ok() выбрасывает ошибку вместе с её текстом, а unwrap_or_default() подставляет вместо неё ноль. Компилятор доволен: Result обработан. На деле отказ базы стал неотличим от успешной записи с идентификатором 0.",
+        "consequence": "База отвалилась на секунду — приём не сохранился, функция вернула 0, журнал получил строку про приём номер ноль, а вызывающий код показал врачу «записано». Приёма нет ни в расписании, ни в отчёте, и всплывает это, когда владелец приходит к закрытой двери.",
+        "line": 14
+      }
+    ],
+    "decoys": [
+      {
+        "why": "счётчик растёт даже на неудаче, но это метрика попыток, и так задумано",
+        "line": 17
+      },
+      {
+        "why": "возвращать один идентификатор вместо целого Result — осознанное упрощение сигнатуры",
+        "line": 13
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },
@@ -3558,6 +3782,38 @@
         "line": 6
       }
     ],
+    "verified_by": "",
+    "verified_at": ""
+  },
+  {
+    "id": "swift-error-swallowed-001",
+    "stack": "swift",
+    "difficulty": 3,
+    "title": "Кэш снимков в карточке приёма",
+    "prompt": "Складывай снимки с приёма в локальный кэш, чтобы не тянуть их заново",
+    "tests": "Test Suite 'PhotoCacheTests' passed at 2026-06-14 11:02:41.118.\n\t Executed 6 tests, with 0 failures (0 unexpected) in 0.214 (0.219) seconds",
+    "diff": "--- a/Clinic/PhotoCache.swift\n+++ b/Clinic/PhotoCache.swift\n@@ -1,14 +1,36 @@\n import Foundation\n \n struct PhotoCache {\n     let folder: URL\n \n+    /// Кладёт снимок в кэш и говорит, получилось ли.\n+    func store(_ data: Data, for visit: String) -> Bool {\n+        let target = folder.appendingPathComponent(\"\\(visit).jpg\")\n+\n+        try? data.write(to: target, options: .atomic)\n+\n+        return true\n+    }\n+\n+    /// Достаёт снимок из кэша. Нет файла — нет и снимка.\n+    func photo(for visit: String) -> Data? {\n+        let source = folder.appendingPathComponent(\"\\(visit).jpg\")\n+        return try? Data(contentsOf: source)\n+    }\n }\n",
+    "bugs": [
+      {
+        "file": "Clinic/PhotoCache.swift",
+        "kind": "wrong",
+        "tag": "error-swallowed",
+        "explain": "try? превращает ошибку записи в nil, и этот nil тут же выбрасывается: результат никуда не присваивается. Метод при этом обещает вернуть, получилось ли, — и всегда возвращает true.",
+        "consequence": "На телефоне кончилось место, запись не прошла, store вернул true. Приложение считает снимок закэшированным и больше за ним не ходит: в карточке приёма на месте фотографии пустой прямоугольник, и так до переустановки.",
+        "line": 10
+      }
+    ],
+    "decoys": [
+      {
+        "why": "вот здесь try? на месте: отсутствующий файл — это не ошибка, а пустой кэш, и тип Optional об этом честно говорит",
+        "line": 18
+      },
+      {
+        "why": "возвращать Bool вместо throws — спорно, но для кэша, который можно не заполнить, допустимо",
+        "line": 7
+      }
+    ],
+    "clean": false,
     "verified_by": "",
     "verified_at": ""
   },

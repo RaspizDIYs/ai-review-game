@@ -1,0 +1,32 @@
+{
+  "id": "java-record-collection-001",
+  "stack": "java",
+  "difficulty": 4,
+  "title": "Набор услуг в наряде на приём",
+  "prompt": "Заведи наряд на приём — питомец, день и список услуг. Сделай на record, их много копируют",
+  "tests": "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0\n\nBUILD SUCCESS\nTotal time:  3.221 s",
+  "diff": "--- a/src/main/java/clinic/WorkOrder.java\n+++ b/src/main/java/clinic/WorkOrder.java\n@@ -1,14 +1,38 @@\n package clinic;\n \n import java.time.LocalDate;\n import java.util.List;\n \n+/** Наряд на приём. На record — короче и сравнивается по значению. */\n+public record WorkOrder(String petId, LocalDate day, List<String> services) {\n+\n+    /** Переносит наряд на другой день. Исходный не трогаем. */\n+    public WorkOrder movedTo(LocalDate other) {\n+        WorkOrder moved = new WorkOrder(petId, other, services);\n+        moved.services().add(\"перенос\");\n+\n+        return moved;\n+    }\n+\n+    public boolean sameAs(WorkOrder other) {\n+        return equals(other);\n+    }\n+}\n",
+  "bugs": [
+    {
+      "file": "src/main/java/clinic/WorkOrder.java",
+      "match": "public record WorkOrder(String petId, LocalDate day, List<String> services) {",
+      "kind": "wrong",
+      "tag": "record-shares-collection",
+      "explain": "Record даёт равенство по значению и обещание неизменяемости, но и то и другое поверхностное. List<String> едет в копию той же ссылкой, поэтому копия и оригинал делят один список; а сгенерированный equals сравнивает списки через List.equals — то есть по содержимому, и два наряда с одинаковыми услугами становятся равными, даже если это разные наряды разных клиник.",
+      "consequence": "Врач переносит наряд на завтра — и в исходном, который лежит в очереди у регистратуры, сам собой появляется «перенос». Владельцу выставляют счёт за услугу, которой не было, а в интерфейсе оба наряда выглядят нетронутыми."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "        WorkOrder moved = new WorkOrder(petId, other, services);",
+      "why": "собрать новый наряд из полей старого — ровно то, что просили; вопрос в том, что именно переехало"
+    },
+    {
+      "match": "        return equals(other);",
+      "why": "звать сгенерированный equals нормально — на то record и заводили"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}

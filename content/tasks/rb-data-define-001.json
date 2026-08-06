@@ -1,0 +1,32 @@
+{
+  "id": "rb-data-define-001",
+  "stack": "rb",
+  "difficulty": 4,
+  "title": "Черновик выписки из карты",
+  "prompt": "Перепиши черновик выписки на Data.define — он маленький, и его копируют на каждый шаг",
+  "tests": "Run options: --seed 41267\n\n# Running:\n\n........\n\nFinished in 0.084213s, 95.0 runs/s, 142.5 assertions/s.\n8 runs, 12 assertions, 0 failures, 0 errors, 0 skips",
+  "diff": "--- a/lib/clinic/discharge_draft.rb\n+++ b/lib/clinic/discharge_draft.rb\n@@ -1,12 +1,34 @@\n module Clinic\n-  class DischargeDraft\n-    attr_reader :pet_id, :day, :notes\n-\n-    def initialize(pet_id:, day:, notes:)\n-      @pet_id = pet_id\n-      @day = day\n-      @notes = notes.freeze\n-    end\n-  end\n+  # Черновик выписки. Короче класса и сравнивается по значению.\n+  DischargeDraft = Data.define(:pet_id, :day, :notes) do\n+    # Переносит черновик на другой день. Исходный не трогаем.\n+    def moved_to(other_day)\n+      moved = with(day: other_day)\n+      moved.notes << \"перенесено с #{day}\"\n+\n+      moved\n+    end\n+  end\n end\n",
+  "bugs": [
+    {
+      "file": "lib/clinic/discharge_draft.rb",
+      "match": "  DischargeDraft = Data.define(:pet_id, :day, :notes) do",
+      "kind": "wrong",
+      "tag": "record-shares-collection",
+      "explain": "Data замораживает сам объект, но не то, на что он ссылается: массив notes остаётся изменяемым, и with отдаёт копию с той же самой ссылкой. Прежний класс звал freeze на notes — вместе с ним ушла единственная защита от правки на месте.",
+      "consequence": "Черновик переносят на другой день — и в исходном, который врач ещё не отправил, появляется чужая строка «перенесено с …». В выписке, которую увидит владелец, оказывается история чужого переноса, и убрать её можно только руками."
+    }
+  ],
+  "decoys": [
+    {
+      "match": "      moved = with(day: other_day)",
+      "why": "with — штатный способ скопировать Data, и день он подменяет правильно"
+    },
+    {
+      "match": "    def moved_to(other_day)",
+      "why": "метод внутри блока Data.define — обычная практика, к самому месту претензий нет"
+    }
+  ],
+  "clean": false,
+  "verified_by": "",
+  "verified_at": ""
+}
