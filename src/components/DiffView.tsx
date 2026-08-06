@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { diffStat, parseDiff, isClickable, type DiffLine } from '../diff.ts'
 import type { Task } from '../types'
 import { Icon } from '../ui/icons.tsx'
@@ -35,6 +36,12 @@ interface Props {
    * номера, а по ним считается всё: попадания, обманки, слежка.
    */
   note?: { index: number; text: string } | null
+  /**
+   * Панель обязана занять всю высоту родителя и прокручиваться внутри себя.
+   * Так диф и терминал на широком экране стоят рядом одинаковой высоты,
+   * а не разъезжаются на два экрана прокрутки.
+   */
+  fill?: boolean
 }
 
 const KIND: Record<DiffLine['kind'], CSSProperties> = {
@@ -94,6 +101,7 @@ export function DiffView({
   onFull,
   corner,
   note = null,
+  fill = false,
 }: Props) {
   const lines = useMemo(() => parseDiff(diff), [diff])
 
@@ -139,11 +147,15 @@ export function DiffView({
     boxShadow: `inset 3px 0 0 ${accent}, inset 0 0 0 1px ${accent}66`,
   }
 
-  return (
+  const panel = (
     <div
-      className={`relative flex flex-col overflow-hidden border border-[#26262c] bg-[#111116] ${
+      // `relative` и `fixed` вместе не пишем: Tailwind раскладывает утилиты
+      // позиционирования в своём порядке, и `.relative` оказывается ниже
+      // `.fixed` в стилях — то есть выигрывает всегда. Из-за этого кнопка
+      // «развернуть» честно переключала класс и ровно ничего не делала.
+      className={`flex flex-col overflow-hidden border border-[#26262c] bg-[#111116] ${
         shake ? 'shake' : ''
-      } ${full ? 'fixed inset-0 z-60 rounded-none' : 'rounded-[14px]'}`}
+      } ${full ? 'fixed inset-0 z-60' : `relative rounded-[14px] ${fill ? 'lg:h-full' : ''}`}`}
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-[#1f1f26] bg-[#0e0e12] px-[13px] py-[9px]">
         <span className="text-[#6b6b77]">
@@ -176,11 +188,24 @@ export function DiffView({
         role={disabled ? undefined : 'listbox'}
         aria-multiselectable={disabled ? undefined : true}
         aria-label="Диф. Стрелки — по строкам, Enter — отметить"
-        className={`max-w-full overflow-x-auto overscroll-x-contain focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-500 ${
-          full ? 'flex-1 overflow-y-auto' : ''
+        className={`max-w-full overscroll-contain focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-500 ${
+          // На телефоне длинные строки переносятся, а не уезжают вбок:
+          // горизонтальная прокрутка в дифе — это чтение кода в щёлочку,
+          // и половина строки просто не существует для игрока. На широком
+          // экране перенос не нужен, там честнее прокрутка.
+          'max-sm:overflow-x-hidden sm:overflow-x-auto'
+        } ${
+          full || fill
+            ? 'min-h-0 flex-1 overflow-y-auto'
+            : // Иначе панель растёт по коду, страница уезжает на три экрана,
+              // и кнопка отправки вместе с таймером живут где-то внизу.
+              // Прокрутка внутри блока держит их на месте.
+              'max-h-[56vh] overflow-y-auto lg:max-h-[64vh]'
         }`}
       >
-        <table className="w-full border-collapse font-mono text-[12.5px] leading-[1.85]">
+        {/* Кегль пляшет по ширине экрана: на телефоне 10.5px — это ещё
+            читаемо, но в строку влезает вдвое больше, чем на 12.5px. */}
+        <table className="w-full border-collapse font-mono text-[10.5px] leading-[1.75] sm:text-[11.5px] sm:leading-[1.85] lg:text-[12.5px]">
           <tbody>
             {lines.map((line) => {
               const clickable = isClickable(line) && !disabled && line.kind !== 'hunk'
@@ -208,14 +233,18 @@ export function DiffView({
                     transition: 'background .15s, box-shadow .15s',
                   }}
                 >
-                  <td className="w-[34px] px-[7px] text-right text-[#454550] tabular-nums select-none">
+                  {/* Старая нумерация на телефоне съедает пятую часть ширины
+                      ради колонки, по которой не кликают. */}
+                  <td className="hidden w-[34px] px-[7px] text-right text-[#454550] tabular-nums select-none sm:table-cell">
                     {line.oldNo ?? ''}
                   </td>
-                  <td className="w-[34px] border-r border-[#1f1f26] px-[7px] text-right text-[#565662] tabular-nums select-none">
+                  <td className="w-[26px] border-r border-[#1f1f26] px-1 text-right text-[#565662] tabular-nums select-none sm:w-[34px] sm:px-[7px]">
                     {line.newNo ?? ''}
                   </td>
-                  <td className="w-[18px] pl-[7px] text-[#565662] select-none">{marker(line)}</td>
-                  <td className="px-3.5 pl-1 whitespace-pre">
+                  <td className="w-[14px] pl-1 text-[#565662] select-none sm:w-[18px] sm:pl-[7px]">
+                    {marker(line)}
+                  </td>
+                  <td className="pr-2 pl-1 whitespace-pre-wrap [overflow-wrap:anywhere] sm:pr-3.5 sm:whitespace-pre sm:[overflow-wrap:normal]">
                     {tokens?.[line.index]
                       ? tokens[line.index]!.map(([text, color], i) => (
                           <span key={i} style={color ? { color } : undefined}>
@@ -237,5 +266,11 @@ export function DiffView({
       {corner && <div className="pointer-events-none absolute right-3 bottom-3 z-10">{corner}</div>}
     </div>
   )
+
+  // Во весь экран — через портал в body. `position: fixed` считается не от
+  // окна, а от ближайшего предка с трансформацией, а на экране ревью такой
+  // есть: анимация появления `screen-in`. Из-за неё развёрнутый диф вставал
+  // под шапку и занимал четверть экрана вместо всего.
+  return full ? createPortal(panel, document.body) : panel
 }
 

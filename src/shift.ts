@@ -168,6 +168,16 @@ export interface Shift {
    * Следующим ходом он возвращается — уже с уликой или с белым шумом.
    */
   pending: Watched | null
+  /**
+   * Агенты, о которых на этой смене уже узнали новое.
+   *
+   * Досье открывается по строке за вызов, но не быстрее одной строки
+   * за смену на агента. Без этого потолка агент, попавшийся четыре раза
+   * за двенадцать ходов, собирался целиком за один рабочий день — и весь
+   * детектив кончался в первую же смену. Про уже открытое `/blame`
+   * по-прежнему рассказывает: он перестаёт давать новое, а не отвечать.
+   */
+  learned: string[]
 }
 
 /** Пул-реквест под слежкой. */
@@ -232,12 +242,21 @@ export function start(carry?: Carry, turns: number = SHIFT_TURNS): Shift {
     probes: PROBES,
     spent: 0,
     pending: null,
+    // Что узнали о характерах — заново каждую смену: потолок на то и потолок.
+    learned: [],
   }
 }
 
 /** Потратить запрос к терминалу. Заряды кончились — смена не меняется. */
 export function probe(shift: Shift): Shift {
   return shift.probes <= 0 ? shift : { ...shift, probes: shift.probes - 1 }
+}
+
+/** Записать, что про этого агента на этой смене уже узнали новое. */
+export function learn(shift: Shift, agent: string): Shift {
+  return shift.learned.includes(agent)
+    ? shift
+    : { ...shift, learned: [...shift.learned, agent] }
 }
 
 /** Пора ли выпустить игрока на чекпойнт: каждые четыре хода и в конце смены. */
@@ -298,6 +317,7 @@ export function review(shift: Shift, task: Task, outcome: Outcome, seconds = 0):
       spent: shift.spent + Math.max(0, Math.round(seconds)),
       // Решение принято — PR больше не на логировании.
       pending: null,
+      learned: shift.learned,
     },
     fired: ticked.fired,
   }
@@ -354,6 +374,7 @@ export function watch(
       probes: shift.probes,
       spent: shift.spent + Math.max(0, Math.round(seconds)),
       pending: { pr: shift.pr, task: task.id, lines: [...lines], hit },
+      learned: shift.learned,
     },
     fired: ticked.fired,
   }
@@ -402,6 +423,7 @@ export function repair(shift: Shift, pr: number, task: Task, outcome: Outcome): 
       probes: shift.probes,
       spent: shift.spent,
       pending: shift.pending,
+      learned: shift.learned,
     },
     fired: ticked.fired,
     result,
@@ -551,5 +573,9 @@ export function restore(raw: unknown): Shift | null {
     pending: isWatched(raw.pending)
       ? { ...raw.pending, hit: raw.pending.hit === true }
       : null,
+    learned:
+      Array.isArray(raw.learned) && raw.learned.every((v) => typeof v === 'string')
+        ? raw.learned
+        : [],
   }
 }

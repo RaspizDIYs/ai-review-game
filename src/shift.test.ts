@@ -18,6 +18,7 @@ import {
   finish,
   isCheckpoint,
   isShiftOver,
+  learn,
   merged,
   merges,
   probe,
@@ -522,4 +523,20 @@ test('секундомер копит время смены, но ни на чт
 test('время копится и на слежке', () => {
   const s = watch(start(), DIRTY, [DIRTY.bugs[0].line], true, 30).shift
   assert.equal(s.spent, 30)
+})
+
+test('о ком узнали за смену — помнит сама смена', () => {
+  const s = start()
+  assert.deepEqual(s.learned, [])
+
+  const once = learn(s, 'oracle')
+  assert.deepEqual(once.learned, ['oracle'])
+  // Повтор ничего не меняет: потолок один на смену, а не счётчик.
+  assert.equal(learn(once, 'oracle'), once)
+  assert.deepEqual(learn(once, 'commander').learned, ['oracle', 'commander'])
+})
+
+test('новая смена начинается с чистой памятью о характерах', () => {
+  const s = learn(start(), 'oracle')
+  assert.deepEqual(start(carry(s)).learned, [])
 })

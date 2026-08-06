@@ -44,11 +44,14 @@ export function RepoName({ value, accent, onChange }: Props) {
 
   if (!editing) {
     return (
-      <Tip text="Переименовать репозиторий" side="bottom">
+      <Tip text={`${normalizeRepo(value)}\nпереименовать`} side="bottom" className="min-w-0 shrink">
       <button
         onClick={open}
         aria-label="Переименовать репозиторий"
-        className={`group flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-white/6 ${TEXT} text-[#e7e7ea]`}
+        // Потолок ширины жёсткий: без него длинное имя расталкивало шапку
+        // и выдавливало ачивки с шестерёнкой за край экрана. Что не влезло —
+        // прячется под многоточие, целиком имя видно в подсказке.
+        className={`group flex max-w-[42vw] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-white/6 sm:max-w-[240px] ${TEXT} text-[#e7e7ea]`}
       >
         <span className="truncate">{normalizeRepo(value)}</span>
         <span className="shrink-0 text-[#3a3a44] transition-colors group-hover:text-[#8b8b95]">

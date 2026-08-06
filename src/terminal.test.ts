@@ -31,6 +31,7 @@ function ctx(over: Partial<TerminalContext> = {}): TerminalContext {
     watching: [],
     probes: PROBES,
     blamed: false,
+    learned: [],
     canWatch: true,
     ...over,
   }
@@ -43,7 +44,7 @@ const text = (task: Task, input: string, over: Partial<TerminalContext> = {}) =>
 
 test('help перечисляет команды и не тратит запрос', () => {
   const result = run('help', ctx())
-  assert.ok(result.lines.some((l) => l.text.includes('/git-blame')))
+  assert.ok(result.lines.some((l) => l.text.includes('/blame')))
   assert.equal(result.effects.length, 0)
 })
 
@@ -57,9 +58,8 @@ test('незнакомая команда не молчит и ничего не
   assert.equal(result.effects.length, 0)
 })
 
-test('git-blame бесплатен и не называет автора, пока досье не собрано', () => {
-  const line = DIRTY.bugs[0].line
-  const result = run(`git-blame ${line}`, ctx())
+test('/blame бесплатен и не называет автора, пока досье не собрано', () => {
+  const result = run('blame', ctx())
   const said = result.lines.map((l) => l.text).join('\n')
 
   // Имя выдало бы всё сразу — собирают тут именно его.
@@ -69,8 +69,7 @@ test('git-blame бесплатен и не называет автора, пок
 })
 
 test('собранное досье раскрывает агента целиком', () => {
-  const line = DIRTY.bugs[0].line
-  const said = text(DIRTY, `git-blame ${line}`, {
+  const said = text(DIRTY, 'blame', {
     dossier: { commander: AGENTS.commander.known.length - 1 },
   })
 
@@ -82,15 +81,14 @@ test('собранное досье раскрывает агента целик
 test('история поднимается раз за ход', () => {
   // Иначе весь профиль агента открывается за один раунд, и «постепенно»
   // из постановки не работает вовсе.
-  const result = run(`git-blame ${DIRTY.bugs[0].line}`, ctx({ blamed: true }))
+  const result = run('blame', ctx({ blamed: true }))
   assert.equal(result.effects.length, 0)
   assert.ok(result.lines[0].text.includes('уже поднята'))
 })
 
-test('git-blame открывает досье по строке за вызов', () => {
-  const line = DIRTY.bugs[0].line
-  const first = text(DIRTY, `git-blame ${line}`)
-  const later = text(DIRTY, `git-blame ${line}`, { dossier: { commander: 3 } })
+test('/blame открывает досье по строке за вызов', () => {
+  const first = text(DIRTY, 'blame')
+  const later = text(DIRTY, 'blame', { dossier: { commander: 3 } })
 
   const count = (s: string) => s.split('\n').filter((l) => l.startsWith('  — ')).length
   assert.equal(count(first), 1)
@@ -98,20 +96,19 @@ test('git-blame открывает досье по строке за вызов'
   assert.ok(later.includes('полностью'))
 })
 
-test('git-blame на несуществующей строке отвечает отказом', () => {
-  const result = run('git-blame 9999', ctx())
-  assert.ok(result.lines[0].text.includes('нет'))
-  assert.equal(result.effects.length, 0)
-})
+test('/blame не спрашивает строку и не зависит от неё', () => {
+  // Весь PR пишет один агент: аргумент выглядел выбором, не будучи им.
+  const bare = text(DIRTY, 'blame')
+  const withNumber = text(DIRTY, 'blame 9999')
 
-test('git-blame без номера не тратит запрос', () => {
-  assert.equal(run('git-blame', ctx()).effects.length, 0)
+  assert.equal(bare, withNumber, 'номер строки всё ещё что-то меняет')
+  assert.ok(!/строк[аиуе]?\s*\d/i.test(bare), 'git-blame назвал строку')
 })
 
 test('кончились запросы — терминал не отвечает ничем платным', () => {
   const empty = ctx({ probes: 0 })
 
-  for (const command of ['compare-with-blueprint', 'deploy --dry-run']) {
+  for (const command of ['check', 'deploy']) {
     const result = run(command, empty)
     assert.equal(result.effects.length, 0, command)
     assert.ok(result.lines[0].text.includes('запросов'), command)
@@ -121,29 +118,29 @@ test('кончились запросы — терминал не отвечае
   assert.ok(run('help', empty).lines.length > 0)
   assert.deepEqual(run('clear', empty).effects, [{ kind: 'clear' }])
   const line = DIRTY.bugs[0].line
-  assert.ok(run(`git-blame ${line}`, empty).effects.length > 0)
-  assert.deepEqual(run(`grab-evidence --on-line ${line}`, empty).effects, [
+  assert.ok(run('blame', empty).effects.length > 0)
+  assert.deepEqual(run(`log ${line}`, empty).effects, [
     { kind: 'watch', lines: [line] },
   ])
 })
 
-test('compare-with-blueprint не называет ни одной строки', () => {
+test('/check не называет ни одной строки', () => {
   // Раньше команда выдавала район в семь строк — это фактически адрес,
   // и она решала задачу за игрока.
   for (const task of PACK.slice(0, 60)) {
-    const said = text(task, 'compare-with-blueprint')
+    const said = text(task, 'check')
     assert.ok(!/строк[аиуе]?\s*\d/i.test(said), `${task.id}: терминал назвал строку`)
     assert.ok(!new RegExp(`\\b${task.bugs[0]?.line ?? -1}\\b`).test(said), `${task.id}: номер утёк`)
   }
 })
 
-test('compare-with-blueprint не цитирует ни одного имени из кода', () => {
+test('/check не цитирует ни одного имени из кода', () => {
   // Главная претензия к прежней версии: она печатала `dayOf` — то есть
   // готовую подстановку в Ctrl+F. Из двух подходящих строк вторая после
   // этого закрывалась со второй попытки бесплатно.
   for (const task of PACK) {
     if (task.bugs.length === 0) continue
-    const said = text(task, 'compare-with-blueprint')
+    const said = text(task, 'check')
 
     const identifiers = new Set<string>()
     for (const line of parseDiff(task.diff)) {
@@ -162,10 +159,10 @@ test('compare-with-blueprint не цитирует ни одного имени 
   }
 })
 
-test('compare-with-blueprint отвечает человеческим языком', () => {
+test('/check отвечает человеческим языком', () => {
   // Не «Контур эталона не сходится: dayOf», а фраза, которую можно прочесть
   // вслух и не полезть за ней в диф.
-  const said = text(DIRTY, 'compare-with-blueprint')
+  const said = text(DIRTY, 'check')
   assert.ok(said.includes('Эталон'), 'нет объяснения про эталон')
   assert.ok(said.split('\n').some((l) => l.length > 40), 'нет ни одной развёрнутой фразы')
 })
@@ -184,23 +181,23 @@ test('у каждого тега пака есть свой род расхож�
 test('на чистом PR blueprint тоже находит деформацию', () => {
   // Иначе «эталон не нашёл отклонений» = «здесь чисто», и чистые раунды
   // перестают работать: см. заметку «Чистые раунды обязательны».
-  const result = run('compare-with-blueprint', ctx({ task: CLEAN }))
+  const result = run('check', ctx({ task: CLEAN }))
   assert.ok(result.lines.some((l) => l.text.includes('расхождение')))
   assert.deepEqual(result.effects, [{ kind: 'probe' }])
 })
 
-test('deploy --dry-run зелёный только на точном попадании', () => {
-  const good = run('deploy --dry-run', ctx({ selected: DIRTY.bugs.map((b) => b.line) }))
+test('/deploy зелёный только на точном попадании', () => {
+  const good = run('deploy', ctx({ selected: DIRTY.bugs.map((b) => b.line) }))
   assert.ok(good.lines.some((l) => l.tone === 'good'))
 
-  const bad = run('deploy --dry-run', ctx({ selected: [DIRTY.bugs[0].line, 1] }))
+  const bad = run('deploy', ctx({ selected: [DIRTY.bugs[0].line, 1] }))
   assert.ok(bad.lines.some((l) => l.text.includes('Ошибка компиляции')))
 })
 
-test('deploy --dry-run отвечает числом, а не лампочкой', () => {
+test('/deploy отвечает числом, а не лампочкой', () => {
   // Раньше любой промах давал одни и те же 23%, и команда сводилась к «да/нет».
   const percent = (selected: number[]) => {
-    const said = text(DIRTY, 'deploy --dry-run', { selected })
+    const said = text(DIRTY, 'deploy', { selected })
     return Number(/(\d+)%/.exec(said)![1])
   }
 
@@ -215,35 +212,29 @@ test('deploy --dry-run отвечает числом, а не лампочкой
   assert.ok(near > nothing, 'найденная подлянка должна что-то значить')
 })
 
-test('deploy --dry-run на чистом PR всегда красный', () => {
+test('/deploy на чистом PR всегда красный', () => {
   const lines = [...new Set(CLEAN.decoys.map((d) => d.line))]
-  const result = run('deploy --dry-run', ctx({ task: CLEAN, selected: lines }))
+  const result = run('deploy', ctx({ task: CLEAN, selected: lines }))
   assert.ok(result.lines.some((l) => l.text.includes('Ошибка компиляции')))
 })
 
-test('deploy без --dry-run прод не катит', () => {
-  const result = run('deploy', ctx({ selected: [1] }))
-  assert.equal(result.effects.length, 0)
-  assert.ok(result.lines[0].text.includes('нельзя'))
+test('/deploy без отмеченных строк не тратит запрос', () => {
+  assert.equal(run('deploy', ctx()).effects.length, 0)
 })
 
-test('deploy без отмеченных строк не тратит запрос', () => {
-  assert.equal(run('deploy --dry-run', ctx()).effects.length, 0)
-})
-
-test('grab-evidence принимает и пробелы, и запятые', () => {
-  const a = run('grab-evidence --on-line 12 13', ctx({ task: DIRTY }))
-  const b = run('grab-evidence --on-line=13,12', ctx({ task: DIRTY }))
+test('/log принимает и пробелы, и запятые', () => {
+  const a = run('log 12 13', ctx({ task: DIRTY }))
+  const b = run('log 13,12', ctx({ task: DIRTY }))
   assert.deepEqual(a.effects, b.effects)
 })
 
 test('слежка не тратит запрос — она тратит ход', () => {
-  const result = run('grab-evidence --on-line 12', ctx())
+  const result = run('log 12', ctx())
   assert.deepEqual(result.effects, [{ kind: 'watch', lines: [12] }])
 })
 
 test('слежка ставится один раз за ход', () => {
-  const result = run('grab-evidence --on-line 12', ctx({ watching: [12] }))
+  const result = run('log 12', ctx({ watching: [12] }))
   assert.equal(result.effects.length, 0)
   assert.ok(result.lines[0].text.includes('уже'))
 })
@@ -251,7 +242,7 @@ test('слежка ставится один раз за ход', () => {
 test('слежка не берёт больше участка за раз', () => {
   // Без потолка команда вырождалась в «повесь лог на полфайла и получи адрес».
   const many = [...Array(WATCH_LIMIT + 1).keys()].map((i) => i + 1).join(',')
-  const result = run(`grab-evidence --on-line ${many}`, ctx())
+  const result = run(`log ${many}`, ctx())
   assert.equal(result.effects.length, 0)
   assert.ok(result.lines[0].text.includes(String(WATCH_LIMIT)))
 })
@@ -290,4 +281,61 @@ test('промах слежки не выдаёт, что PR чистый', () =
 
 test('на чистом PR слежка никогда не срабатывает', () => {
   assert.equal(caught(CLEAN, [1, 2, 3, 4, 5]), false)
+})
+
+test('команды короткие и одного покроя', () => {
+  // Их набирают пальцем на телефоне: `compare-with-blueprint` там читался
+  // как издевательство. Одно слово, до шести букв, без флагов.
+  const said = run('help', ctx())
+    .lines.map((l) => l.text)
+    .join('\n')
+
+  // Дедуплицируем: ниже в справке ещё раз показан пример с /log.
+  const shown = [...new Set([...said.matchAll(/^ {2}\/(\S+)/gm)].map((m) => m[1]))]
+  assert.deepEqual(shown, ['help', 'blame', 'check', 'deploy', 'log', 'clear'])
+
+  for (const name of shown) {
+    assert.ok(name.length <= 6, `${name}: длиннее шести букв`)
+    assert.ok(/^[a-z]+$/.test(name), `${name}: не одно слово из букв`)
+  }
+})
+
+test('прежние длинные имена всё ещё понимаются', () => {
+  // Они записаны в старых заметках по проекту — ломать их незачем,
+  // достаточно перестать показывать.
+  for (const [old, short] of [
+    ['git-blame', 'blame'],
+    ['compare-with-blueprint', 'check'],
+    ['deploy --dry-run', 'deploy'],
+    ['grab-evidence --on-line 12', 'log 12'],
+  ]) {
+    assert.deepEqual(text(DIRTY, old), text(DIRTY, short), `${old} разошлась с ${short}`)
+  }
+})
+
+test('за смену про одного агента узнают одну строку', () => {
+  // Без потолка агент, попавшийся за двенадцать ходов четыре раза,
+  // собирался целиком за один рабочий день — и детектив кончался в первую же
+  // смену. Ровно на это жаловались после живой игры.
+  const said = text(DIRTY, 'blame', {
+    dossier: { commander: 1 },
+    learned: ['commander'],
+  })
+
+  const lines = said.split('\n').filter((l) => l.startsWith('  — ')).length
+  assert.equal(lines, 1, 'потолок не удержал: строк стало больше')
+  assert.ok(said.includes('в следующую смену'))
+})
+
+test('упёршийся в потолок blame всё равно отвечает, но не даёт нового', () => {
+  const result = run('blame', ctx({ dossier: { commander: 2 }, learned: ['commander'] }))
+
+  // Ход он по-прежнему занимает — иначе им можно долбить бесконечно.
+  assert.deepEqual(result.effects, [{ kind: 'blamed' }])
+  assert.ok(result.lines.length > 3, 'команда замолчала вместо того, чтобы рассказать известное')
+})
+
+test('потолок на одного агента не мешает узнать про другого', () => {
+  const result = run('blame', ctx({ author: AGENTS.oracle, learned: ['commander'] }))
+  assert.deepEqual(result.effects, [{ kind: 'blamed' }, { kind: 'dossier', agent: 'oracle' }])
 })
