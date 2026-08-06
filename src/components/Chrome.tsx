@@ -83,7 +83,9 @@ export function Chrome({
 
         <span className="flex-1" />
 
-        <Tip text={`Ачивки: ${achCount} из ${achTotal}`}>
+        {/* Кнопки справа не сжимаются и не переносятся: они якорь шапки,
+            а уступать место должно имя репозитория. */}
+        <Tip text={`Ачивки: ${achCount} из ${achTotal}`} className="shrink-0">
           <button
             onClick={onAch}
             className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#26262c] bg-[#121216] px-2.5 py-1.5 font-mono text-[11px] text-[#a1a1ab] transition-colors hover:border-[#3a3a44] hover:text-[#e7e7ea]"
@@ -93,7 +95,7 @@ export function Chrome({
           </button>
         </Tip>
 
-        <Tip text="Настройки: звук и терминал">
+        <Tip text="Настройки: звук и терминал" className="shrink-0">
           <button
             onClick={onSettings}
             aria-label="Настройки"

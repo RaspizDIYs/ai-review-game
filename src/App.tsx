@@ -103,7 +103,6 @@ import { Briefing } from './components/Briefing.tsx'
 import { Chrome } from './components/Chrome.tsx'
 import type { LineState } from './components/DiffView.tsx'
 import { Home } from './components/Home.tsx'
-import { Incident } from './components/Incident.tsx'
 import { Postmortem } from './components/Postmortem.tsx'
 import { RepairPick } from './components/RepairPick.tsx'
 import { Setup } from './components/Setup.tsx'
@@ -138,7 +137,6 @@ type Screen =
   | 'review'
   | 'reason'
   | 'verdict'
-  | 'incident'
   | 'tick'
   | 'summary'
   | 'shift-end'
@@ -248,8 +246,13 @@ export default function App() {
    * которое переезжает в следующую смену через localStorage.
    */
   const [shift, setShift] = useState<Shift | null>(() => restoreShift(getShift()))
-  /** Что рвануло на последнем ходу — показывается после вердикта. */
-  const [fired, setFired] = useState<Defect[]>([])
+  /**
+   * Что рвануло с прошлой паузы. Копится, а не показывается сразу: авария
+   * посреди хода перебивала работу, съедала плановую сверку и уводила
+   * на экран без обратной дороги. Теперь всё это разбирают в паузе,
+   * которая наступает строго каждые четыре хода.
+   */
+  const [alerts, setAlerts] = useState<Defect[]>([])
   /** Чиним свой мёрдж: тот же диф, но размечаем его заново и без таймера. */
   const [repairing, setRepairing] = useState<{ pr: number; task: Task } | null>(null)
   /**
@@ -264,9 +267,11 @@ export default function App() {
   const [drafts, setDrafts] = useState<Map<number, number[]>>(new Map())
   /** Сколько раз лазили в каждый PR — единственное, что игра о починке помнит. */
   const [tried, setTried] = useState<Map<number, number>>(new Map())
-  /** Чиним на упавшем проде посреди смены или спокойно между сменами. */
-  const [urgent, setUrgent] = useState(false)
-  /** Плановая сверка каждые четыре хода: смотрим на прод и работаем дальше. */
+  /**
+   * Плановая пауза каждые четыре хода. Единственная остановка в смене:
+   * авария больше не заводит свой экран, а ждёт ближайшей паузы, и «горит
+   * ли прод» считается по самим дефектам, а не отдельным флагом.
+   */
   const [checkpoint, setCheckpoint] = useState(false)
   /**
    * На каком ходу сверку уже показали.
@@ -400,7 +405,6 @@ export default function App() {
     screen === 'review' ||
     screen === 'reason' ||
     screen === 'verdict' ||
-    screen === 'incident' ||
     screen === 'tick'
   const accent = inRun && !anonymous ? agent.color : hero.color
 
@@ -534,14 +538,14 @@ export default function App() {
       if (mode === 'shift' && shift) {
         const turn = shiftReview(shift, task, result.outcome, elapsed.current)
         setShift(turn.shift)
-        setFired(turn.fired)
+        // Рвануло — запомнили и пошли дальше: разбор будет в паузе.
+        if (turn.fired.length > 0) setAlerts((prev) => [...prev, ...turn.fired])
         saveShift(turn.shift)
 
         // Смена играется вслепую: вердикта нет. Единственное, что игрок
         // видит после решения, — прод. См. «Слепая смена — Ревью за ИИ».
-        beep('tap')
-        if (turn.fired.length > 0) setScreen('incident')
-        else nextTurn(turn.shift)
+        beep(turn.fired.length > 0 ? 'bad' : 'tap')
+        nextTurn(turn.shift)
         return
       }
 
@@ -745,7 +749,7 @@ export default function App() {
 
     const turn = watchTurn(shift, task, lines, watchCaught(task, lines), elapsed.current)
     setShift(turn.shift)
-    setFired(turn.fired)
+    if (turn.fired.length > 0) setAlerts((prev) => [...prev, ...turn.fired])
     saveShift(turn.shift)
     setWatching(lines)
 
@@ -1021,7 +1025,7 @@ export default function App() {
       endlessSeed.current = `shift:${today}:${saved.pr}`
       setMode('shift')
       setShift(saved)
-      setFired([])
+      setAlerts([])
       resetRun()
       setScreen('repair')
       return
@@ -1047,12 +1051,11 @@ export default function App() {
     setMode('shift')
     setSeries([])
     setShift(next)
-    setFired([])
+    setAlerts([])
     saveShift(next)
     resetRun()
     resetTerminal()
     setCheckpoint(false)
-    setUrgent(false)
     // Через advanceTurn, а не напрямую: у продолженной смены мог остаться PR
     // на логировании, и его надо вернуть игроку, а не подменить новым.
     advanceTurn(next)
@@ -1066,16 +1069,19 @@ export default function App() {
       return
     }
 
-    // Каждые четыре хода игрока выпускают посмотреть на прод. Правды там нет:
-    // здоровье, отклик и список своих мёрджей — и всё.
-    //
-    // Сверка привязана к номеру хода, а не к пути, которым до него дошли:
-    // авария ровно на четвёртом ходу больше её не съедает, а повторно
-    // на том же ходу она не открывается.
+    /*
+      Пауза — строго каждые четыре хода, и это единственная остановка
+      в смене. Всё, что рвануло за отрезок, ждёт её и разбирается там же:
+      раньше авария заводила свой экран посреди хода, съедала плановую
+      сверку и уводила в тупик, из которого не было дороги назад.
+
+      Привязка к номеру хода, а не к пути, которым до него дошли: пауза
+      не пропускается из-за аварии и не открывается дважды на одном ходу.
+      Правды в ней по-прежнему нет — здоровье, отклик, свои мёрджи и логи.
+    */
     if (isCheckpoint(current) && checkedAt !== current.turn) {
       beep('toggle')
       setCheckedAt(current.turn)
-      setUrgent(false)
       setCheckpoint(true)
       setScreen('repair')
       return
@@ -1182,12 +1188,6 @@ export default function App() {
     beep('tap')
 
     if (mode === 'shift' && shift) {
-      // Сначала показываем, что рвануло: иначе алерт теряется за брифингом
-      // следующего PR и связь с собственным мёрджем не читается.
-      if (fired.length > 0) {
-        setScreen('incident')
-        return
-      }
       nextTurn(shift)
       return
     }
@@ -1211,39 +1211,7 @@ export default function App() {
   }
 
   /**
-   * Оставить аварию и работать дальше. Прод при этом продолжит падать каждый
-   * ход — это осознанный выбор игрока, а не бесплатное «дальше».
-   */
-  function afterIncident() {
-    beep('tap')
-    const rest = fired.slice(1)
-    setFired(rest)
-    if (rest.length > 0 || !shift) return
-
-    if (!isShiftOver(shift)) nextTurn(shift)
-    else setScreen(finishShift(shift).verdict === 'alive' ? 'repair' : 'shift-end')
-  }
-
-  /**
-   * Чинить прямо сейчас: прод лежит, время и попытки не считаются.
-   * Список аварий не сбрасываем — с экрана починки к нему можно вернуться.
-   */
-  function repairNow() {
-    beep('tap')
-    setHealed(null)
-    setUrgent(true)
-    setScreen('repair')
-  }
-
-  /** Вернуться из починки к разбору аварии: раньше это был выход без выхода. */
-  function backToIncident() {
-    beep('tap')
-    setUrgent(false)
-    setScreen('incident')
-  }
-
-  /**
-   * Выйти из разбора. Здесь и только здесь считаются черновики правок:
+   * Выйти из паузы. Здесь и только здесь считаются черновики правок:
    * игрок сказал «хватит», значит правки уезжают в прод разом.
    */
   function leaveRepair() {
@@ -1258,14 +1226,9 @@ export default function App() {
     saveShift(applied.shift)
     setHealed(null)
     setCheckpoint(false)
-    setUrgent(false)
 
-    // Правки могли добить прод — или, наоборот, дотикать соседнюю мину.
-    if (applied.fired.length > 0) {
-      setFired(applied.fired)
-      setScreen('incident')
-      return
-    }
+    // Правки могли дотикать соседнюю мину — она попадёт в следующую паузу.
+    setAlerts(applied.fired)
 
     if (finishShift(applied.shift).verdict !== 'alive') {
       setScreen('shift-end')
@@ -1278,11 +1241,9 @@ export default function App() {
       return
     }
 
-    setFired([])
-    // Через nextTurn, а не сразу в новый ход: если сверка на этом ходу ещё
-    // не показывалась, её очередь именно сейчас. Повторно она не откроется —
-    // за этим следит `checkedAt`.
-    nextTurn(applied.shift)
+    // Через advanceTurn, а не nextTurn: паузу мы только что и отработали,
+    // и открывать её повторно на том же ходу незачем.
+    advanceTurn(applied.shift)
   }
 
   /** Настройка появляется под режим, а не висит колонкой на главной. */
@@ -1633,27 +1594,13 @@ export default function App() {
           />
         )}
 
-        {screen === 'incident' && fired[0] && shift && (
-          <Incident
-            defect={fired[0]}
-            log={logFor(fired[0], INCIDENTS)}
-            delta={shift.delta}
-            // Мина, которая уже падала на прошлом ходу, падает не впервые.
-            again={shift.log.filter((e) => e.kind === 'incident' && e.pr === fired[0].pr).length > 1}
-            total={fired.length}
-            accent={accent}
-            onRepair={repairNow}
-            onNext={afterIncident}
-          />
-        )}
-
         {screen === 'tick' && shift?.pending && (
           <Tick
             pr={shift.pending.pr}
             lines={report(task, shift.pending.lines)}
             hit={shift.pending.hit}
             delta={shift.delta}
-            incidents={fired.length}
+            incidents={alerts.length}
             accent={accent}
             onBack={backFromTick}
           />
@@ -1670,7 +1617,15 @@ export default function App() {
             prod={{ ...shift.prod, delta: shift.delta, state: prodState(shift.defects) }}
             healed={healed}
             accent={accent}
-            urgent={urgent}
+            alerts={alerts.map((defect) => ({
+              defect,
+              log: logFor(defect, INCIDENTS),
+              // Мина, которая падала и раньше, падает не впервые.
+              again:
+                shift.log.filter((e) => e.kind === 'incident' && e.pr === defect.pr).length > 1,
+            }))}
+            // Прод горит, пока в нём есть опознанная и непочиненная авария.
+            urgent={shift.defects.some((d) => d.known)}
             checkpoint={
               checkpoint
                 ? {
@@ -1685,7 +1640,6 @@ export default function App() {
             onPick={startRepair}
             onCleanup={doCleanup}
             onDone={leaveRepair}
-            onBackToIncident={fired.length > 0 ? backToIncident : null}
             onExit={goHome}
           />
         )}

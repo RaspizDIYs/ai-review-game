@@ -1,6 +1,19 @@
 /**
- * Фаза починки: сверка посреди смены, упавший прод или разбор завалов
- * после смены. Экран один — меняется только повод.
+ * Пауза смены — единственная остановка между ходами.
+ *
+ * Раньше их было три и они наступали друг другу на ноги: плановая сверка
+ * каждые четыре хода, экран аварии посреди хода и «прод лежит» из аварии.
+ * Авария приходила когда угодно, съедала сверку, вела на отдельный экран,
+ * с которого не было дороги назад, — и игрок переставал понимать, где он
+ * находится и почему.
+ *
+ * Теперь состояние одно, и наступает оно **строго каждые четыре хода**.
+ * Всё, что рвануло за эти четыре хода, копится и показывается здесь же,
+ * сверху. Отсюда чинят, отсюда разгребают долг, отсюда уходят работать
+ * дальше — и другого выхода из паузы нет.
+ *
+ * Повод меняет только заголовок и тон: горит ли прод прямо сейчас,
+ * плановая ли это остановка или разбор завалов после смены.
  *
  * Кнопок «откатить» и «отправить на доработку» здесь нет и не будет: игрок
  * открывает свой же мёрдж заново, ищет в нём то, что проглядел, и размечает
@@ -13,13 +26,24 @@
  * по «работать дальше». Цена ошибки не исчезла — исчезла мясорубка.
  */
 
-import type { ProdState } from '../defects.ts'
-import { CLEANUPS, type ShiftEvent } from '../shift.ts'
+import { FUSE_MAX, FUSE_MIN, type Defect, type ProdState } from '../defects.ts'
+import type { IncidentLog } from '../incident.ts'
+import { CHECKPOINT_EVERY, CLEANUPS, type ShiftEvent } from '../shift.ts'
 import { plural } from '../stats.ts'
 import { Icon } from '../ui/icons.tsx'
 import { Button, Tip } from '../ui/kit.tsx'
 import { diffStat } from '../diff.ts'
 import { Gauges } from './Gauges.tsx'
+
+/** Авария за прошедший отрезок: что рвануло и что видно в логах. */
+export interface Alert {
+  defect: Defect
+  log: IncidentLog | null
+  /** Падает не впервые — значит, причину так и не нашли. */
+  again: boolean
+}
+
+const RED = '#f87171'
 
 interface Props {
   /** Все мёрджи, которые игрок пустил в прод. Какие из них с подлянкой — неизвестно. */
@@ -38,7 +62,9 @@ interface Props {
   /** Сколько здоровья вернула последняя уборка. 0 — разгребать было нечего. */
   healed: number | null
   accent: string
-  /** Чиним прямо на упавшем проде, а не между сменами. */
+  /** Что рвануло с прошлой паузы. Пусто — прод дожил спокойно. */
+  alerts: Alert[]
+  /** Прод горит прямо сейчас: авария не закрыта и валит его каждый ход. */
   urgent: boolean
   /**
    * Плановая остановка каждые четыре хода: смотрим, каким стал прод, и решаем,
@@ -51,8 +77,6 @@ interface Props {
   onPick: (pr: number, task: string) => void
   onCleanup: () => void
   onDone: () => void
-  /** Вернуться к разбору аварии. null — аварии сейчас нет. */
-  onBackToIncident: (() => void) | null
   /** Уйти на главную. Смена сохраняется и ждёт возвращения. */
   onExit: () => void
 }
@@ -67,13 +91,13 @@ export function RepairPick({
   prod,
   healed,
   accent,
+  alerts,
   urgent,
   checkpoint,
   cleanups,
   onPick,
   onCleanup,
   onDone,
-  onBackToIncident,
   onExit,
 }: Props) {
   const marked = [...drafts.values()].filter((lines) => lines.length > 0).length
@@ -119,15 +143,66 @@ export function RepairPick({
         </div>
       </div>
 
+      {/* Всё, что рвануло за отрезок, — здесь, а не отдельным экраном
+          посреди хода. Логи те же, просто перестали перебивать работу. */}
+      {alerts.length > 0 && (
+        <div
+          className="overflow-hidden rounded-2xl"
+          style={{
+            border: `1px solid ${RED}55`,
+            background: `linear-gradient(180deg,${RED}12,#0e0e12 60%)`,
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-3 border-b border-[#1f1f26] px-5 py-3">
+            <span style={{ color: RED, animation: 'pulseRed 1.2s ease-in-out infinite' }}>
+              <Icon name="siren" size={18} />
+            </span>
+            <h2 className="font-display m-0 text-[17px] font-bold tracking-[-.02em] text-[#f4f4f6]">
+              {alerts.length === 1
+                ? 'Авария в проде'
+                : `Аварий за отрезок: ${alerts.length}`}
+            </h2>
+            <span className="flex-1" />
+            <span className="font-mono text-[11px] text-[#8b8b95]">
+              за последние {CHECKPOINT_EVERY} {plural(CHECKPOINT_EVERY, 'ход', 'хода', 'ходов')}
+            </span>
+          </div>
+
+          {alerts.map(({ defect, log, again }, i) => (
+            <div key={`${defect.pr}:${i}`} className="border-b border-[#1f1f26] last:border-b-0">
+              <pre className="m-0 overflow-x-auto px-5 py-3.5 font-mono text-[11px] leading-[1.8] whitespace-pre-wrap text-[#c9c9d1]">
+                {log?.lines ??
+                  `03:12  api-7f4c  ERROR  необработанный сбой, растёт число пятисотых
+03:12  api-7f4c  ERROR  ${defect.tag}`}
+              </pre>
+              {again && (
+                <p className="m-0 px-5 pb-3 font-mono text-[11px]" style={{ color: RED }}>
+                  падает не впервые — причину так и не нашли
+                </p>
+              )}
+            </div>
+          ))}
+
+          <p className="m-0 border-t border-[#1f1f26] px-5 py-3 text-[13px] leading-[1.55] text-[#8b8b95]">
+            Пропущенная подлянка лежит в проде{' '}
+            <span className="text-[#d8d8dd]">
+              от {FUSE_MIN} до {FUSE_MAX} ходов
+            </span>
+            , а потом рвёт его — и будет рвать каждый ход, пока её не найдут.
+            Значит, виноват один из мёрджей той давности.
+          </p>
+        </div>
+      )}
+
       <p className="m-0 max-w-[680px] text-sm leading-[1.55] text-[#9a9aa4]">
         {urgent
-          ? 'Вот всё, что ты пустил в прод. Причина падения — в одном из них. Время не идёт и попытки не считаются: пока прод лежит, ничего важнее нет.'
+          ? 'Прод падает каждый ход, и сам не встанет. Причина — в одном из этих мёрджей. Время не идёт и попытки не считаются: пока прод лежит, ничего важнее нет.'
           : checkpoint
-            ? 'Плановая сверка. Здоровье и отклик — вот и всё, что говорит прод; какой из мёрджей его портит, он не скажет. Можно починить сейчас, можно работать дальше.'
+            ? `Плановая остановка, они случаются каждые ${CHECKPOINT_EVERY} хода. Здоровье и отклик — вот и всё, что говорит прод; какой из мёрджей его портит, он не скажет.`
             : 'Вот всё, что ты пустил в прод за смену. Где-то здесь сидит то, что его ломает — а может, и нет.'}{' '}
         Открывай, размечай строки и возвращайся: отметки — черновик, менять их
         можно сколько угодно. Правки уедут все разом, когда нажмёшь «работать
-        дальше».
+        дальше», — до тех пор ничего не считается.
       </p>
 
       <div className="flex flex-col gap-1.5">
@@ -254,21 +329,7 @@ export function RepairPick({
             : 'Хватит · на следующую смену'}
       </Button>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Из «прод лежит» раньше можно было только «идти дальше»: назад
-            к разбору аварии дороги не было, и выход оказывался без выхода. */}
-        {onBackToIncident ? (
-          <button
-            onClick={onBackToIncident}
-            className="flex cursor-pointer items-center gap-1.5 font-mono text-[11px] text-[#6b6b77] transition-colors hover:text-[#e7e7ea]"
-          >
-            <Icon name="arrow-left" size={13} />
-            вернуться к аварии
-          </button>
-        ) : (
-          <span />
-        )}
-
+      <div className="flex flex-wrap items-center justify-end gap-3">
         {/* Смена сохраняется целиком, поэтому уйти с неё можно откуда угодно —
             в том числе отсюда, где раньше выхода не было вовсе. */}
         <Tip text="Смена сохранится: вернёшься на тот же ход" side="top">

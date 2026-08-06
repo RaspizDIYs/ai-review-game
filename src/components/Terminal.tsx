@@ -186,15 +186,18 @@ export function Terminal({
         {/* Заряды кругом с цифрой: решение «спросить сейчас или приберечь»
             принимают глядя на счётчик, а не вспоминая, сколько потрачено. */}
         <Tip text={`Платных запросов осталось ${probes} из ${PROBES}`} side="bottom">
+          {/* Не круг, а капсула: «4/4» в кружке 26px упиралось в обводку
+              с обеих сторон и читалось как клякса. */}
           <span
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-full font-mono text-[10px] font-bold tabular-nums"
+            className="flex h-[24px] items-center gap-px rounded-full px-2.5 font-mono text-[11px] font-bold tabular-nums"
             style={{
               color: probes > 0 ? accent : '#7c5a5a',
-              border: `2px solid ${probes > 0 ? accent : '#43303099'}`,
+              border: `1.5px solid ${probes > 0 ? `${accent}88` : '#43303099'}`,
               background: probes > 0 ? `${accent}18` : 'transparent',
             }}
           >
-            {probes}/{PROBES}
+            {probes}
+            <span className="opacity-45">/{PROBES}</span>
           </span>
         </Tip>
 
@@ -235,8 +238,10 @@ export function Terminal({
               // Заставка нарисована пробелами: перенос строк её ломает.
               whiteSpace: line.tone === 'art' ? 'pre' : 'pre-wrap',
               wordBreak: line.tone === 'art' ? 'keep-all' : 'break-word',
-              fontSize: line.tone === 'art' ? 'clamp(5px,1.5vw,9px)' : undefined,
-              lineHeight: line.tone === 'art' ? 1.15 : undefined,
+              // 33 знака в строке — влезают целиком даже на узкой панели,
+              // и ужимать до нечитаемого больше не приходится.
+              fontSize: line.tone === 'art' ? 'clamp(9px,2.6vw,13px)' : undefined,
+              lineHeight: line.tone === 'art' ? 1.05 : undefined,
             }}
           >
             {line.text === '' ? ' ' : line.text}
