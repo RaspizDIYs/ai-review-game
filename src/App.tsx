@@ -168,6 +168,11 @@ export default function App() {
   const dailySeries = useMemo(() => pickDaily(POOL, today), [today])
 
   const [screen, setScreen] = useState<Screen>('home')
+  /**
+   * Куда возвращаться из ачивок. Никогда не равен `ach`: иначе кнопка
+   * в шапке, нажатая на самом экране ачивок, записывала его же как «откуда
+   * пришли» — и «назад» вело обратно в ачивки. Экран запирался наглухо.
+   */
   const [prevScreen, setPrevScreen] = useState<Screen>('home')
   const [mode, setMode] = useState<Mode>('daily')
   const [index, setIndex] = useState(0)
@@ -1253,6 +1258,26 @@ export default function App() {
     setScreen('setup')
   }
 
+  /**
+   * Ачивки открываются и закрываются одной и той же кнопкой в шапке.
+   * Повторное нажатие на самом экране ачивок закрывает его, а не открывает
+   * поверх себя же.
+   */
+  function openAch() {
+    beep('tap')
+    if (screen === 'ach') {
+      closeAch()
+      return
+    }
+    setPrevScreen(screen)
+    setScreen('ach')
+  }
+
+  function closeAch() {
+    beep('tap')
+    setScreen(prevScreen === 'ach' ? 'home' : prevScreen)
+  }
+
   function goHome() {
     beep('tap')
     resetRun()
@@ -1286,11 +1311,7 @@ export default function App() {
         pr={inRun ? pr : null}
         achCount={ownedCount(profile.unlocked)}
         achTotal={ACHIEVEMENTS.length}
-        onAch={() => {
-          beep('tap')
-          setPrevScreen(screen)
-          setScreen('ach')
-        }}
+        onAch={openAch}
         onSettings={() => {
           beep('tap')
           setSettingsOpen(true)
@@ -1476,11 +1497,7 @@ export default function App() {
                 lost: isShiftOver(shift) && finishShift(shift).verdict !== 'alive',
               }
             }
-            onAch={() => {
-              beep('tap')
-              setPrevScreen('home')
-              setScreen('ach')
-            }}
+            onAch={openAch}
             setSize={setSize}
             onSet={() => openSetup('set')}
           />
@@ -1490,10 +1507,7 @@ export default function App() {
           <Achievements
             unlocked={profile.unlocked}
             accent={accent}
-            onBack={() => {
-              beep('tap')
-              setScreen(prevScreen)
-            }}
+            onBack={closeAch}
           />
         )}
 
