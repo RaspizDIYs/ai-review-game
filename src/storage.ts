@@ -77,6 +77,12 @@ interface Save {
   musicOn: boolean
   /** Агент, выбранный на главной — просто чтобы экран был свой. */
   hero: string
+  /**
+   * Сколько строк досье собрано по каждому агенту. Копится через `/git-blame`
+   * и живёт между сменами: знание о почерке — это и есть прогресс игрока
+   * в расследовании.
+   */
+  dossier: Record<string, number>
   /** Имя репозитория в шапке. Пусто — подставится значение по умолчанию. */
   repo: string
 }
@@ -98,6 +104,7 @@ const EMPTY: Save = {
   music: DEFAULT_MUSIC,
   musicOn: true,
   hero: 'commander',
+  dossier: {},
   repo: '',
 }
 
@@ -212,12 +219,13 @@ export interface Profile {
   music: number
   musicOn: boolean
   hero: string
+  dossier: Record<string, number>
   repo: string
 }
 
 export function getProfile(): Profile {
-  const { unlocked, lifetime, found, sound, music, musicOn, hero, repo } = read()
-  return { unlocked, lifetime, found, sound, music, musicOn, hero, repo }
+  const { unlocked, lifetime, found, sound, music, musicOn, hero, dossier, repo } = read()
+  return { unlocked, lifetime, found, sound, music, musicOn, hero, dossier, repo }
 }
 
 export function saveProfile(profile: Profile): void {

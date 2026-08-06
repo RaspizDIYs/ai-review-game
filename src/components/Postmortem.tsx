@@ -48,6 +48,12 @@ function line(event: ShiftEvent): { text: string; icon: IconName; color: string 
       return { text: REPAIR[event.result], icon: 'hammer', color: '#c084fc' }
     case 'cleanup':
       return { text: 'разгребли уборкой', icon: 'sparkles', color: '#7c9cf5' }
+    case 'watch':
+      return {
+        text: `ты вешал лог на строки ${event.lines.join(', ')}`,
+        icon: 'search',
+        color: '#2dd4bf',
+      }
   }
 }
 

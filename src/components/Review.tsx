@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { MAX_ATTEMPTS } from '../round.ts'
 import { ROUND_SECONDS } from '../scoring.ts'
 import { plural } from '../stats.ts'
@@ -16,6 +17,17 @@ interface Props {
   marks: Map<number, LineState>
   attempts: number
   shake: boolean
+  /**
+   * Секундомер смены. Там таймера нет: важнее качество, чем скорость, —
+   * но время идёт и попадает в отчёт. null — режим с обратным отсчётом.
+   */
+  stopwatch?: number | null
+  /** Панель терминала. Есть только в смене — в остальных режимах её нет. */
+  terminal?: ReactNode
+  /** Сколько запросов к терминалу осталось на смену. */
+  probes?: number | null
+  /** Открыть терминал. null — режим без терминала, кнопки не будет. */
+  onTerminal?: (() => void) | null
   onPick: (line: number) => void
   onSubmit: () => void
 }
@@ -30,17 +42,28 @@ export function Review({
   marks,
   attempts,
   shake,
+  stopwatch = null,
+  terminal,
+  probes = null,
+  onTerminal,
   onPick,
   onSubmit,
 }: Props) {
   // Починка после смены идёт без таймера: там не про скорость чтения,
   // а про то, найдёшь ли ты в собственном мёрдже то, что проглядел.
   const timed = duration > 0
+  // Смена тоже без таймера, но это не починка: попытки там обычные,
+  // и отличает её как раз секундомер.
+  const fixing = !timed && stopwatch === null
   const tense = timed && left <= 20
   const tired = timed && duration < ROUND_SECONDS
 
   return (
-    <div className="screen-in mx-auto flex max-w-[900px] flex-col gap-3.5 px-[18px] pt-5">
+    <div
+      className={`screen-in mx-auto flex flex-col gap-3.5 px-[18px] pt-5 ${
+        terminal ? 'max-w-[1340px]' : 'max-w-[900px]'
+      }`}
+    >
       <div className="flex flex-col gap-[7px]">
         <div className="flex items-center justify-between gap-2.5">
           <span
@@ -50,12 +73,18 @@ export function Review({
             <span style={{ animation: tense ? 'pulseRed .8s ease-in-out infinite' : undefined }}>
               <Icon name={tense ? 'alarm-clock' : 'timer'} size={13} />
             </span>
-            {!timed ? 'чиним · без таймера' : tired ? 'осталось · после инцидента' : 'осталось'}
+            {timed
+              ? tired
+                ? 'осталось · после инцидента'
+                : 'осталось'
+              : stopwatch !== null
+                ? 'смена · время не поджимает'
+                : 'чиним · без таймера'}
           </span>
 
           <span className="flex items-center gap-3">
             {/* В починке попытка одна: показывать «две» было бы враньём. */}
-            <span className="flex items-center gap-[5px]" hidden={!timed}>
+            <span className="flex items-center gap-[5px]" hidden={fixing}>
               {Array.from({ length: MAX_ATTEMPTS }, (_, i) => {
                 const live = i < MAX_ATTEMPTS - attempts
                 return (
@@ -77,7 +106,11 @@ export function Review({
                 animation: tense ? 'pulseRed .8s ease-in-out infinite' : undefined,
               }}
             >
-              {timed ? `${Math.ceil(left)} с` : '∞'}
+              {timed
+                ? `${Math.ceil(left)} с`
+                : stopwatch !== null
+                  ? `${Math.floor(stopwatch)} с`
+                  : '∞'}
             </span>
           </span>
         </div>
@@ -107,7 +140,7 @@ export function Review({
             className="font-mono text-[11px] tracking-[.1em] uppercase"
             style={{ color: attempts ? '#f87171' : '#5c5c66' }}
           >
-            {!timed
+            {fixing
               ? 'одна попытка'
               : attempts
                 ? `осталась ${MAX_ATTEMPTS - attempts} попытка`
@@ -116,28 +149,50 @@ export function Review({
         </span>
       </div>
 
-      <DiffView
-        diff={task.diff}
-        tokens={tokens}
-        marks={marks}
-        accent={accent}
-        onPick={onPick}
-        shake={shake}
-      />
+      <div className="flex flex-col items-start gap-3.5 lg:flex-row">
+        <div className="w-full min-w-0 flex-1">
+          <DiffView
+            diff={task.diff}
+            tokens={tokens}
+            marks={marks}
+            accent={accent}
+            onPick={onPick}
+            shake={shake}
+          />
+        </div>
+
+        {terminal && <div className="w-full shrink-0 lg:w-[440px]">{terminal}</div>}
+      </div>
+
+      {onTerminal && !terminal && (
+        <button
+          onClick={onTerminal}
+          className="flex cursor-pointer items-center justify-center gap-2.5 self-end rounded-xl border-[1.5px] border-dashed px-5 py-3 font-mono text-[12px] tracking-[.12em] uppercase transition-colors"
+          style={{ borderColor: `${accent}66`, color: accent, background: `${accent}0f` }}
+        >
+          <Icon name="terminal" size={15} />
+          терминал
+          {probes !== null && (
+            <span className="text-[11px] opacity-70">· {probes} запросов</span>
+          )}
+        </button>
+      )}
 
       <Button
         accent={accent}
         variant={selected.length ? 'primary' : 'secondary'}
-        icon={selected.length ? (timed ? 'zap' : 'hammer') : 'shield-check'}
+        icon={selected.length ? (fixing ? 'hammer' : 'zap') : 'shield-check'}
         onClick={onSubmit}
       >
+        {/* Смена — это ревью, а не починка: там обвиняют и апрувят,
+            даже если таймера нет. */}
         {selected.length
-          ? timed
-            ? `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
-            : `Править ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
-          : timed
-            ? 'Здесь чисто — апрув'
-            : 'Закрыть, не трогая'}
+          ? fixing
+            ? `Править ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+            : `Обвинить ${selected.length} ${plural(selected.length, 'строку', 'строки', 'строк')}`
+          : fixing
+            ? 'Закрыть, не трогая'
+            : 'Здесь чисто — апрув'}
       </Button>
     </div>
   )

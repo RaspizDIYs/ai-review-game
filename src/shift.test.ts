@@ -16,14 +16,18 @@ import {
   CLEANUPS,
   cleanup,
   finish,
+  isCheckpoint,
   isShiftOver,
   merged,
   merges,
+  probe,
+  PROBES,
   repair,
   restore,
   review,
   SHIFT_TURNS,
   start,
+  watch,
   type Shift,
 } from './shift.ts'
 import type { Task } from './types.ts'
@@ -406,3 +410,103 @@ test('мусор вместо смены выбрасывается молча',
   }
 })
 
+
+test('смена — это рабочий день, и дни считаются', () => {
+  const first = start()
+  assert.equal(first.day, 1)
+  assert.equal(first.turns, 12)
+
+  const second = start(carry(first))
+  assert.equal(second.day, 2)
+})
+
+test('чекпойнт — каждые четыре хода, но не на старте', () => {
+  let s = start()
+  assert.equal(isCheckpoint(s), false)
+
+  const seen: number[] = []
+  for (let i = 0; i < SHIFT_TURNS; i++) {
+    s = review(s, CLEAN, 'clean-correct').shift
+    if (isCheckpoint(s)) seen.push(s.turn)
+  }
+
+  assert.deepEqual(seen, [4, 8, 12])
+})
+
+test('слежка тратит ход, но не мёржит PR', () => {
+  const before = start()
+  const after = watch(before, DIRTY, [DIRTY.bugs[0].line], true).shift
+
+  assert.equal(after.turn, before.turn + 1)
+  // Номер PR тот же: пул-реквест вернётся следующим ходом.
+  assert.equal(after.pr, before.pr)
+  assert.equal(after.defects.length, 0, 'на логировании мина в прод не уезжает')
+  assert.equal(after.pending?.pr, before.pr)
+  assert.ok(after.log.some((e) => e.kind === 'watch'))
+})
+
+test('удачная слежка не стоит здоровья, промах — трети', () => {
+  const hit = watch(start(), DIRTY, [DIRTY.bugs[0].line], true).shift
+  assert.equal(hit.prod.health, MAX_HEALTH)
+
+  const miss = watch(start(), DIRTY, [1], false).shift
+  assert.ok(miss.prod.health < MAX_HEALTH, 'промах должен что-то стоить')
+
+  // Пропуск того же PR обходится дороже — ради этого слежку и ставят.
+  const missed = review(start(), DIRTY, 'missed')
+  let s = missed.shift
+  while (s.defects.some((d) => !d.known)) s = review(s, CLEAN, 'clean-correct').shift
+
+  assert.ok(
+    MAX_HEALTH - miss.prod.health < MAX_HEALTH - s.prod.health,
+    'слежка должна быть дешевле пропуска',
+  )
+})
+
+test('слежка за чистым PR ничего не стоит', () => {
+  const s = watch(start(), CLEAN, [1, 2], false).shift
+  assert.equal(s.prod.health, MAX_HEALTH)
+})
+
+test('решение по PR снимает его с логирования', () => {
+  const watched = watch(start(), DIRTY, [1], false).shift
+  const decided = review(watched, DIRTY, 'found').shift
+
+  assert.equal(decided.pending, null)
+})
+
+test('смена со слежкой переживает перезагрузку', () => {
+  const s = watch(start(), DIRTY, [DIRTY.bugs[0].line], true).shift
+  assert.deepEqual(restore(JSON.parse(JSON.stringify(s))), s)
+})
+
+test('запросы к терминалу — ограниченный ресурс смены', () => {
+  let s = start()
+  assert.equal(s.probes, PROBES)
+
+  for (let i = 0; i < PROBES; i++) s = probe(s)
+  assert.equal(s.probes, 0)
+
+  // В минус не уходим: терминал сам откажет, но движок не должен позволять и подавно.
+  assert.equal(probe(s).probes, 0)
+})
+
+test('заряды терминала не переносятся в следующую смену', () => {
+  const spent = probe(probe(start()))
+  assert.equal(start(carry(spent)).probes, PROBES)
+})
+
+test('секундомер копит время смены, но ни на что не влияет', () => {
+  const fast = review(start(), CLEAN, 'clean-correct', 12)
+  const slow = review(start(), CLEAN, 'clean-correct', 120)
+
+  assert.equal(fast.shift.spent, 12)
+  assert.equal(slow.shift.spent, 120)
+  // Здоровье и скорость от времени не зависят: в смене важнее качество.
+  assert.deepEqual(fast.shift.prod, slow.shift.prod)
+})
+
+test('время копится и на слежке', () => {
+  const s = watch(start(), DIRTY, [DIRTY.bugs[0].line], true, 30).shift
+  assert.equal(s.spent, 30)
+})
